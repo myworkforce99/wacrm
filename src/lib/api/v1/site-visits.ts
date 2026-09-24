@@ -21,6 +21,8 @@ export function serializeSiteVisit(row: Record<string, unknown>): SiteVisit {
     scheduled_at: (row.scheduled_at as string | null) ?? undefined,
     status: row.status as SiteVisitStatus,
     notes: (row.notes as string | null) ?? undefined,
+    reminded_24h: Boolean(row.reminded_24h),
+    reminded_2h: Boolean(row.reminded_2h),
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

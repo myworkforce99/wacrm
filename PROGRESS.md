@@ -6,7 +6,7 @@ Checked off by the agent as each `IMPLEMENTATION_PLAN.md` section merges. One li
 - [x] Section B — Design Tokens & Mobile Shell Foundation
 - [x] Section C — Core Screens: Mobile-Responsive Pass
 - [x] Section D — Real Estate Data Model Extensions
-- [ ] Section E — Site Visits: UI + No-Show Automation
+- [x] Section E — Site Visits: UI + No-Show Automation
 - [ ] Section F — Response SLA & Lead Ownership Visibility
 - [ ] Section G — Team / Manager Dashboard
 - [ ] Section H — Properties & Lead Matching

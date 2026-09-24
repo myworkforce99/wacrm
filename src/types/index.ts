@@ -495,6 +495,8 @@ export interface SiteVisit {
   property_id?: string | null;
   scheduled_at?: string;
   status: SiteVisitStatus;
+  reminded_24h: boolean;
+  reminded_2h: boolean;
   notes?: string;
   created_at: string;
   updated_at: string;
@@ -529,7 +531,10 @@ export type AutomationTriggerType =
   | 'time_based'
   /** Customer tapped a reply button / list row whose id matches; lets
    *  multi-step menus be chained across automations. */
-  | 'interactive_reply';
+  | 'interactive_reply'
+  | 'visit_reminder_24h'
+  | 'visit_reminder_2h'
+  | 'visit_no_show';
 
 export type AutomationStepType =
   | 'send_message'

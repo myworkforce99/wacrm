@@ -32,6 +32,9 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
   time_based: {
     pillClass: 'border-slate-500/30 bg-slate-500/10 text-muted-foreground',
   },
+  visit_reminder_24h: { pillClass: "border-blue-500/30 bg-blue-500/10 text-blue-500" },
+  visit_reminder_2h: { pillClass: "border-blue-500/30 bg-blue-500/10 text-blue-500" },
+  visit_no_show: { pillClass: "border-red-500/30 bg-red-500/10 text-red-500" },
   interactive_reply: {
     pillClass: 'border-pink-500/30 bg-pink-500/10 text-pink-300',
   },
