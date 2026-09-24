@@ -5,8 +5,8 @@ Checked off by the agent as each `IMPLEMENTATION_PLAN.md` section merges. One li
 - [x] Section A — Repo Reconnaissance & Environment (Completed via direct push df15010 / 751a4e4)
 - [x] Section B — Design Tokens & Mobile Shell Foundation
 - [x] Section C — Core Screens: Mobile-Responsive Pass
-- [ ] Section D — Real Estate Data Model Extensions
-- [ ] Section E — Site Visits: UI + No-Show Automation
+- [x] Section D — Real Estate Data Model Extensions
+- [x] Section E — Site Visits: UI + No-Show Automation
 - [ ] Section F — Response SLA & Lead Ownership Visibility
 - [ ] Section G — Team / Manager Dashboard
 - [ ] Section H — Properties & Lead Matching

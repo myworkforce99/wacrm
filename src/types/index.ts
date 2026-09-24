@@ -140,6 +140,19 @@ export interface ContactTag {
   tag_id: string;
 }
 
+export interface LeadDetail {
+  id: string;
+  account_id: string;
+  contact_id: string;
+  budget_min?: number;
+  budget_max?: number;
+  location_preference?: string;
+  property_type?: string;
+  intent?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CustomField {
   id: string;
   user_id: string;
@@ -473,6 +486,38 @@ export interface BroadcastRecipient {
   contact?: Contact;
 }
 
+export type SiteVisitStatus =
+  'pending' | 'confirmed' | 'completed' | 'no_show' | 'rescheduled';
+
+export interface SiteVisit {
+  id: string;
+  account_id: string;
+  contact_id: string | null;
+  property_id?: string | null;
+  scheduled_at?: string;
+  status: SiteVisitStatus;
+  reminded_24h: boolean;
+  reminded_2h: boolean;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  contact?: Contact;
+  property?: Property;
+}
+
+export interface Property {
+  id: string;
+  account_id: string;
+  title: string;
+  location?: string;
+  price?: number;
+  property_type?: string;
+  bedrooms?: number;
+  tags?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 // ============================================================
 // Automations (migration 006)
 // ============================================================
@@ -487,7 +532,10 @@ export type AutomationTriggerType =
   | 'time_based'
   /** Customer tapped a reply button / list row whose id matches; lets
    *  multi-step menus be chained across automations. */
-  | 'interactive_reply';
+  | 'interactive_reply'
+  | 'visit_reminder_24h'
+  | 'visit_reminder_2h'
+  | 'visit_no_show';
 
 export type AutomationStepType =
   | 'send_message'

@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `042_message_failure_reason.sql`.**
-- **Every new migration in the implementation plan starts at `043` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `043_real_estate_schema.sql`.**
+- **Every new migration in the implementation plan starts at `044` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
@@ -53,8 +53,11 @@ running fork where migrations may have been added since this was written.
 | `ai_knowledge_documents`        | 030                           |                                                                                   |
 | `ai_knowledge_chunks`           | 030                           | pgvector/full-text retrieval                                                      |
 | `ai_usage_log`                  | 029                           | spend/usage tracking                                                              |
+| `lead_details`                  | 043                           | real-estate vertical additions                                                    |
+| `properties`                    | 043                           | real-estate vertical additions                                                    |
+| `site_visits`                   | 043                           | real-estate vertical additions                                                    |
 
-Not yet present — these are the additions the implementation plan's Section D introduces: **`lead_details` (or columns on `contacts`), `site_visits`, `properties`.**
+Not yet present — these are the additions the implementation plan's Section F introduces: **`deals_history` (or similar assignment audit table).**
 
 ## Core entity shapes (from `src/types/index.ts` — the canonical TS source)
 
@@ -79,9 +82,9 @@ Copy the existing style (doc-comments explaining _why_ a field exists, not just 
 
 ### Real-estate additions this implies (Section D of the implementation plan)
 
-- Lead-specific fields (`budget_min`, `budget_max`, `location_preference`, `property_type`, `intent`) most naturally extend `Contact` (or a new `lead_details` table keyed on `contact_id`, following the existing `contact_custom_values` pattern already in the schema if per-account custom fields are preferred over a fixed schema addition — check `custom_fields`/`contact_custom_values` first, since a generic mechanism may already cover this without a new migration at all).
-- `site_visits`: new table. Follow the `deals` table's shape as a template — `id`, tenancy column (matching whatever `deals`/`pipelines` actually use, per the open question above), `contact_id` (nullable, `ON DELETE SET NULL`, matching the `deals.contact_id` pattern from migration 004), `property_id` (nullable), `scheduled_at`, `status`, `notes`, `created_at`, `updated_at`.
-- `properties`: new table, account-scoped like `custom_fields`/`api_keys`.
+- `lead_details`: 1-to-1 extension table for `contacts` with `budget_min`, `budget_max`, `location_preference`, `property_type`, `intent`. (Migration 043)
+- `site_visits`: table for scheduled visits. `id`, account tenancy column, `contact_id` (nullable, `ON DELETE SET NULL`), `property_id` (nullable), `scheduled_at`, `status`, `notes`, `created_at`, `updated_at`. (Migration 043)
+- `properties`: table for listings, account-scoped like `custom_fields`/`api_keys`. (Migration 043)
 
 ## RLS pattern to follow
 

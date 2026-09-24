@@ -60,7 +60,8 @@
     "defaultAvatar": "아바타",
     "menuProfile": "프로필",
     "menuSettings": "설정",
-    "menuSignOut": "로그아웃"
+    "menuSignOut": "로그아웃",
+    "visits": "Site Visits"
   },
   "ModeToggle": {
     "switchMode": "{mode} 모드로 전환"
@@ -554,7 +555,9 @@
     },
     "board": {
       "dropDealHere": "여기에 딜을 놓으세요",
-      "addDeal": "딜 추가"
+      "addDeal": "딜 추가",
+      "moveToStage": "Move to Stage",
+      "totalValue": "Total Value"
     },
     "card": {
       "noContact": "연락처 없음",
@@ -2030,5 +2033,48 @@
   },
   "DashboardShell": {
     "loading": "불러오는 중..."
+  },
+  "SiteVisits": {
+    "page": {
+      "title": "Site Visits",
+      "subtitle": "Manage property visits and scheduling.",
+      "scheduleBtn": "Schedule Visit",
+      "noVisits": "No site visits scheduled.",
+      "loading": "Loading visits...",
+      "errorLoad": "Failed to load visits.",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "confirm": "Confirm",
+      "reschedule": "Reschedule",
+      "markCompleted": "Complete",
+      "markNoShow": "No Show",
+      "cancel": "Cancel",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "statusPending": "Pending",
+      "statusConfirmed": "Confirmed",
+      "statusCompleted": "Completed",
+      "statusNoShow": "No Show",
+      "statusRescheduled": "Rescheduled"
+    },
+    "schedule": {
+      "title": "Schedule Visit",
+      "desc": "Schedule a property visit with a lead.",
+      "contactLabel": "Lead",
+      "contactPlaceholder": "Select a lead...",
+      "propertyLabel": "Property (Optional)",
+      "propertyPlaceholder": "Select a property...",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Any special requirements...",
+      "cancel": "Cancel",
+      "schedule": "Schedule",
+      "toastSuccess": "Visit scheduled successfully.",
+      "toastError": "Failed to schedule visit.",
+      "toastStatusUpdated": "Visit status updated.",
+      "toastStatusError": "Failed to update visit status."
+    }
   }
 }

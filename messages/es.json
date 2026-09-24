@@ -60,7 +60,8 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Perfil",
     "menuSettings": "Configuración",
-    "menuSignOut": "Cerrar sesión"
+    "menuSignOut": "Cerrar sesión",
+    "visits": "Site Visits"
   },
   "ModeToggle": {
     "switchMode": "Cambiar al modo {mode}"
@@ -554,7 +555,9 @@
     },
     "board": {
       "dropDealHere": "Suelta un negocio aquí",
-      "addDeal": "Agregar negocio"
+      "addDeal": "Agregar negocio",
+      "moveToStage": "Move to Stage",
+      "totalValue": "Total Value"
     },
     "card": {
       "noContact": "Sin contacto",
@@ -2030,5 +2033,48 @@
   },
   "DashboardShell": {
     "loading": "Cargando..."
+  },
+  "SiteVisits": {
+    "page": {
+      "title": "Site Visits",
+      "subtitle": "Manage property visits and scheduling.",
+      "scheduleBtn": "Schedule Visit",
+      "noVisits": "No site visits scheduled.",
+      "loading": "Loading visits...",
+      "errorLoad": "Failed to load visits.",
+      "call": "Call",
+      "whatsapp": "WhatsApp",
+      "confirm": "Confirm",
+      "reschedule": "Reschedule",
+      "markCompleted": "Complete",
+      "markNoShow": "No Show",
+      "cancel": "Cancel",
+      "today": "Today",
+      "upcoming": "Upcoming",
+      "past": "Past",
+      "statusPending": "Pending",
+      "statusConfirmed": "Confirmed",
+      "statusCompleted": "Completed",
+      "statusNoShow": "No Show",
+      "statusRescheduled": "Rescheduled"
+    },
+    "schedule": {
+      "title": "Schedule Visit",
+      "desc": "Schedule a property visit with a lead.",
+      "contactLabel": "Lead",
+      "contactPlaceholder": "Select a lead...",
+      "propertyLabel": "Property (Optional)",
+      "propertyPlaceholder": "Select a property...",
+      "dateLabel": "Date",
+      "timeLabel": "Time",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Any special requirements...",
+      "cancel": "Cancel",
+      "schedule": "Schedule",
+      "toastSuccess": "Visit scheduled successfully.",
+      "toastError": "Failed to schedule visit.",
+      "toastStatusUpdated": "Visit status updated.",
+      "toastStatusError": "Failed to update visit status."
+    }
   }
 }

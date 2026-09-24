@@ -75,6 +75,17 @@ BEGIN
       'messages.error_code/error_title/error_details are missing — migration 042 did not apply';
   END IF;
 
+  -- Real estate schema extensions (043)
+  IF to_regclass('public.lead_details') IS NULL THEN
+    RAISE EXCEPTION 'public.lead_details is missing — migration 043 did not apply';
+  END IF;
+  IF to_regclass('public.properties') IS NULL THEN
+    RAISE EXCEPTION 'public.properties is missing — migration 043 did not apply';
+  END IF;
+  IF to_regclass('public.site_visits') IS NULL THEN
+    RAISE EXCEPTION 'public.site_visits is missing — migration 043 did not apply';
+  END IF;
+
   RAISE NOTICE 'schema verification passed';
 END
 $$;
