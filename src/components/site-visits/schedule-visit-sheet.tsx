@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/use-auth';
 import {
   Sheet,
   SheetContent,
@@ -27,6 +28,7 @@ interface Props {
 export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
   const t = useTranslations('SiteVisits.schedule');
   const supabase = createClient();
+  const { accountId } = useAuth();
   
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
@@ -68,6 +70,10 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!selectedContactId || !date || !time) return;
+    if (!accountId) {
+      toast.error(t('toastError'));
+      return;
+    }
     
     setSaving(true);
     
@@ -75,6 +81,7 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
     const scheduledAt = new Date(`${date}T${time}`).toISOString();
     
     const { error } = await supabase.from('site_visits').insert({
+      account_id: accountId,
       contact_id: selectedContactId,
       property_id: selectedPropertyId || null,
       scheduled_at: scheduledAt,
