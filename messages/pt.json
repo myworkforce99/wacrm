@@ -60,7 +60,8 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Perfil",
     "menuSettings": "Configurações",
-    "menuSignOut": "Sair"
+    "menuSignOut": "Sair",
+    "visits": "Site Visits"
   },
   "ModeToggle": {
     "switchMode": "Mudar para o modo {mode}"
@@ -554,7 +555,9 @@
     },
     "board": {
       "dropDealHere": "Solte um negócio aqui",
-      "addDeal": "Adicionar negócio"
+      "addDeal": "Adicionar negócio",
+      "moveToStage": "Move to Stage",
+      "totalValue": "Total Value"
     },
     "card": {
       "noContact": "Sem contato",

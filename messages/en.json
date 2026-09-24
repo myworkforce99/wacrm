@@ -60,7 +60,8 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Profile",
     "menuSettings": "Settings",
-    "menuSignOut": "Sign out"
+    "menuSignOut": "Sign out",
+    "visits": "Site Visits"
   },
   "ModeToggle": {
     "switchMode": "Switch to {mode} mode"
@@ -554,7 +555,9 @@
     },
     "board": {
       "dropDealHere": "Drop a deal here",
-      "addDeal": "Add Deal"
+      "addDeal": "Add Deal",
+      "moveToStage": "Move to Stage",
+      "totalValue": "Total Value"
     },
     "card": {
       "noContact": "No contact",
