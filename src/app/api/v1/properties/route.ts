@@ -69,9 +69,11 @@ export async function POST(request: Request) {
 
     if (typeof body.location === 'string') insertData.location = body.location;
     if (typeof body.price === 'number') insertData.price = body.price;
-    if (typeof body.property_type === 'string') insertData.property_type = body.property_type;
+    if (typeof body.property_type === 'string')
+      insertData.property_type = body.property_type;
     if (typeof body.bedrooms === 'number') insertData.bedrooms = body.bedrooms;
-    if (Array.isArray(body.tags)) insertData.tags = body.tags.filter((t) => typeof t === 'string');
+    if (Array.isArray(body.tags))
+      insertData.tags = body.tags.filter((t) => typeof t === 'string');
 
     const { data, error } = await ctx.supabase
       .from('properties')

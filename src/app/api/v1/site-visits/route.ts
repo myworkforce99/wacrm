@@ -63,11 +63,20 @@ export async function POST(request: Request) {
       account_id: ctx.accountId,
     };
 
-    if (typeof body.contact_id === 'string') insertData.contact_id = body.contact_id;
-    if (typeof body.property_id === 'string') insertData.property_id = body.property_id;
-    if (typeof body.scheduled_at === 'string') insertData.scheduled_at = body.scheduled_at;
+    if (typeof body.contact_id === 'string')
+      insertData.contact_id = body.contact_id;
+    if (typeof body.property_id === 'string')
+      insertData.property_id = body.property_id;
+    if (typeof body.scheduled_at === 'string')
+      insertData.scheduled_at = body.scheduled_at;
     if (typeof body.status === 'string') {
-      const validStatuses: SiteVisitStatus[] = ['pending', 'confirmed', 'completed', 'no_show', 'rescheduled'];
+      const validStatuses: SiteVisitStatus[] = [
+        'pending',
+        'confirmed',
+        'completed',
+        'no_show',
+        'rescheduled',
+      ];
       if (!validStatuses.includes(body.status as SiteVisitStatus)) {
         return fail('bad_request', 'Invalid status', 400);
       }

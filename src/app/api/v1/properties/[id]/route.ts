@@ -1,9 +1,6 @@
 import { requireApiKey } from '@/lib/auth/api-context';
 import { ok, fail, toApiErrorResponse } from '@/lib/api/v1/respond';
-import {
-  getPropertyById,
-  PropertyError,
-} from '@/lib/api/v1/properties';
+import { getPropertyById, PropertyError } from '@/lib/api/v1/properties';
 
 export async function GET(
   request: Request,
@@ -40,12 +37,32 @@ export async function PATCH(
     if (!existing) return fail('not_found', 'Property not found', 404);
 
     const updates: Record<string, unknown> = {};
-    if ('title' in body && typeof body.title === 'string' && body.title.trim()) updates.title = body.title.trim();
-    if ('location' in body && (typeof body.location === 'string' || body.location === null)) updates.location = body.location;
-    if ('price' in body && (typeof body.price === 'number' || body.price === null)) updates.price = body.price;
-    if ('property_type' in body && (typeof body.property_type === 'string' || body.property_type === null)) updates.property_type = body.property_type;
-    if ('bedrooms' in body && (typeof body.bedrooms === 'number' || body.bedrooms === null)) updates.bedrooms = body.bedrooms;
-    if ('tags' in body && (Array.isArray(body.tags) || body.tags === null)) updates.tags = Array.isArray(body.tags) ? body.tags.filter((t) => typeof t === 'string') : null;
+    if ('title' in body && typeof body.title === 'string' && body.title.trim())
+      updates.title = body.title.trim();
+    if (
+      'location' in body &&
+      (typeof body.location === 'string' || body.location === null)
+    )
+      updates.location = body.location;
+    if (
+      'price' in body &&
+      (typeof body.price === 'number' || body.price === null)
+    )
+      updates.price = body.price;
+    if (
+      'property_type' in body &&
+      (typeof body.property_type === 'string' || body.property_type === null)
+    )
+      updates.property_type = body.property_type;
+    if (
+      'bedrooms' in body &&
+      (typeof body.bedrooms === 'number' || body.bedrooms === null)
+    )
+      updates.bedrooms = body.bedrooms;
+    if ('tags' in body && (Array.isArray(body.tags) || body.tags === null))
+      updates.tags = Array.isArray(body.tags)
+        ? body.tags.filter((t) => typeof t === 'string')
+        : null;
 
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString();
@@ -60,7 +77,11 @@ export async function PATCH(
       }
     }
 
-    const updatedProperty = await getPropertyById(ctx.supabase, ctx.accountId, id);
+    const updatedProperty = await getPropertyById(
+      ctx.supabase,
+      ctx.accountId,
+      id
+    );
     return ok(updatedProperty);
   } catch (err) {
     if (err instanceof PropertyError) {
@@ -90,7 +111,7 @@ export async function DELETE(
       .delete()
       .eq('id', id)
       .eq('account_id', ctx.accountId);
-      
+
     if (error) {
       console.error('[api/v1/properties] delete error:', error);
       return fail('internal', 'Failed to delete property', 500);

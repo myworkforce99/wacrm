@@ -24,7 +24,7 @@ export default function SiteVisitsPage() {
   const t = useTranslations('SiteVisits.page');
   const supabase = createClient();
   const canEdit = useCan('send-messages');
-  
+
   const [visits, setVisits] = useState<VisitWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -63,24 +63,46 @@ export default function SiteVisitsPage() {
     }
   }
 
-  const filteredVisits = visits.filter(v => {
+  const filteredVisits = visits.filter((v) => {
     if (!search) return true;
     const term = search.toLowerCase();
-    return v.contact?.name?.toLowerCase().includes(term) || 
-           v.contact?.phone?.toLowerCase().includes(term) ||
-           v.property?.title?.toLowerCase().includes(term);
+    return (
+      v.contact?.name?.toLowerCase().includes(term) ||
+      v.contact?.phone?.toLowerCase().includes(term) ||
+      v.property?.title?.toLowerCase().includes(term)
+    );
   });
 
-  const todayVisits = filteredVisits.filter(v => v.scheduled_at && isToday(new Date(v.scheduled_at)));
-  const upcomingVisits = filteredVisits.filter(v => v.scheduled_at && isFuture(new Date(v.scheduled_at)) && !isToday(new Date(v.scheduled_at)));
-  const pastVisits = filteredVisits.filter(v => v.scheduled_at && isPast(new Date(v.scheduled_at)) && !isToday(new Date(v.scheduled_at))).reverse();
+  const todayVisits = filteredVisits.filter(
+    (v) => v.scheduled_at && isToday(new Date(v.scheduled_at))
+  );
+  const upcomingVisits = filteredVisits.filter(
+    (v) =>
+      v.scheduled_at &&
+      isFuture(new Date(v.scheduled_at)) &&
+      !isToday(new Date(v.scheduled_at))
+  );
+  const pastVisits = filteredVisits
+    .filter(
+      (v) =>
+        v.scheduled_at &&
+        isPast(new Date(v.scheduled_at)) &&
+        !isToday(new Date(v.scheduled_at))
+    )
+    .reverse();
 
   function VisitCard({ visit }: { visit: VisitWithDetails }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const statusVariant = `visit-${visit.status}` as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statusLabel = t(`status${visit.status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('')}` as any) || visit.status;
-    
+    const statusLabel =
+      t(
+        `status${visit.status
+          .split('_')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join('')}` as any
+      ) || visit.status;
+
     return (
       <div className="border-border bg-card overflow-hidden rounded-lg border p-4 shadow-sm">
         <div className="flex items-start justify-between gap-2">
@@ -90,18 +112,20 @@ export default function SiteVisitsPage() {
             </h3>
             {visit.property && (
               <p className="text-muted-foreground mt-0.5 truncate text-sm">
-                <MapPin className="inline-block mr-1 size-3" />
+                <MapPin className="mr-1 inline-block size-3" />
                 {visit.property.title}
               </p>
             )}
             <p className="text-muted-foreground mt-1 text-xs">
-              <Calendar className="inline-block mr-1 size-3" />
-              {visit.scheduled_at ? format(new Date(visit.scheduled_at), 'h:mm a') : 'Unscheduled'}
+              <Calendar className="mr-1 inline-block size-3" />
+              {visit.scheduled_at
+                ? format(new Date(visit.scheduled_at), 'h:mm a')
+                : 'Unscheduled'}
             </p>
           </div>
           <Badge variant={statusVariant}>{statusLabel}</Badge>
         </div>
-        
+
         <div className="mt-4 flex flex-wrap gap-2">
           <a href={`tel:${visit.contact?.phone}`} className="flex-1">
             <Button variant="outline" size="sm" className="w-full">
@@ -109,7 +133,12 @@ export default function SiteVisitsPage() {
               {t('call')}
             </Button>
           </a>
-          <a href={`https://wa.me/${visit.contact?.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex-1">
+          <a
+            href={`https://wa.me/${visit.contact?.phone?.replace(/[^0-9]/g, '')}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex-1"
+          >
             <Button variant="outline" size="sm" className="w-full">
               <span className="mr-1.5 font-bold">W</span>
               {t('whatsapp')}
@@ -119,21 +148,41 @@ export default function SiteVisitsPage() {
 
         {visit.status === 'pending' && canEdit && (
           <div className="mt-2 flex gap-2">
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => updateStatus(visit.id, 'confirmed')}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={() => updateStatus(visit.id, 'confirmed')}
+            >
               {t('confirm')}
             </Button>
-            <Button variant="ghost" size="sm" className="flex-1 text-muted-foreground" onClick={() => updateStatus(visit.id, 'rescheduled')}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground flex-1"
+              onClick={() => updateStatus(visit.id, 'rescheduled')}
+            >
               {t('reschedule')}
             </Button>
           </div>
         )}
-        
+
         {visit.status === 'confirmed' && canEdit && (
           <div className="mt-2 flex gap-2">
-            <Button variant="secondary" size="sm" className="flex-1" onClick={() => updateStatus(visit.id, 'completed')}>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1"
+              onClick={() => updateStatus(visit.id, 'completed')}
+            >
               {t('markCompleted')}
             </Button>
-            <Button variant="destructive" size="sm" className="flex-1" onClick={() => updateStatus(visit.id, 'no_show')}>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+              onClick={() => updateStatus(visit.id, 'no_show')}
+            >
               {t('markNoShow')}
             </Button>
           </div>
@@ -155,7 +204,7 @@ export default function SiteVisitsPage() {
           onClick={() => setScheduleOpen(true)}
           className="bg-primary hover:bg-primary/90 text-primary-foreground"
         >
-          <Plus className="size-4 mr-1" />
+          <Plus className="mr-1 size-4" />
           {t('scheduleBtn')}
         </GatedButton>
       </div>
@@ -194,35 +243,47 @@ export default function SiteVisitsPage() {
         <div className="space-y-6">
           {todayVisits.length > 0 && (
             <div>
-              <h2 className="text-foreground mb-3 text-lg font-semibold">{t('today')}</h2>
+              <h2 className="text-foreground mb-3 text-lg font-semibold">
+                {t('today')}
+              </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {todayVisits.map(v => <VisitCard key={v.id} visit={v} />)}
+                {todayVisits.map((v) => (
+                  <VisitCard key={v.id} visit={v} />
+                ))}
               </div>
             </div>
           )}
           {upcomingVisits.length > 0 && (
             <div>
-              <h2 className="text-foreground mb-3 text-lg font-semibold">{t('upcoming')}</h2>
+              <h2 className="text-foreground mb-3 text-lg font-semibold">
+                {t('upcoming')}
+              </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {upcomingVisits.map(v => <VisitCard key={v.id} visit={v} />)}
+                {upcomingVisits.map((v) => (
+                  <VisitCard key={v.id} visit={v} />
+                ))}
               </div>
             </div>
           )}
           {pastVisits.length > 0 && (
             <div>
-              <h2 className="text-foreground mb-3 text-lg font-semibold">{t('past')}</h2>
+              <h2 className="text-foreground mb-3 text-lg font-semibold">
+                {t('past')}
+              </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {pastVisits.map(v => <VisitCard key={v.id} visit={v} />)}
+                {pastVisits.map((v) => (
+                  <VisitCard key={v.id} visit={v} />
+                ))}
               </div>
             </div>
           )}
         </div>
       )}
 
-      <ScheduleVisitSheet 
-        open={scheduleOpen} 
-        onOpenChange={setScheduleOpen} 
-        onSuccess={fetchVisits} 
+      <ScheduleVisitSheet
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        onSuccess={fetchVisits}
       />
     </div>
   );

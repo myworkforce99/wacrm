@@ -486,7 +486,8 @@ export interface BroadcastRecipient {
   contact?: Contact;
 }
 
-export type SiteVisitStatus = 'pending' | 'confirmed' | 'completed' | 'no_show' | 'rescheduled';
+export type SiteVisitStatus =
+  'pending' | 'confirmed' | 'completed' | 'no_show' | 'rescheduled';
 
 export interface SiteVisit {
   id: string;

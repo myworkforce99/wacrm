@@ -1,9 +1,6 @@
 import { requireApiKey } from '@/lib/auth/api-context';
 import { ok, fail, toApiErrorResponse } from '@/lib/api/v1/respond';
-import {
-  getSiteVisitById,
-  SiteVisitError,
-} from '@/lib/api/v1/site-visits';
+import { getSiteVisitById, SiteVisitError } from '@/lib/api/v1/site-visits';
 import type { SiteVisitStatus } from '@/types';
 
 export async function GET(
@@ -41,17 +38,39 @@ export async function PATCH(
     if (!existing) return fail('not_found', 'Site visit not found', 404);
 
     const updates: Record<string, unknown> = {};
-    if ('contact_id' in body && (typeof body.contact_id === 'string' || body.contact_id === null)) updates.contact_id = body.contact_id;
-    if ('property_id' in body && (typeof body.property_id === 'string' || body.property_id === null)) updates.property_id = body.property_id;
-    if ('scheduled_at' in body && (typeof body.scheduled_at === 'string' || body.scheduled_at === null)) updates.scheduled_at = body.scheduled_at;
+    if (
+      'contact_id' in body &&
+      (typeof body.contact_id === 'string' || body.contact_id === null)
+    )
+      updates.contact_id = body.contact_id;
+    if (
+      'property_id' in body &&
+      (typeof body.property_id === 'string' || body.property_id === null)
+    )
+      updates.property_id = body.property_id;
+    if (
+      'scheduled_at' in body &&
+      (typeof body.scheduled_at === 'string' || body.scheduled_at === null)
+    )
+      updates.scheduled_at = body.scheduled_at;
     if ('status' in body && typeof body.status === 'string') {
-      const validStatuses: SiteVisitStatus[] = ['pending', 'confirmed', 'completed', 'no_show', 'rescheduled'];
+      const validStatuses: SiteVisitStatus[] = [
+        'pending',
+        'confirmed',
+        'completed',
+        'no_show',
+        'rescheduled',
+      ];
       if (!validStatuses.includes(body.status as SiteVisitStatus)) {
         return fail('bad_request', 'Invalid status', 400);
       }
       updates.status = body.status;
     }
-    if ('notes' in body && (typeof body.notes === 'string' || body.notes === null)) updates.notes = body.notes;
+    if (
+      'notes' in body &&
+      (typeof body.notes === 'string' || body.notes === null)
+    )
+      updates.notes = body.notes;
 
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString();
@@ -66,7 +85,11 @@ export async function PATCH(
       }
     }
 
-    const updatedSiteVisit = await getSiteVisitById(ctx.supabase, ctx.accountId, id);
+    const updatedSiteVisit = await getSiteVisitById(
+      ctx.supabase,
+      ctx.accountId,
+      id
+    );
     return ok(updatedSiteVisit);
   } catch (err) {
     if (err instanceof SiteVisitError) {
@@ -96,7 +119,7 @@ export async function DELETE(
       .delete()
       .eq('id', id)
       .eq('account_id', ctx.accountId);
-      
+
     if (error) {
       console.error('[api/v1/site-visits] delete error:', error);
       return fail('internal', 'Failed to delete site visit', 500);

@@ -19,13 +19,13 @@ export async function GET(request: Request) {
   }
 
   const admin = supabaseAdmin();
-  
+
   // 1. T-24h confirmation reminder (status: pending, reminded_24h: false)
   const tomorrowStart = new Date();
   tomorrowStart.setHours(tomorrowStart.getHours() + 23);
   const tomorrowEnd = new Date();
   tomorrowEnd.setHours(tomorrowEnd.getHours() + 25);
-  
+
   const { data: visits24h } = await admin
     .from('site_visits')
     .select('*, contacts(*), properties(*)')
@@ -45,11 +45,14 @@ export async function GET(request: Request) {
           vars: {
             visit_id: visit.id,
             property_title: visit.properties?.title || 'the property',
-            scheduled_at: visit.scheduled_at
-          }
-        }
+            scheduled_at: visit.scheduled_at,
+          },
+        },
       });
-      await admin.from('site_visits').update({ reminded_24h: true }).eq('id', visit.id);
+      await admin
+        .from('site_visits')
+        .update({ reminded_24h: true })
+        .eq('id', visit.id);
     }
   }
 
@@ -58,7 +61,7 @@ export async function GET(request: Request) {
   in2hStart.setHours(in2hStart.getHours() + 1);
   const in2hEnd = new Date();
   in2hEnd.setHours(in2hEnd.getHours() + 3);
-  
+
   const { data: visits2h } = await admin
     .from('site_visits')
     .select('*, contacts(*), properties(*)')
@@ -78,11 +81,14 @@ export async function GET(request: Request) {
           vars: {
             visit_id: visit.id,
             property_title: visit.properties?.title || 'the property',
-            scheduled_at: visit.scheduled_at
-          }
-        }
+            scheduled_at: visit.scheduled_at,
+          },
+        },
       });
-      await admin.from('site_visits').update({ reminded_2h: true }).eq('id', visit.id);
+      await admin
+        .from('site_visits')
+        .update({ reminded_2h: true })
+        .eq('id', visit.id);
     }
   }
 
@@ -105,13 +111,21 @@ export async function GET(request: Request) {
           vars: {
             visit_id: visit.id,
             property_title: visit.properties?.title || 'the property',
-            scheduled_at: visit.scheduled_at
-          }
-        }
+            scheduled_at: visit.scheduled_at,
+          },
+        },
       });
-      await admin.from('site_visits').update({ status: 'no_show' }).eq('id', visit.id);
+      await admin
+        .from('site_visits')
+        .update({ status: 'no_show' })
+        .eq('id', visit.id);
     }
   }
 
-  return NextResponse.json({ success: true, processed24h: visits24h?.length || 0, processed2h: visits2h?.length || 0, processedNoShows: noShows?.length || 0 });
+  return NextResponse.json({
+    success: true,
+    processed24h: visits24h?.length || 0,
+    processed2h: visits2h?.length || 0,
+    processedNoShows: noShows?.length || 0,
+  });
 }

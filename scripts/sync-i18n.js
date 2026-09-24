@@ -24,7 +24,7 @@ locales.forEach((locale) => {
   if (fs.existsSync(file)) {
     current = JSON.parse(fs.readFileSync(file, 'utf-8'));
   }
-  
+
   const synced = syncObject(en, current);
   fs.writeFileSync(file, JSON.stringify(synced, null, 2) + '\n');
   console.log(`✅ Synced missing/orphaned keys to ${locale}.json`);
