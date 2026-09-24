@@ -60,14 +60,14 @@ export function PresenceHeartbeat() {
       const t = Date.now();
       if (t - lastBeatAt < 1_000) return;
       lastBeatAt = t;
-      const { error } = await supabase.rpc('touch_presence', {
+      const { error } = await supabase.rpc('sync_profile_data', {
         p_status: currentStatus(),
       });
       if (error && !cancelled) {
         // Non-fatal: presence is best-effort. Log once per failure so a
         // misconfigured RPC is visible without spamming.
         console.error(
-          '[PresenceHeartbeat] touch_presence failed:',
+          '[PresenceHeartbeat] sync_profile_data failed:',
           error.message
         );
       }

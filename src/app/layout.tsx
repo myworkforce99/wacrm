@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import './globals.css';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ThemedToaster } from '@/components/themed-toaster';
@@ -101,14 +100,14 @@ export default async function RootLayout({
       // children still surface.
       suppressHydrationWarning
     >
-      <head>
-        <Script
+      <body
+        className="bg-background text-foreground min-h-full font-sans"
+        suppressHydrationWarning
+      >
+        <script
           id="theme-boot"
-          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }}
         />
-      </head>
-      <body className="bg-background text-foreground min-h-full font-sans">
         <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider>
             {children}

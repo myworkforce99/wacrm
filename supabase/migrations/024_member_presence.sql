@@ -43,7 +43,7 @@ ALTER TABLE member_presence ENABLE ROW LEVEL SECURITY;
 
 -- Account members may read every presence row for their account.
 -- No client INSERT/UPDATE/DELETE policy exists: all writes flow
--- through touch_presence() below.
+-- through sync_profile_data() below.
 DROP POLICY IF EXISTS member_presence_select ON member_presence;
 CREATE POLICY member_presence_select ON member_presence FOR SELECT
   USING (is_account_member(account_id));
@@ -53,7 +53,7 @@ CREATE POLICY member_presence_select ON member_presence FOR SELECT
 -- write despite the absence of a client write policy; the account
 -- is resolved from the caller's own profile, so a client can never
 -- spoof which account it appears in.
-CREATE OR REPLACE FUNCTION public.touch_presence(
+CREATE OR REPLACE FUNCTION public.sync_profile_data(
   p_status TEXT DEFAULT 'online'
 ) RETURNS VOID
 LANGUAGE plpgsql
