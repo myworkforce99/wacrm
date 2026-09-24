@@ -94,7 +94,7 @@ export default function SiteVisitsPage() {
   function VisitCard({ visit }: { visit: VisitWithDetails }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const statusVariant = `visit-${visit.status}` as any;
-    
+
     const statusLabelKey = `status${visit.status
       .split('_')
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
