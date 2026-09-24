@@ -1,5 +1,3 @@
-'use client';
-
 import { useMemo, useState } from 'react';
 import {
   DndContext,
@@ -21,6 +19,13 @@ import { Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 interface PipelineBoardProps {
   stages: PipelineStage[];
@@ -38,7 +43,9 @@ export function PipelineBoard({
   onEditDeal,
 }: PipelineBoardProps) {
   const { defaultCurrency } = useAuth();
+  const t = useTranslations('Pipelines.board');
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
+  const [moveDealId, setMoveDealId] = useState<string | null>(null);
 
   const sortedStages = useMemo(
     () => [...stages].sort((a, b) => a.position - b.position),
@@ -56,16 +63,15 @@ export function PipelineBoard({
   }, [sortedStages, deals]);
 
   const sensors = useSensors(
-    // 5px activation distance avoids clicks being interpreted as drags.
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    // Keyboard drag support: focus a card, Space to pick up, arrows to move,
-    // Space to drop, Escape to cancel.
     useSensor(KeyboardSensor)
   );
 
   const activeDeal = activeDealId
     ? (deals.find((d) => d.id === activeDealId) ?? null)
     : null;
+
+  const moveDeal = moveDealId ? deals.find((d) => d.id === moveDealId) : null;
 
   function handleDragStart(event: DragStartEvent) {
     setActiveDealId(String(event.active.id));
@@ -90,59 +96,178 @@ export function PipelineBoard({
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-    >
-      {/* snap-x + snap-mandatory on mobile so swipes land the next
-          stage cleanly at the viewport edge instead of mid-column.
-          Disabled on lg+ where snapping would interfere with the
-          natural layout. The board can still overflow horizontally on
-          lg+ once a pipeline has many stages (columns keep a 260px
-          min-width), so a thin scrollbar stays visible on desktop. */}
-      <div className="pipeline-scroll flex snap-x snap-mandatory gap-3 overflow-x-auto pb-4 lg:snap-none">
-        {sortedStages.map((stage) => {
-          const stageDeals = dealsByStage.get(stage.id) ?? [];
-          const totalValue = stageDeals.reduce(
-            (s, d) => s + Number(d.value || 0),
-            0
-          );
-          return (
-            <StageColumn
-              key={stage.id}
-              stage={stage}
-              deals={stageDeals}
-              totalValue={totalValue}
-              currency={defaultCurrency}
-              onAddDeal={onAddDeal}
-              onEditDeal={onEditDeal}
-            />
-          );
-        })}
-      </div>
-
-      <DragOverlay
-        dropAnimation={{
-          duration: 200,
-          easing: 'cubic-bezier(0.2, 0, 0, 1)',
-        }}
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
-        {activeDeal ? (
-          <div className="opacity-90">
-            <DealCard
-              deal={activeDeal}
-              stage={
-                sortedStages.find((s) => s.id === activeDeal.stage_id) ?? null
-              }
-              onEdit={() => {}}
-              isOverlay
-            />
+        {/* Desktop View (DndContext needs to wrap the layout) */}
+        <div className="pipeline-scroll hidden snap-none gap-3 overflow-x-auto pb-4 lg:flex">
+          {sortedStages.map((stage) => {
+            const stageDeals = dealsByStage.get(stage.id) ?? [];
+            const totalValue = stageDeals.reduce(
+              (s, d) => s + Number(d.value || 0),
+              0
+            );
+            return (
+              <StageColumn
+                key={stage.id}
+                stage={stage}
+                deals={stageDeals}
+                totalValue={totalValue}
+                currency={defaultCurrency}
+                onAddDeal={onAddDeal}
+                onEditDeal={onEditDeal}
+                onMoveDeal={(d) => setMoveDealId(d.id)}
+              />
+            );
+          })}
+        </div>
+
+        {/* Mobile Tabs View */}
+        <div className="lg:hidden">
+          <Tabs defaultValue={sortedStages[0]?.id}>
+            <TabsList
+              className="border-border flex h-auto w-full snap-x snap-mandatory overflow-x-auto rounded-none border-b bg-transparent p-0 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none' }}
+            >
+              {sortedStages.map((s) => (
+                <TabsTrigger
+                  key={s.id}
+                  value={s.id}
+                  className="data-[state=active]:border-primary shrink-0 snap-start rounded-none border-b-2 border-transparent px-4 py-2 text-sm font-medium transition-none data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {s.name}
+                  <span className="bg-muted text-muted-foreground ml-2 rounded-full px-1.5 py-0.5 text-[10px]">
+                    {dealsByStage.get(s.id)?.length || 0}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {sortedStages.map((stage) => {
+              const stageDeals = dealsByStage.get(stage.id) ?? [];
+              const totalValue = stageDeals.reduce(
+                (s, d) => s + Number(d.value || 0),
+                0
+              );
+              return (
+                <TabsContent
+                  key={stage.id}
+                  value={stage.id}
+                  className="space-y-3 pt-4 outline-none"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-muted-foreground text-xs font-medium">
+                      {t('totalValue')}:{' '}
+                      {formatCurrency(totalValue, defaultCurrency)}
+                    </p>
+                  </div>
+
+                  {stageDeals.length === 0 ? (
+                    <div className="border-border text-muted-foreground flex items-center justify-center rounded-lg border-2 border-dashed py-10 text-xs">
+                      {t('dropDealHere')}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {stageDeals.map((deal) => (
+                        <DealCard
+                          key={deal.id}
+                          deal={deal}
+                          stage={stage}
+                          onEdit={onEditDeal}
+                          onMove={() => setMoveDealId(deal.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onAddDeal(stage.id)}
+                    className="border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground mt-3 w-full justify-start border border-dashed bg-transparent"
+                  >
+                    <Plus className="mr-1 h-3 w-3" />
+                    {t('addDeal')}
+                  </Button>
+                </TabsContent>
+              );
+            })}
+          </Tabs>
+        </div>
+
+        <DragOverlay
+          dropAnimation={{
+            duration: 200,
+            easing: 'cubic-bezier(0.2, 0, 0, 1)',
+          }}
+        >
+          {activeDeal ? (
+            <div className="opacity-90">
+              <DealCard
+                deal={activeDeal}
+                stage={
+                  sortedStages.find((s) => s.id === activeDeal.stage_id) ?? null
+                }
+                onEdit={() => {}}
+                isOverlay
+              />
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      <Sheet
+        open={!!moveDealId}
+        onOpenChange={(open) => !open && setMoveDealId(null)}
+      >
+        <SheetContent
+          side="bottom"
+          className="bg-popover border-border rounded-t-xl border-t sm:mx-auto sm:max-w-md"
+        >
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-left">{t('moveToStage')}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-2">
+            {sortedStages.map((stage) => {
+              const isActive = moveDeal?.stage_id === stage.id;
+              return (
+                <button
+                  key={stage.id}
+                  onClick={() => {
+                    if (!isActive && moveDealId) {
+                      onDealMoved(moveDealId, stage.id);
+                    }
+                    setMoveDealId(null);
+                  }}
+                  className={`flex w-full items-center justify-between rounded-lg border p-3 transition-colors ${
+                    isActive
+                      ? 'bg-primary/10 border-primary/20 text-primary cursor-default'
+                      : 'bg-card border-border hover:bg-muted text-foreground'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="size-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: stage.color }}
+                    />
+                    <span className="text-sm font-medium">{stage.name}</span>
+                  </div>
+                  {isActive && (
+                    <span className="text-xs font-semibold">
+                      {t('currentStage')}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        ) : null}
-      </DragOverlay>
+        </SheetContent>
+      </Sheet>
 
       <style jsx>{`
         .pipeline-scroll {
@@ -182,7 +307,7 @@ export function PipelineBoard({
           }
         }
       `}</style>
-    </DndContext>
+    </>
   );
 }
 
@@ -193,6 +318,7 @@ function StageColumn({
   currency,
   onAddDeal,
   onEditDeal,
+  onMoveDeal,
 }: {
   stage: PipelineStage;
   deals: Deal[];
@@ -200,6 +326,7 @@ function StageColumn({
   currency: string;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
+  onMoveDeal: (deal: Deal) => void;
 }) {
   const t = useTranslations('Pipelines.board');
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
@@ -248,6 +375,7 @@ function StageColumn({
               deal={deal}
               stage={stage}
               onEdit={onEditDeal}
+              onMove={onMoveDeal}
             />
           ))
         )}
@@ -270,10 +398,12 @@ function DraggableDealCard({
   deal,
   stage,
   onEdit,
+  onMove,
 }: {
   deal: Deal;
   stage: PipelineStage;
   onEdit: (deal: Deal) => void;
+  onMove: (deal: Deal) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
@@ -286,7 +416,7 @@ function DraggableDealCard({
       {...attributes}
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none' }}
     >
-      <DealCard deal={deal} stage={stage} onEdit={onEdit} />
+      <DealCard deal={deal} stage={stage} onEdit={onEdit} onMove={onMove} />
     </div>
   );
 }

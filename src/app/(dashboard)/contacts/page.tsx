@@ -388,7 +388,7 @@ export default function ContactsPage() {
       </div>
 
       {/* Search + tag filter */}
-      <div className="space-y-2">
+      <div className="bg-background/95 sticky top-0 z-10 -mx-4 space-y-2 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0">
         <div className="flex flex-col gap-2 sm:flex-row">
           <div className="relative w-full max-w-sm">
             <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
@@ -396,8 +396,6 @@ export default function ContactsPage() {
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
-                // Reset pagination when the query changes — the result
-                // set shrinks/grows, page N may no longer be valid.
                 setPage(0);
               }}
               placeholder={t('searchPlaceholder')}
@@ -532,8 +530,113 @@ export default function ContactsPage() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="border-border overflow-hidden rounded-lg border">
+      {/* Mobile List View */}
+      <div className="space-y-3 md:hidden">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center gap-2 py-12">
+            <Loader2 className="text-primary size-6 animate-spin" />
+            <p className="text-muted-foreground text-sm">{t('loading')}</p>
+          </div>
+        ) : contacts.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-12">
+            <Users className="text-muted-foreground size-8" />
+            <p className="text-muted-foreground text-sm">
+              {hasActiveFilters ? t('noContactsMatch') : t('noContactsYet')}
+            </p>
+            {!hasActiveFilters && (
+              <GatedButton
+                canAct={canEdit}
+                gateReason="add or import contacts"
+                variant="outline"
+                size="sm"
+                onClick={openAddForm}
+                className="border-border text-muted-foreground hover:bg-muted mt-2"
+              >
+                <Plus className="size-3.5" />
+                {t('addFirstContact')}
+              </GatedButton>
+            )}
+          </div>
+        ) : (
+          contacts.map((contact) => (
+            <div
+              key={contact.id}
+              className="border-border bg-card relative overflow-hidden rounded-lg border"
+            >
+              <div
+                className="flex w-full snap-x snap-mandatory overflow-x-auto [&::-webkit-scrollbar]:hidden"
+                style={{ scrollbarWidth: 'none' }}
+              >
+                {/* Main Content */}
+                <div
+                  className="bg-card flex w-full flex-none cursor-pointer snap-start items-center gap-3 p-3"
+                  onClick={() => openDetail(contact.id)}
+                >
+                  <Checkbox
+                    checked={selected.has(contact.id)}
+                    onCheckedChange={() => toggleSelect(contact.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`Select ${contact.name || contact.phone}`}
+                  />
+                  <div className="bg-muted border-border flex size-10 shrink-0 items-center justify-center rounded-full border">
+                    <span className="text-primary text-xs font-medium">
+                      {(contact.name || '?').charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate text-sm font-medium">
+                      {contact.name || (
+                        <span className="text-muted-foreground italic">
+                          {t('unnamed')}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {contact.phone}
+                    </p>
+                    {contact.tags && contact.tags.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {contact.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium"
+                            style={{
+                              backgroundColor: tag.color + '20',
+                              color: tag.color,
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {/* Swipe Actions */}
+                <div className="divide-border flex flex-none snap-end divide-x">
+                  <button
+                    onClick={() => openEditForm(contact)}
+                    className="bg-muted hover:bg-muted/80 flex items-center justify-center px-4 transition-colors"
+                    aria-label={t('editAction')}
+                  >
+                    <Pencil className="text-foreground size-4" />
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(contact)}
+                    className="bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center px-4 transition-colors"
+                    aria-label={t('deleteAction')}
+                  >
+                    <Trash2 className="text-destructive size-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="border-border hidden overflow-hidden rounded-lg border md:block">
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
