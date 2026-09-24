@@ -38,9 +38,7 @@ function MobileHeader() {
   const t = useTranslations('Header');
   const pathname = usePathname();
   const titleKey = getPageTitleKey(pathname);
-  {
-    /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return <TopAppBar title={t(titleKey as any)} className="md:hidden" />;
 }
 

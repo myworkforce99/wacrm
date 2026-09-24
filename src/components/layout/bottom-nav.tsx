@@ -66,8 +66,8 @@ export function BottomNav() {
               )}
             >
               <item.icon className="size-5" />
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               <span className="w-full truncate text-center text-[10px] font-medium">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {t(item.labelKey as any)}
               </span>
             </Link>
@@ -109,8 +109,8 @@ export function BottomNav() {
                   <div className="bg-muted/50 hover:bg-muted/80 flex h-14 w-14 items-center justify-center rounded-2xl">
                     <item.icon className="size-6" />
                   </div>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <span className="text-center text-[11px] font-medium">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {t(item.labelKey as any)}
                   </span>
                 </Link>
