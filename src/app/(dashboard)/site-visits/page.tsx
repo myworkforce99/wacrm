@@ -94,14 +94,13 @@ export default function SiteVisitsPage() {
   function VisitCard({ visit }: { visit: VisitWithDetails }) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const statusVariant = `visit-${visit.status}` as any;
+    
+    const statusLabelKey = `status${visit.status
+      .split('_')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join('')}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const statusLabel =
-      t(
-        `status${visit.status
-          .split('_')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join('')}` as any
-      ) || visit.status;
+    const statusLabel = t(statusLabelKey as any) || visit.status;
 
     return (
       <div className="border-border bg-card overflow-hidden rounded-lg border p-4 shadow-sm">
