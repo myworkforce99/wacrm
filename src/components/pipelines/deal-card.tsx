@@ -2,7 +2,7 @@
 
 import type { Deal, PipelineStage } from '@/types';
 import { Calendar, Check, X, ArrowRightLeft } from 'lucide-react';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
 
 interface DealCardProps {
@@ -102,7 +102,9 @@ export function DealCard({
 
       <div className="mt-2 flex items-center justify-between">
         <span className="text-primary text-sm font-bold">
-          {formatCurrency(deal.value, deal.currency)}
+          {deal.currency === 'INR'
+            ? formatINR(deal.value)
+            : formatCurrency(deal.value, deal.currency)}
         </span>
         {deal.expected_close_date && (
           <span className="text-muted-foreground flex items-center gap-1 text-[11px]">

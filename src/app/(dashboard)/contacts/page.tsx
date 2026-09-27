@@ -57,6 +57,7 @@ import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
 import { ImportModal } from '@/components/contacts/import-modal';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
+import { BulkReassignModal } from '@/components/contacts/bulk-reassign-modal';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { SlaBadge } from '@/components/ui/sla-badge';
@@ -99,6 +100,7 @@ export default function ContactsPage() {
   // Bulk selection (page-scoped — only the loaded rows are selectable)
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
 
   // All tags for display
   const [tagsMap, setTagsMap] = useState<Record<string, Tag>>({});
@@ -575,9 +577,28 @@ export default function ContactsPage() {
                 <Trash2 className="size-4" />
                 {t('deleteSelected')}
               </GatedButton>
+              <GatedButton
+                variant="outline"
+                size="sm"
+                canAct={canEditSettings}
+                gateReason="reassign contacts"
+                onClick={() => setBulkReassignOpen(true)}
+              >
+                Reassign
+              </GatedButton>
             </div>
           </div>
         )}
+
+        <BulkReassignModal
+          open={bulkReassignOpen}
+          onOpenChange={setBulkReassignOpen}
+          selectedIds={[...selected]}
+          onSuccess={() => {
+            setSelected(new Set());
+            fetchContacts();
+          }}
+        />
 
         {/* Mobile List View */}
         <div className="space-y-3 md:hidden">

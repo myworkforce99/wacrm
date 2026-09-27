@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useTotalUnread } from '@/hooks/use-total-unread';
@@ -70,6 +70,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 interface NavItem {
   href: string;
@@ -115,9 +117,17 @@ import { useTranslations } from 'next-intl';
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const t = useTranslations('Sidebar');
   const pathname = usePathname();
-  const { profile, profileLoading, account, accountRole, signOut } = useAuth();
+  const {
+    profile,
+    profileLoading,
+    account,
+    accountRole,
+    signOut,
+    refreshProfile,
+  } = useAuth();
   const totalUnread = useTotalUnread();
   const unreadNotifications = useUnreadNotifications();
+  const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
   // Only surface the account-name strip when it actually carries
   // information. A solo user's personal account is named after them
   // (the 017 signup trigger seeds it from `full_name`), so showing it
@@ -152,6 +162,32 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
       window.removeEventListener('keydown', onKey);
     };
   }, [open, onClose]);
+
+  const handleAvailabilityChange = async (isAvailable: boolean) => {
+    if (!profile) return;
+    setIsUpdatingAvailability(true);
+    try {
+      const res = await fetch(
+        `/api/account/members/${profile.id}/availability`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_available: isAvailable }),
+        }
+      );
+      if (!res.ok) throw new Error('Failed to update availability');
+      await refreshProfile();
+      toast.success(
+        isAvailable
+          ? 'You are now marked as available'
+          : 'You are now marked as unavailable'
+      );
+    } catch (err) {
+      toast.error('Failed to update availability');
+    } finally {
+      setIsUpdatingAvailability(false);
+    }
+  };
 
   return (
     <>
@@ -400,6 +436,16 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 <Settings className="size-4" />
                 {t('menuSettings')}
               </DropdownMenuItem>
+              {accountRole === 'agent' && (
+                <div className="flex items-center justify-between px-2 py-1.5 hover:bg-transparent">
+                  <span className="pl-1 text-sm font-medium">Availability</span>
+                  <Switch
+                    checked={profile?.is_available}
+                    disabled={isUpdatingAvailability}
+                    onCheckedChange={handleAvailabilityChange}
+                  />
+                </div>
+              )}
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
                 onClick={signOut}

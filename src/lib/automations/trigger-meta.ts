@@ -42,6 +42,12 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
   interactive_reply: {
     pillClass: 'border-pink-500/30 bg-pink-500/10 text-pink-300',
   },
+  sla_breach: {
+    pillClass: 'border-orange-500/30 bg-orange-500/10 text-orange-500',
+  },
+  stale_lead: {
+    pillClass: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-500',
+  },
 };
 
 export function isKnownTrigger(t: string): t is AutomationTriggerType {

@@ -2,8 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { LogOut, Menu, Settings as SettingsIcon, User } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -44,7 +47,34 @@ import { useTranslations } from 'next-intl';
 export function Header({ onOpenSidebar }: HeaderProps) {
   const t = useTranslations('Header');
   const pathname = usePathname();
-  const { profile, signOut } = useAuth();
+  const { profile, accountRole, signOut, refreshProfile } = useAuth();
+  const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
+
+  const handleAvailabilityChange = async (isAvailable: boolean) => {
+    if (!profile) return;
+    setIsUpdatingAvailability(true);
+    try {
+      const res = await fetch(
+        `/api/account/members/${profile.id}/availability`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_available: isAvailable }),
+        }
+      );
+      if (!res.ok) throw new Error('Failed to update availability');
+      await refreshProfile();
+      toast.success(
+        isAvailable
+          ? 'You are now marked as available'
+          : 'You are now marked as unavailable'
+      );
+    } catch (err) {
+      toast.error('Failed to update availability');
+    } finally {
+      setIsUpdatingAvailability(false);
+    }
+  };
   const titleKey = getPageTitleKey(pathname);
 
   const initial =
@@ -128,6 +158,16 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               <SettingsIcon className="size-4" />
               {t('menuSettings')}
             </DropdownMenuItem>
+            {accountRole === 'agent' && (
+              <div className="flex items-center justify-between px-2 py-1.5 hover:bg-transparent">
+                <span className="pl-1 text-sm font-medium">Availability</span>
+                <Switch
+                  checked={profile?.is_available}
+                  disabled={isUpdatingAvailability}
+                  onCheckedChange={handleAvailabilityChange}
+                />
+              </div>
+            )}
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={signOut}

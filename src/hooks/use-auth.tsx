@@ -35,6 +35,7 @@ interface Profile {
   beta_features: string[];
   account_id: string | null;
   account_role: AccountRole | null;
+  is_available: boolean;
 }
 
 interface AccountSummary {
@@ -152,6 +153,7 @@ interface ProfileRow {
   beta_features: string[] | null;
   account_id: string | null;
   account_role: string | null;
+  is_available: boolean | null;
 }
 
 /**
@@ -192,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const result = await supabase
           .from('profiles')
           .select(
-            'id, full_name, email, avatar_url, role, beta_features, account_id, account_role'
+            'id, full_name, email, avatar_url, role, beta_features, account_id, account_role, is_available'
           )
           .eq('user_id', userId)
           .maybeSingle();
@@ -280,6 +282,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           beta_features: data.beta_features ?? [],
           account_id: data.account_id ?? null,
           account_role: accountRole,
+          is_available: data.is_available ?? true,
         });
         setAccount(accountRow);
         if (!data.account_id || !accountRole) {

@@ -41,8 +41,8 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [ ] Section O — Integrations Page UI (run after R so NoBroker tile is ready)
 - [ ] Section P — Tasks & Follow-ups
 - [ ] Section Q — Cost Sheet (run after R so RERA fields available in template)
-- [ ] Section R — India Localization & Compliance ← **run before O/P/Q**
-- [ ] Section S — Lead Distribution & Team Workflows ← **highest priority new section**
+- [x] Section R — India Localization & Compliance ← **run before O/P/Q**
+- [x] Section S — Lead Distribution & Team Workflows
 - [ ] Section T — Manager Command Center (upgrades Section G)
 - [ ] Section U — Business Team Onboarding (supplements Section I)
 - [ ] Section V — Reporting & Exports

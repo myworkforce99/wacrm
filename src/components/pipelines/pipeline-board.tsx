@@ -17,7 +17,7 @@ import { DealCard } from './deal-card';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
@@ -163,7 +163,9 @@ export function PipelineBoard({
                   <div className="flex items-center justify-between">
                     <p className="text-muted-foreground text-xs font-medium">
                       {t('totalValue')}:{' '}
-                      {formatCurrency(totalValue, defaultCurrency)}
+                      {defaultCurrency === 'INR'
+                        ? formatINR(totalValue)
+                        : formatCurrency(totalValue, defaultCurrency)}
                     </p>
                   </div>
 
@@ -353,7 +355,9 @@ function StageColumn({
         </span>
       </div>
       <p className="text-muted-foreground text-xs">
-        {formatCurrency(totalValue, currency)}
+        {currency === 'INR'
+          ? formatINR(totalValue)
+          : formatCurrency(totalValue, currency)}
       </p>
 
       <div

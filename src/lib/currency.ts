@@ -105,3 +105,22 @@ export function formatCompactNumber(value: number): string {
   if (v >= 1_000) return `${(v / 1_000).toFixed(1)}k`;
   return v.toFixed(0);
 }
+
+/** Format a rupee value using Indian L/Cr scale. Always shows ₹ symbol.
+ *  Examples: 4500000 → "₹45L", 10000000 → "₹1Cr", 15000000 → "₹1.5Cr", 75000 → "₹75,000" */
+export function formatINR(value: number): string {
+  const v = Number(value || 0);
+  if (v >= 1_00_00_000) return `₹${+(v / 1_00_00_000).toFixed(2)}Cr`;
+  if (v >= 1_00_000) return `₹${+(v / 1_00_000).toFixed(1)}L`;
+  return `₹${v.toLocaleString('en-IN')}`;
+}
+
+/** Format a budget range: "₹45L–60L", "₹1.5Cr–2Cr", "₹45L+" if no max */
+export function formatINRRange(
+  min?: number | null,
+  max?: number | null
+): string {
+  if (!min && !max) return '—';
+  if (!max) return `${formatINR(min!)}+`;
+  return `${formatINR(min!)}–${formatINR(max!)}`;
+}

@@ -62,6 +62,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useTranslations } from 'next-intl';
 import { RequireRole } from '@/components/auth/require-role';
 import { useAuth } from '@/hooks/use-auth';
@@ -82,6 +83,7 @@ interface Member {
   email: string | null;
   avatar_url: string | null;
   role: AccountRole;
+  is_available: boolean;
   joined_at: string;
 }
 
@@ -158,7 +160,13 @@ export function MembersTab() {
         return;
       }
       const mdata = (await mres.json()) as { members: Member[] };
-      setMembers(mdata.members);
+      // Fallback is_available to true if undefined from API (before API update)
+      setMembers(
+        mdata.members.map((m) => ({
+          ...m,
+          is_available: m.is_available ?? true,
+        }))
+      );
 
       if (ires) {
         if (!ires.ok) {
@@ -230,6 +238,53 @@ export function MembersTab() {
         )
       );
       console.error('[MembersTab] role change error:', err);
+      toast.error(t('networkError'));
+    } finally {
+      setPendingMemberAction(null);
+    }
+  }
+
+  async function handleAvailabilityChange(
+    member: Member,
+    isAvailable: boolean
+  ) {
+    const previous = member.is_available;
+    setPendingMemberAction(member.user_id + '_avail');
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.user_id === member.user_id ? { ...m, is_available: isAvailable } : m
+      )
+    );
+    try {
+      const res = await fetch(
+        `/api/account/members/${member.user_id}/availability`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_available: isAvailable }),
+        }
+      );
+      if (!res.ok) {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.user_id === member.user_id ? { ...m, is_available: previous } : m
+          )
+        );
+        const payload = await res.json().catch(() => ({}));
+        toast.error(payload.error || 'Failed to update availability');
+        return;
+      }
+      toast.success(
+        isAvailable
+          ? 'Agent marked as available'
+          : 'Agent marked as unavailable'
+      );
+    } catch (err) {
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.user_id === member.user_id ? { ...m, is_available: previous } : m
+        )
+      );
       toast.error(t('networkError'));
     } finally {
       setPendingMemberAction(null);
@@ -456,6 +511,25 @@ export function MembersTab() {
                         {tRoles(member.role)}
                       </span>
                     )}
+
+                    {/* Availability Toggle. Admins can toggle anyone, users can toggle themselves */}
+                    {(canManageMembers || isSelf) &&
+                      member.role === 'agent' && (
+                        <div className="border-border flex items-center gap-2 border-l pl-2">
+                          <span className="text-muted-foreground hidden text-xs sm:inline-block">
+                            {member.is_available ? 'Available' : 'Unavailable'}
+                          </span>
+                          <Switch
+                            checked={member.is_available}
+                            onCheckedChange={(c) =>
+                              handleAvailabilityChange(member, c)
+                            }
+                            disabled={
+                              pendingMemberAction === member.user_id + '_avail'
+                            }
+                          />
+                        </div>
+                      )}
 
                     {/* Remove. Admin+ only; never on the owner row;
                         never on yourself. Pre-polish styling was

@@ -14,8 +14,14 @@ import {
   Bed,
   ChevronLeft,
   Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Calendar,
+  Maximize,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/hooks/use-auth';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import Link from 'next/link';
 
 export default function PropertyDetailPage() {
@@ -23,6 +29,8 @@ export default function PropertyDetailPage() {
   const params = useParams();
   const router = useRouter();
   const supabase = createClient();
+  const { account } = useAuth();
+  const defaultCurrency = account?.default_currency || 'USD';
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,9 +87,38 @@ export default function PropertyDetailPage() {
           <ChevronLeft className="size-5" />
         </Button>
         <div>
-          <h1 className="text-foreground text-2xl font-bold">
-            {property.title}
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-foreground text-2xl font-bold">
+              {property.title}
+            </h1>
+            {property.configuration && (
+              <Badge
+                variant="default"
+                className="bg-primary text-primary-foreground px-3 py-1 text-sm font-bold"
+              >
+                {property.configuration}
+              </Badge>
+            )}
+          </div>
+          <div className="mt-2">
+            {property.rera_id ? (
+              <Badge
+                variant="outline"
+                className="border-green-500/30 bg-green-500/10 text-green-700"
+              >
+                <CheckCircle2 className="mr-1 size-3" />
+                RERA: {property.rera_id}
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="border-amber-500/30 bg-amber-500/10 text-amber-700"
+              >
+                <AlertTriangle className="mr-1 size-3" />
+                RERA ID missing — required under RERA Act 2016
+              </Badge>
+            )}
+          </div>
         </div>
       </div>
 
@@ -98,7 +135,9 @@ export default function PropertyDetailPage() {
                     {t('price')}
                   </p>
                   <p className="text-lg font-semibold">
-                    {property.price.toLocaleString()}
+                    {defaultCurrency === 'INR'
+                      ? formatINR(property.price)
+                      : formatCurrency(property.price, defaultCurrency)}
                   </p>
                 </div>
               </div>
@@ -144,6 +183,38 @@ export default function PropertyDetailPage() {
                     {t('bedrooms')}
                   </p>
                   <p className="text-lg font-semibold">{property.bedrooms}</p>
+                </div>
+              </div>
+            )}
+
+            {property.possession_status && (
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+                  <Calendar className="size-5" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Possession Status
+                  </p>
+                  <p className="text-lg font-semibold capitalize">
+                    {property.possession_status.replace(/_/g, ' ')}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {property.carpet_area && (
+              <div className="flex items-center gap-3">
+                <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
+                  <Maximize className="size-5" />
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-sm font-medium">
+                    Carpet Area
+                  </p>
+                  <p className="text-lg font-semibold">
+                    {property.carpet_area} sq ft
+                  </p>
                 </div>
               </div>
             )}

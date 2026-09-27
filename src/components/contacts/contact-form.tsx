@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag } from '@/types';
+import { PROPERTY_CONFIGURATIONS } from '@/types';
 import {
   findExistingContact,
   isExactMatch,
@@ -65,6 +66,10 @@ export function ContactForm({
   const [company, setCompany] = useState('');
   const [source, setSource] = useState('');
   const [otherSource, setOtherSource] = useState('');
+  const [configurationPreference, setConfigurationPreference] = useState<
+    string[]
+  >([]);
+  const [possessionPreference, setPossessionPreference] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Duplicate-phone detection for NEW contacts. `exact` (same digits)
@@ -94,6 +99,8 @@ export function ContactForm({
       else {
         setSource('');
         setOtherSource('');
+        setConfigurationPreference([]);
+        setPossessionPreference('');
       }
     }
   }, [open, contact]);
@@ -123,7 +130,7 @@ export function ContactForm({
   async function fetchSource(contactId: string) {
     const { data } = await supabase
       .from('lead_details')
-      .select('source')
+      .select('source, configuration_preference, possession_preference')
       .eq('contact_id', contactId)
       .single();
     if (data?.source) {
@@ -139,6 +146,9 @@ export function ContactForm({
       setSource('');
       setOtherSource('');
     }
+
+    setConfigurationPreference(data?.configuration_preference || []);
+    setPossessionPreference(data?.possession_preference || '');
   }
 
   async function fetchTags() {
@@ -225,21 +235,24 @@ export function ContactForm({
         contactId = data.id;
       }
 
-      // Upsert lead source
-      if (contactId && source) {
+      // Upsert lead source & preferences
+      if (
+        contactId &&
+        (source || configurationPreference.length > 0 || possessionPreference)
+      ) {
         const actualSource = source === 'Other' ? otherSource.trim() : source;
-        if (actualSource) {
-          const { error: ldError } = await supabase.from('lead_details').upsert(
-            {
-              account_id: accountId,
-              contact_id: contactId,
-              source: actualSource,
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'contact_id' }
-          );
-          if (ldError) throw ldError;
-        }
+        const { error: ldError } = await supabase.from('lead_details').upsert(
+          {
+            account_id: accountId,
+            contact_id: contactId,
+            ...(actualSource ? { source: actualSource } : {}),
+            configuration_preference: configurationPreference,
+            possession_preference: possessionPreference || null,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'contact_id' }
+        );
+        if (ldError) throw ldError;
       }
 
       // Sync tags
@@ -415,6 +428,60 @@ export function ContactForm({
                 className="bg-muted border-border text-foreground placeholder:text-muted-foreground mt-2"
               />
             )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">
+              Configuration Preference
+            </Label>
+            <div className="mt-1 flex flex-wrap gap-2">
+              {PROPERTY_CONFIGURATIONS.map((config) => {
+                const isSelected = configurationPreference.includes(config);
+                return (
+                  <button
+                    key={config}
+                    type="button"
+                    onClick={() => {
+                      setConfigurationPreference((prev) =>
+                        prev.includes(config)
+                          ? prev.filter((c) => c !== config)
+                          : [...prev, config]
+                      );
+                    }}
+                    className={`inline-flex cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                      isSelected
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {config}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-muted-foreground">
+              Possession Preference
+            </Label>
+            <Select
+              value={possessionPreference}
+              onValueChange={(val) => setPossessionPreference(val || '')}
+            >
+              <SelectTrigger className="bg-muted border-border text-foreground">
+                <SelectValue placeholder="Any" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="any">Any</SelectItem>
+                <SelectItem value="ready_to_move_only">
+                  Ready to move only
+                </SelectItem>
+                <SelectItem value="under_construction_ok">
+                  Under construction OK
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">

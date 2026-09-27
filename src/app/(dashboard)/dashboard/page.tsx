@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import { MessageSquare, UserPlus, DollarSign, Send } from 'lucide-react';
 
 import {
@@ -165,7 +165,11 @@ export default function DashboardPage() {
             />
             <MetricCard
               title={t('openDealsValue')}
-              value={formatCurrency(metrics.openDealsValue, defaultCurrency)}
+              value={
+                defaultCurrency === 'INR'
+                  ? formatINR(metrics.openDealsValue)
+                  : formatCurrency(metrics.openDealsValue, defaultCurrency)
+              }
               icon={DollarSign}
               subtitle={t('openDeals', { count: metrics.openDealsCount })}
             />

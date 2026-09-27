@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import { toast } from 'sonner';
 import type {
   Contact,
@@ -524,7 +524,7 @@ export function ContactDetailView({
         body: JSON.stringify({
           contact_id: contactId,
           message_type: 'text',
-          text: `Hi ${contact.name || 'there'}, we found a property that matches your preferences: ${property.title} located at ${property.location}. Price: ${property.price ? formatCurrency(property.price, defaultCurrency) : 'TBD'}. Let us know if you'd like to schedule a visit!`,
+          text: `Hi ${contact.name || 'there'}, we found a property that matches your preferences: ${property.title} located at ${property.location}. Price: ${property.price ? (defaultCurrency === 'INR' ? formatINR(property.price) : formatCurrency(property.price, defaultCurrency)) : 'TBD'}. Let us know if you'd like to schedule a visit!`,
         }),
       });
 
@@ -799,10 +799,13 @@ export function ContactDetailView({
               <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1">
                   <DollarSign className="size-3" />
-                  {formatCurrency(
-                    deal.value ?? 0,
-                    deal.currency || defaultCurrency
-                  )}
+                  {deal.currency === 'INR' ||
+                  (!deal.currency && defaultCurrency === 'INR')
+                    ? formatINR(deal.value ?? 0)
+                    : formatCurrency(
+                        deal.value ?? 0,
+                        deal.currency || defaultCurrency
+                      )}
                 </span>
                 {deal.status && deal.status !== 'open' && (
                   <span
@@ -852,7 +855,9 @@ export function ContactDetailView({
                 </div>
                 {property.price && (
                   <span className="bg-primary/10 text-primary rounded px-2 py-1 text-xs font-medium">
-                    {formatCurrency(property.price, defaultCurrency)}
+                    {defaultCurrency === 'INR'
+                      ? formatINR(property.price)
+                      : formatCurrency(property.price, defaultCurrency)}
                   </span>
                 )}
               </div>

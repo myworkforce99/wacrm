@@ -45,6 +45,8 @@ export interface Profile {
    * `@/lib/auth/roles` rather than comparing this string directly.
    */
   account_role?: AccountRole;
+  is_available: boolean;
+  unavailable_reason?: string | null;
   created_at: string;
 }
 
@@ -57,6 +59,7 @@ export interface Account {
   name: string;
   /** auth.users.id of the immutable owner. */
   owner_user_id: string;
+  preferred_language?: 'en' | 'hi' | 'hi-en';
   created_at: string;
   updated_at: string;
 }
@@ -151,6 +154,8 @@ export interface LeadDetail {
   intent?: string;
   /** Portal this lead came from, e.g. '99acres', 'MagicBricks', 'Housing.com', 'Manual'. Set by the email parser (Section M) or manually via the contact form. */
   source?: string;
+  configuration_preference?: string[];
+  possession_preference?: string;
   created_at: string;
   updated_at: string;
 }
@@ -516,6 +521,8 @@ export interface SiteVisit {
   reminded_24h: boolean;
   reminded_2h: boolean;
   notes?: string;
+  pickup_required: boolean;
+  pickup_location?: string | null;
   created_at: string;
   updated_at: string;
   contact?: Contact;
@@ -531,8 +538,34 @@ export interface Property {
   property_type?: string;
   bedrooms?: number;
   tags?: string[];
+  configuration?: string;
+  builder_name?: string;
+  project_name?: string;
+  rera_id?: string;
+  possession_status?:
+    'ready_to_move' | 'under_construction' | 'nearing_possession';
+  possession_date?: string;
+  carpet_area?: number;
+  facing?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface LeadRoutingRule {
+  id: string;
+  account_id: string;
+  priority: number;
+  condition_type:
+    | 'source'
+    | 'budget_gte'
+    | 'budget_lte'
+    | 'location_contains'
+    | 'configuration';
+  condition_value: string;
+  action_type: 'assign_to_agent' | 'assign_to_role';
+  action_value: string;
+  is_active: boolean;
+  created_at: string;
 }
 
 // ============================================================
@@ -552,7 +585,9 @@ export type AutomationTriggerType =
   | 'interactive_reply'
   | 'visit_reminder_24h'
   | 'visit_reminder_2h'
-  | 'visit_no_show';
+  | 'visit_no_show'
+  | 'sla_breach'
+  | 'stale_lead';
 
 export type AutomationStepType =
   | 'send_message'
@@ -764,3 +799,14 @@ export interface QuickReply {
   created_at: string;
   updated_at: string;
 }
+
+export const PROPERTY_CONFIGURATIONS = [
+  '1BHK',
+  '2BHK',
+  '3BHK',
+  '4BHK',
+  'Studio',
+  'Villa',
+  'Plot',
+  'Commercial',
+];

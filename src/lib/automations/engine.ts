@@ -514,17 +514,138 @@ async function runStep(
         throw new Error('assign_conversation needs a contact');
       let agentId = cfg.agent_id;
       if (cfg.mode === 'round_robin') {
-        // Pick any member of the account. The existing implementation
-        // only ever returned the automation's author; preserving that
-        // shape until a real round-robin algorithm replaces it.
-        const { data: profiles } = await db
+        // Section S3: Lead routing rules
+        const { data: contactData } = await db
+          .from('contacts')
+          .select('*, lead_details(*)')
+          .eq('id', args.contactId)
+          .maybeSingle();
+
+        if (contactData) {
+          const { data: rules } = await db
+            .from('lead_routing_rules')
+            .select('*')
+            .eq('account_id', args.automation.account_id)
+            .eq('is_active', true)
+            .order('priority', { ascending: true });
+
+          if (rules && rules.length > 0) {
+            const leadDetails = Array.isArray(contactData.lead_details)
+              ? contactData.lead_details[0]
+              : contactData.lead_details;
+
+            for (const rule of rules) {
+              let matched = false;
+              const val = rule.condition_value;
+              switch (rule.condition_type) {
+                case 'source':
+                  matched = leadDetails?.source === val;
+                  break;
+                case 'budget_gte':
+                  matched =
+                    (leadDetails?.budget_min != null &&
+                      leadDetails.budget_min >= Number(val)) ||
+                    (leadDetails?.budget_max != null &&
+                      leadDetails.budget_max >= Number(val));
+                  break;
+                case 'budget_lte':
+                  matched =
+                    (leadDetails?.budget_max != null &&
+                      leadDetails.budget_max <= Number(val)) ||
+                    (leadDetails?.budget_min != null &&
+                      leadDetails.budget_min <= Number(val));
+                  break;
+                case 'location_contains':
+                  matched =
+                    leadDetails?.location_preference != null &&
+                    leadDetails.location_preference
+                      .toLowerCase()
+                      .includes(val.toLowerCase());
+                  break;
+                case 'configuration':
+                  matched =
+                    leadDetails?.configuration_preference?.includes(val) ?? false;
+                  break;
+              }
+              if (matched) {
+                if (rule.action_type === 'assign_to_agent') {
+                  agentId = rule.action_value;
+                  break;
+                } else if (rule.action_type === 'assign_to_role') {
+                  const { data: roleProfiles } = await db
+                    .from('profiles')
+                    .select('user_id')
+                    .eq('account_id', args.automation.account_id)
+                    .eq('account_role', rule.action_value)
+                    .eq('is_available', true);
+
+                  if (roleProfiles && roleProfiles.length > 0) {
+                    const counts = await Promise.all(
+                      roleProfiles.map(async (p) => {
+                        const { count } = await db
+                          .from('conversations')
+                          .select('*', { count: 'exact', head: true })
+                          .eq('assigned_agent_id', p.user_id)
+                          .eq('status', 'open');
+                        return { userId: p.user_id, count: count ?? 0 };
+                      })
+                    );
+                    counts.sort((a, b) => a.count - b.count);
+                    agentId = counts[0].userId;
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Section S1: Real round-robin (fallback if no rule matches)
+        if (!agentId) {
+          const { data: profiles } = await db
+            .from('profiles')
+            .select('user_id')
+            .eq('account_id', args.automation.account_id)
+            .eq('account_role', 'agent')
+            .eq('is_available', true);
+
+          if (profiles && profiles.length > 0) {
+            const counts = await Promise.all(
+              profiles.map(async (p) => {
+                const { count } = await db
+                  .from('conversations')
+                  .select('*', { count: 'exact', head: true })
+                  .eq('assigned_agent_id', p.user_id)
+                  .eq('status', 'open');
+                return { userId: p.user_id, count: count ?? 0 };
+              })
+            );
+            counts.sort((a, b) => a.count - b.count);
+            agentId = counts[0].userId;
+          }
+        }
+      }
+      if (!agentId) {
+        // Section S2: If ALL agents are unavailable, alert admin via push
+        const { data: admins } = await db
           .from('profiles')
           .select('user_id')
           .eq('account_id', args.automation.account_id)
-          .limit(1);
-        agentId = profiles?.[0]?.user_id;
+          .eq('account_role', 'admin');
+
+        if (admins && admins.length > 0) {
+          const notifications = admins.map(admin => ({
+            account_id: args.automation.account_id,
+            user_id: admin.user_id,
+            type: 'conversation_assigned',
+            contact_id: args.contactId,
+            title: 'Unassigned Lead Alert',
+            body: 'All agents are unavailable. A new lead needs assignment.',
+          }));
+          await db.from('notifications').insert(notifications);
+        }
+        return 'no agent resolved, alerted admin';
       }
-      if (!agentId) return 'no agent resolved';
       await db
         .from('conversations')
         .update({ assigned_agent_id: agentId })

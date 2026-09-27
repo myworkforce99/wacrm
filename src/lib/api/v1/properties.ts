@@ -22,6 +22,17 @@ export function serializeProperty(row: Record<string, unknown>): Property {
     property_type: (row.property_type as string | null) ?? undefined,
     bedrooms: (row.bedrooms as number | null) ?? undefined,
     tags: (row.tags as string[] | null) ?? undefined,
+    configuration: (row.configuration as string | null) ?? undefined,
+    builder_name: (row.builder_name as string | null) ?? undefined,
+    project_name: (row.project_name as string | null) ?? undefined,
+    rera_id: (row.rera_id as string | null) ?? undefined,
+    possession_status:
+      (row.possession_status as
+        'ready_to_move' | 'under_construction' | 'nearing_possession' | null) ??
+      undefined,
+    possession_date: (row.possession_date as string | null) ?? undefined,
+    carpet_area: (row.carpet_area as number | null) ?? undefined,
+    facing: (row.facing as string | null) ?? undefined,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

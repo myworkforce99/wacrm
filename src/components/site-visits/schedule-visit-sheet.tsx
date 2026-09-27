@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import type { Contact, Property } from '@/types';
 import { Loader2 } from 'lucide-react';
 
@@ -40,6 +41,8 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
   const [date, setDate] = useState<string>('');
   const [time, setTime] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [pickupRequired, setPickupRequired] = useState(false);
+  const [pickupLocation, setPickupLocation] = useState('');
 
   const loadFormData = useCallback(async () => {
     setLoading(true);
@@ -66,6 +69,8 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
         setDate('');
         setTime('');
         setNotes('');
+        setPickupRequired(false);
+        setPickupLocation('');
       }, 0);
     }
   }, [open, loadFormData]);
@@ -90,6 +95,8 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
       scheduled_at: scheduledAt,
       status: 'pending',
       notes: notes || null,
+      pickup_required: pickupRequired,
+      pickup_location: pickupRequired ? pickupLocation : null,
     });
 
     setSaving(false);
@@ -185,6 +192,33 @@ export function ScheduleVisitSheet({ open, onOpenChange, onSuccess }: Props) {
                 onChange={(e) => setNotes(e.target.value)}
                 className="resize-none"
               />
+            </div>
+
+            <div className="border-border bg-muted/50 mt-2 space-y-4 rounded-lg border p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Pickup needed?</Label>
+                  <p className="text-muted-foreground text-[11px]">
+                    Arrange a pickup for the client
+                  </p>
+                </div>
+                <Switch
+                  checked={pickupRequired}
+                  onCheckedChange={setPickupRequired}
+                />
+              </div>
+
+              {pickupRequired && (
+                <div className="border-border/50 space-y-2 border-t pt-2">
+                  <Label>Pickup Address</Label>
+                  <Textarea
+                    placeholder="Enter full pickup address..."
+                    value={pickupLocation}
+                    onChange={(e) => setPickupLocation(e.target.value)}
+                    className="bg-background min-h-[60px] resize-none text-sm"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="mt-auto flex justify-end gap-2 pt-4">

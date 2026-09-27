@@ -12,10 +12,14 @@ const h = vi.hoisted(() => ({
     updateCalls: [] as {
       table: string;
       filters: [string, string, unknown][];
+      payload: unknown;
     }[],
     upsertCalls: [] as { table: string; payload: unknown }[],
     logInserts: [] as Record<string, unknown>[],
     logUpdates: [] as Record<string, unknown>[],
+    profiles: [] as Record<string, unknown>[],
+    conversationsCounts: {} as Record<string, number>,
+    routingRules: [] as Record<string, unknown>[],
   },
 }));
 
@@ -31,7 +35,11 @@ vi.mock('./admin-client', () => {
     const { table, type } = ops;
     if (table === 'contacts') {
       if (type === 'update') {
-        state.updateCalls.push({ table, filters: ops.filters });
+        state.updateCalls.push({
+          table,
+          filters: ops.filters,
+          payload: ops.payload,
+        });
         return { data: null, error: null };
       }
       // ownership guard / condition read
@@ -62,6 +70,29 @@ vi.mock('./admin-client', () => {
       return { data: { steps_executed: [], status: 'success' }, error: null };
     }
     if (table === 'automation_steps') return { data: state.steps, error: null };
+    if (table === 'lead_routing_rules')
+      return { data: state.routingRules, error: null };
+    if (table === 'profiles') return { data: state.profiles, error: null };
+    if (table === 'conversations') {
+      if (type === 'update') {
+        state.updateCalls.push({
+          table,
+          filters: ops.filters,
+          payload: ops.payload,
+        });
+        return { data: null, error: null };
+      }
+      // conversations count
+      const agentFilter = ops.filters.find(
+        (f) => f[0] === 'eq' && f[1] === 'assigned_agent_id'
+      );
+      const agentId = agentFilter ? String(agentFilter[2]) : 'unknown';
+      return {
+        data: [],
+        count: state.conversationsCounts[agentId] || 0,
+        error: null,
+      };
+    }
     return { data: null, error: null };
   }
 
@@ -123,6 +154,9 @@ beforeEach(() => {
   h.state.upsertCalls = [];
   h.state.logInserts = [];
   h.state.logUpdates = [];
+  h.state.profiles = [];
+  h.state.conversationsCounts = {};
+  h.state.routingRules = [];
 });
 
 describe('runAutomationsForTrigger — tenant isolation', () => {
@@ -584,6 +618,66 @@ describe('triggerMatches — keyword_match', () => {
     ).toBe(false);
     expect(on(automation({ keywords: ['hi'], match_type: 'word' }), '')).toBe(
       false
+    );
+  });
+});
+
+describe('assign_conversation — round_robin', () => {
+  it('assigns to the least-loaded available agent', async () => {
+    // We mock profiles and conversation counts
+    h.state.owned = { id: 'c1' };
+    h.state.automations = [
+      {
+        id: 'a1',
+        account_id: ACCOUNT,
+        user_id: 'u1',
+        name: 'test assign',
+        trigger_type: 'new_message_received',
+        trigger_config: {},
+        is_active: true,
+      },
+    ];
+    h.state.steps = [
+      {
+        id: 's1',
+        automation_id: 'a1',
+        step_type: 'assign_conversation',
+        position: 0,
+        parent_step_id: null,
+        step_config: { mode: 'round_robin' },
+      },
+    ];
+
+    // the admin-client mock currently doesn't handle 'profiles' and 'conversations' tables properly for this test.
+    // I should modify the mock in engine.test.ts to return specific values for this test.
+
+    h.state.profiles = [
+      { user_id: 'agent1' },
+      { user_id: 'agent2' },
+      { user_id: 'agent3' },
+    ];
+
+    h.state.conversationsCounts = {
+      agent1: 5,
+      agent2: 2,
+      agent3: 8,
+    };
+
+    h.state.routingRules = [];
+
+    await runAutomationsForTrigger({
+      accountId: ACCOUNT,
+      triggerType: 'new_message_received',
+      contactId: 'c1',
+      context: {},
+    });
+
+    // It should have assigned to agent2
+    expect(h.state.updateCalls).toContainEqual(
+      expect.objectContaining({
+        table: 'conversations',
+        payload: expect.objectContaining({ assigned_agent_id: 'agent2' }),
+      })
     );
   });
 });

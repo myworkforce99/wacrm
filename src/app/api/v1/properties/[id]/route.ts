@@ -64,6 +64,49 @@ export async function PATCH(
         ? body.tags.filter((t) => typeof t === 'string')
         : null;
 
+    if (
+      'configuration' in body &&
+      (typeof body.configuration === 'string' || body.configuration === null)
+    )
+      updates.configuration = body.configuration;
+    if (
+      'builder_name' in body &&
+      (typeof body.builder_name === 'string' || body.builder_name === null)
+    )
+      updates.builder_name = body.builder_name;
+    if (
+      'project_name' in body &&
+      (typeof body.project_name === 'string' || body.project_name === null)
+    )
+      updates.project_name = body.project_name;
+    if (
+      'rera_id' in body &&
+      (typeof body.rera_id === 'string' || body.rera_id === null)
+    )
+      updates.rera_id = body.rera_id;
+    if (
+      'possession_status' in body &&
+      (typeof body.possession_status === 'string' ||
+        body.possession_status === null)
+    )
+      updates.possession_status = body.possession_status;
+    if (
+      'possession_date' in body &&
+      (typeof body.possession_date === 'string' ||
+        body.possession_date === null)
+    )
+      updates.possession_date = body.possession_date;
+    if (
+      'carpet_area' in body &&
+      (typeof body.carpet_area === 'number' || body.carpet_area === null)
+    )
+      updates.carpet_area = body.carpet_area;
+    if (
+      'facing' in body &&
+      (typeof body.facing === 'string' || body.facing === null)
+    )
+      updates.facing = body.facing;
+
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString();
       const { error } = await ctx.supabase

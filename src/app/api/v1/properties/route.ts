@@ -75,6 +75,21 @@ export async function POST(request: Request) {
     if (Array.isArray(body.tags))
       insertData.tags = body.tags.filter((t) => typeof t === 'string');
 
+    if (typeof body.configuration === 'string')
+      insertData.configuration = body.configuration;
+    if (typeof body.builder_name === 'string')
+      insertData.builder_name = body.builder_name;
+    if (typeof body.project_name === 'string')
+      insertData.project_name = body.project_name;
+    if (typeof body.rera_id === 'string') insertData.rera_id = body.rera_id;
+    if (typeof body.possession_status === 'string')
+      insertData.possession_status = body.possession_status;
+    if (typeof body.possession_date === 'string')
+      insertData.possession_date = body.possession_date;
+    if (typeof body.carpet_area === 'number')
+      insertData.carpet_area = body.carpet_area;
+    if (typeof body.facing === 'string') insertData.facing = body.facing;
+
     const { data, error } = await ctx.supabase
       .from('properties')
       .insert(insertData)

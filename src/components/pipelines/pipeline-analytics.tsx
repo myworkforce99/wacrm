@@ -18,7 +18,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrency, formatINR } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
 
 interface PipelineAnalyticsProps {
@@ -106,21 +106,33 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
         <Metric
           icon={<DollarSign className="text-primary h-4 w-4" />}
           label={t('pipelineValue')}
-          value={formatCurrency(stats.totalValue, defaultCurrency)}
+          value={
+            defaultCurrency === 'INR'
+              ? formatINR(stats.totalValue)
+              : formatCurrency(stats.totalValue, defaultCurrency)
+          }
           tooltip={t('pipelineValueTooltip')}
           t={t}
         />
         <Metric
           icon={<Target className="h-4 w-4 text-blue-400" />}
           label={t('avgDealSize')}
-          value={formatCurrency(stats.avgValue, defaultCurrency)}
+          value={
+            defaultCurrency === 'INR'
+              ? formatINR(stats.avgValue)
+              : formatCurrency(stats.avgValue, defaultCurrency)
+          }
           tooltip={t('avgDealSizeTooltip')}
           t={t}
         />
         <Metric
           icon={<TrendingUp className="h-4 w-4 text-purple-400" />}
           label={t('weightedValue')}
-          value={formatCurrency(stats.weightedValue, defaultCurrency)}
+          value={
+            defaultCurrency === 'INR'
+              ? formatINR(stats.weightedValue)
+              : formatCurrency(stats.weightedValue, defaultCurrency)
+          }
           tooltip={t('weightedValueTooltip')}
           t={t}
         />

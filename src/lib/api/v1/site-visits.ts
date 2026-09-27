@@ -23,6 +23,8 @@ export function serializeSiteVisit(row: Record<string, unknown>): SiteVisit {
     notes: (row.notes as string | null) ?? undefined,
     reminded_24h: Boolean(row.reminded_24h),
     reminded_2h: Boolean(row.reminded_2h),
+    pickup_required: Boolean(row.pickup_required),
+    pickup_location: (row.pickup_location as string | null) ?? null,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

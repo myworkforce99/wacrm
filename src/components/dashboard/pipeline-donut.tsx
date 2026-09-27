@@ -2,7 +2,7 @@
 
 import { GitBranch } from 'lucide-react';
 import type { PipelineDonutData } from '@/lib/dashboard/types';
-import { formatCurrencyShort } from '@/lib/currency';
+import { formatCurrencyShort, formatINR } from '@/lib/currency';
 import { EmptyState } from './empty-state';
 import { Skeleton } from './skeleton';
 
@@ -53,7 +53,9 @@ export function PipelineDonut({ data, loading, currency }: PipelineDonutProps) {
                     {t('dealCount', { count: s.dealCount })}
                   </span>
                   <span className="text-muted-foreground w-20 text-right tabular-nums">
-                    {formatCurrencyShort(s.totalValue, currency)}
+                    {currency === 'INR'
+                      ? formatINR(s.totalValue)
+                      : formatCurrencyShort(s.totalValue, currency)}
                   </span>
                 </li>
               ))}
@@ -148,7 +150,9 @@ function Donut({
           textAnchor="middle"
           className="fill-foreground text-[18px] font-semibold tabular-nums"
         >
-          {formatCurrencyShort(data.totalValue, currency)}
+          {currency === 'INR'
+            ? formatINR(data.totalValue)
+            : formatCurrencyShort(data.totalValue, currency)}
         </text>
       </svg>
     </div>
