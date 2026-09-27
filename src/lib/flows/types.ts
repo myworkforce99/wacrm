@@ -172,6 +172,18 @@ export interface SetTagNodeConfig {
 // Terminal nodes carry no config — they just stop the run.
 export type EndNodeConfig = Record<string, never>;
 
+export interface UpdateContactFieldNodeConfig {
+  field: string;
+  value: string;
+  next_node_key: string;
+}
+
+export interface AssignConversationNodeConfig {
+  mode: 'specific' | 'round_robin';
+  agent_id?: string;
+  next_node_key?: string;
+}
+
 /**
  * Total union — every concrete node_type the v1 engine understands.
  * Add new node types here and the engine's switch will flag missing
@@ -190,7 +202,9 @@ export type FlowNodeConfig =
   | { node_type: 'condition'; config: ConditionNodeConfig }
   | { node_type: 'set_tag'; config: SetTagNodeConfig }
   | { node_type: 'handoff'; config: HandoffNodeConfig }
-  | { node_type: 'end'; config: EndNodeConfig };
+  | { node_type: 'end'; config: EndNodeConfig }
+  | { node_type: 'update_contact_field'; config: UpdateContactFieldNodeConfig }
+  | { node_type: 'assign_conversation'; config: AssignConversationNodeConfig };
 
 export type FlowNodeType = FlowNodeConfig['node_type'];
 
@@ -213,6 +227,7 @@ export type FirstInboundTriggerConfig = Record<string, never>;
 export type FlowTriggerConfig =
   | { trigger_type: 'keyword'; config: KeywordTriggerConfig }
   | { trigger_type: 'first_inbound_message'; config: FirstInboundTriggerConfig }
+  | { trigger_type: 'new_contact_created'; config: Record<string, never> }
   | { trigger_type: 'manual'; config: Record<string, never> };
 
 // ============================================================
@@ -230,7 +245,7 @@ export interface FlowRow {
   name: string;
   description: string | null;
   status: 'draft' | 'active' | 'archived';
-  trigger_type: 'keyword' | 'first_inbound_message' | 'manual';
+  trigger_type: 'keyword' | 'first_inbound_message' | 'manual' | 'new_contact_created';
   trigger_config:
     KeywordTriggerConfig | FirstInboundTriggerConfig | Record<string, unknown>;
   entry_node_id: string | null;

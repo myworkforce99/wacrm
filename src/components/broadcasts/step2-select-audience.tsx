@@ -16,10 +16,13 @@ import {
   ArrowRight,
   ArrowLeft,
   X,
+  Building2,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
-type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv';
+type AudienceType = 'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
 type CustomFieldOperator = 'is' | 'is_not' | 'contains';
 
 interface CustomFieldFilter {
@@ -34,6 +37,9 @@ interface AudienceConfig {
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
+  leadSegment?: {
+    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[];
+  };
 }
 
 interface Step2Props {
@@ -94,6 +100,12 @@ export function Step2SelectAudience({
         label: t('selectAudience.method.csv'),
         description: t('selectAudience.csvDesc'),
         icon: Upload,
+      },
+      {
+        type: 'lead_segment',
+        label: t('selectAudience.method.leadSegment') || 'Lead Details Segment',
+        description: t('selectAudience.leadSegmentDesc') || 'Filter by BHK, budget, location, etc.',
+        icon: Building2,
       },
     ],
     [t]
@@ -192,6 +204,19 @@ export function Step2SelectAudience({
       ) {
         setEstimatedCount(audience.csvContacts.length);
         return;
+      } else if (
+        audience.type === 'lead_segment' &&
+        audience.leadSegment?.filters &&
+        audience.leadSegment.filters.length > 0
+      ) {
+        let q = supabase.from('lead_details').select('contact_id');
+        for (const f of audience.leadSegment.filters) {
+          if (f.operator === 'equals') q = q.eq(f.field, f.value);
+          else if (f.operator === 'contains') q = q.ilike(f.field, `%${f.value}%`);
+          else if (f.operator === 'gte') q = q.gte(f.field, f.value);
+        }
+        const { data } = await q;
+        baseIds = new Set((data ?? []).map((r) => r.contact_id));
       } else {
         // Partially-configured audience — wait for the user to finish.
         setEstimatedCount(null);
@@ -230,6 +255,7 @@ export function Step2SelectAudience({
     audience.customField,
     audience.csvContacts,
     audience.excludeTagIds,
+    audience.leadSegment,
   ]);
 
   useEffect(() => {
@@ -304,7 +330,11 @@ export function Step2SelectAudience({
       audience.customField.value.length > 0) ||
     (audience.type === 'csv' &&
       audience.csvContacts &&
-      audience.csvContacts.length > 0);
+      audience.csvContacts.length > 0) ||
+    (audience.type === 'lead_segment' &&
+      audience.leadSegment?.filters &&
+      audience.leadSegment.filters.length > 0 &&
+      audience.leadSegment.filters.every(f => f.field && f.value));
 
   return (
     <div className="space-y-6">
@@ -344,6 +374,8 @@ export function Step2SelectAudience({
                         : undefined,
                     csvContacts:
                       option.type === 'csv' ? audience.csvContacts : undefined,
+                    leadSegment:
+                      option.type === 'lead_segment' ? audience.leadSegment : undefined,
                   })
                 }
                 className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
@@ -507,6 +539,83 @@ export function Step2SelectAudience({
             onChange={handleCsvChange}
             className="hidden"
           />
+        </div>
+      )}
+
+
+      {audience.type === 'lead_segment' && (
+        <div className="border-border bg-card/50 space-y-3 rounded-xl border p-4">
+          <p className="text-foreground text-sm font-medium">Lead Details Segment</p>
+          <div className="space-y-2">
+            {(audience.leadSegment?.filters ?? []).map((filter, index) => (
+              <div key={index} className="flex items-center gap-2">
+                <select
+                  value={filter.field}
+                  onChange={(e) => {
+                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
+                    newFilters[index].field = e.target.value;
+                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                  }}
+                  className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
+                >
+                  <option value="">Select field...</option>
+                  <option value="configuration_preference">BHK / Configuration</option>
+                  <option value="location_preference">Location</option>
+                  <option value="budget_min">Min Budget</option>
+                  <option value="budget_max">Max Budget</option>
+                  <option value="source">Lead Source</option>
+                  <option value="intent">Intent</option>
+                  <option value="property_type">Property Type</option>
+                </select>
+                <select
+                  value={filter.operator}
+                  onChange={(e) => {
+                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
+                    newFilters[index].operator = e.target.value as any;
+                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                  }}
+                  className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
+                >
+                  <option value="equals">Equals</option>
+                  <option value="contains">Contains</option>
+                  <option value="gte">Greater than or equal (&gt;=)</option>
+                </select>
+                <input
+                  type="text"
+                  value={filter.value}
+                  onChange={(e) => {
+                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
+                    newFilters[index].value = e.target.value;
+                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                  }}
+                  placeholder="Value..."
+                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1 flex-1"
+                />
+                <button
+                  onClick={() => {
+                    const newFilters = audience.leadSegment?.filters.filter((_, i) => i !== index);
+                    onUpdate({ ...audience, leadSegment: { filters: newFilters || [] } });
+                  }}
+                  className="text-muted-foreground hover:text-destructive flex h-9 w-9 items-center justify-center rounded-lg border border-transparent transition-colors hover:bg-destructive/10 hover:border-destructive/20"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+            {(audience.leadSegment?.filters?.length ?? 0) < 3 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newFilters = [...(audience.leadSegment?.filters ?? []), { field: '', operator: 'contains', value: '' } as const];
+                  onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                }}
+                className="mt-2 text-xs"
+              >
+                <Plus className="mr-1 h-3 w-3" /> Add Condition
+              </Button>
+            )}
+          </div>
         </div>
       )}
 

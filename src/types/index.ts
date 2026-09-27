@@ -810,3 +810,11 @@ export const PROPERTY_CONFIGURATIONS = [
   'Plot',
   'Commercial',
 ];
+
+export type BroadcastAudienceType = 'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
+
+export interface LeadSegmentFilter {
+  field: string;
+  operator: 'contains' | 'equals' | 'gte';
+  value: string;
+}

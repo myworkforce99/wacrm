@@ -33,7 +33,7 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [x] Section G — Team / Manager Dashboard (basic version; T supersedes)
 - [x] Section H — Properties & Lead Matching
 - [x] Section I — Onboarding Wizard & Real Estate Template (individual; U adds team setup)
-- [x] Section J — Automations, Flows & Broadcasts (J1–J3 done; J4 segment targeting, J5 RE templates, J6 qualifier flow pending)
+- [x] Section J — Automations, Flows & Broadcasts (J1–J6 done)
 - [x] Section K — PWA & Native-Feel Polish
 - [ ] Section L — Billing & Plan Gating
 - [x] Section M — Portal Lead Capture (Email Parser)

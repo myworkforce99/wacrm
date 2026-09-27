@@ -31,6 +31,7 @@ import {
 } from './meta-send';
 import { validateInteractivePayload } from '@/lib/whatsapp/interactive';
 import { isDeliverableUrl } from '@/lib/webhooks/ssrf';
+import { parseBudget } from '@/lib/contacts/parse-budget';
 
 // ------------------------------------------------------------
 // Public API
@@ -666,32 +667,74 @@ async function runStep(
       // is a built-in contact column.
       if (cfg.field.startsWith('custom:')) {
         const customFieldId = cfg.field.slice('custom:'.length);
-        if (!customFieldId) {
+        if (customFieldId.startsWith('lead_details.')) {
+          cfg.field = customFieldId;
+        } else {
+          if (!customFieldId) {
+            return `field ${cfg.field} not writable from automations`;
+          }
+          // Defense in depth: the service-role client bypasses RLS, so confirm
+          // the field definition belongs to this account before writing.
+          const { data: field } = await db
+            .from('custom_fields')
+            .select('id')
+            .eq('id', customFieldId)
+            .eq('account_id', args.automation.account_id)
+            .maybeSingle();
+          if (!field) {
+            return `field ${cfg.field} not writable from automations`;
+          }
+          // Upsert on the table's UNIQUE(contact_id, custom_field_id) so repeated
+          // runs overwrite rather than duplicate. Tenancy is enforced above and,
+          // for the contact side, by the entry-point ownership guard.
+          await db.from('contact_custom_values').upsert(
+            {
+              contact_id: args.contactId,
+              custom_field_id: customFieldId,
+              value,
+            },
+            { onConflict: 'contact_id,custom_field_id' }
+          );
+          return `custom field updated`;
+        }
+      }
+
+      if (cfg.field.startsWith('lead_details.')) {
+        const leadField = cfg.field.slice('lead_details.'.length);
+        const allowedLeadFields = new Set([
+          'budget_min',
+          'budget_max',
+          'location_preference',
+          'property_type',
+          'intent',
+          'source',
+          'configuration_preference',
+          'possession_preference',
+        ]);
+        if (!allowedLeadFields.has(leadField)) {
           return `field ${cfg.field} not writable from automations`;
         }
-        // Defense in depth: the service-role client bypasses RLS, so confirm
-        // the field definition belongs to this account before writing.
-        const { data: field } = await db
-          .from('custom_fields')
-          .select('id')
-          .eq('id', customFieldId)
-          .eq('account_id', args.automation.account_id)
-          .maybeSingle();
-        if (!field) {
-          return `field ${cfg.field} not writable from automations`;
+
+        let finalValue: any = value;
+        if (leadField === 'budget_max' || leadField === 'budget_min') {
+          finalValue = parseBudget(value);
+          if (finalValue === null) {
+             return `could not parse budget value ${value}`;
+          }
+        } else if (leadField === 'configuration_preference') {
+          finalValue = [value];
         }
-        // Upsert on the table's UNIQUE(contact_id, custom_field_id) so repeated
-        // runs overwrite rather than duplicate. Tenancy is enforced above and,
-        // for the contact side, by the entry-point ownership guard.
-        await db.from('contact_custom_values').upsert(
-          {
+
+        await db
+          .from('lead_details')
+          .upsert({
+            account_id: args.automation.account_id,
             contact_id: args.contactId,
-            custom_field_id: customFieldId,
-            value,
-          },
-          { onConflict: 'contact_id,custom_field_id' }
-        );
-        return `custom field updated`;
+            [leadField]: finalValue,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'contact_id' });
+        
+        return `${cfg.field} updated`;
       }
 
       const allowed = new Set(['name', 'email', 'company']);

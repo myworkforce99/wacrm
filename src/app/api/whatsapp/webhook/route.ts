@@ -928,6 +928,7 @@ async function processMessage(
           meta_message_id: message.id,
         },
     isFirstInboundMessage,
+    isNewContact: contactOutcome.wasCreated,
   });
   const flowConsumed = flowResult.consumed;
 

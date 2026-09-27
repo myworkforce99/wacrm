@@ -30,6 +30,7 @@ export function Step1ChooseTemplate({
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filterTag, setFilterTag] = useState<'all' | 'real-estate'>('all');
 
   useEffect(() => {
     async function fetchTemplates() {
@@ -45,7 +46,22 @@ export function Step1ChooseTemplate({
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
-        setTemplates(data ?? []);
+        
+        const { data: globalData, error: globalError } = await supabase
+          .from('broadcast_templates')
+          .select('*')
+          .order('created_at', { ascending: false });
+          
+        if (globalError) throw globalError;
+
+        const globalTemplates: MessageTemplate[] = (globalData ?? []).map((t) => ({
+          ...t,
+          status: 'APPROVED',
+          category: t.category as any,
+          user_id: 'system',
+        }));
+
+        setTemplates([...globalTemplates, ...(data ?? [])]);
       } catch (err) {
         setError(
           err instanceof Error ? err.message : t('chooseTemplate.errorLoad')
@@ -85,6 +101,23 @@ export function Step1ChooseTemplate({
         </p>
       </div>
 
+      <div className="flex items-center gap-2">
+        <Button
+          variant={filterTag === 'all' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterTag('all')}
+        >
+          All Templates
+        </Button>
+        <Button
+          variant={filterTag === 'real-estate' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setFilterTag('real-estate')}
+        >
+          Real Estate
+        </Button>
+      </div>
+
       {templates.length === 0 ? (
         <div className="border-border bg-card/50 flex h-48 flex-col items-center justify-center rounded-xl border">
           <FileText className="text-muted-foreground mb-2 h-8 w-8" />
@@ -97,7 +130,9 @@ export function Step1ChooseTemplate({
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => {
+          {templates
+            .filter((t: any) => filterTag === 'all' || (t.tags && t.tags.includes(filterTag)))
+            .map((template) => {
             const isSelected = selectedTemplate?.id === template.id;
             const catColor =
               categoryColors[template.category] ?? categoryColors.Utility;

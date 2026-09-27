@@ -16,12 +16,15 @@ export interface CustomFieldFilter {
 }
 
 export interface AudienceConfig {
-  type: 'all' | 'tags' | 'custom_field' | 'csv';
+  type: 'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
   tagIds?: string[];
   customField?: CustomFieldFilter;
   csvContacts?: { phone: string; name?: string }[];
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
+  leadSegment?: {
+    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[];
+  };
 }
 
 /**
@@ -200,6 +203,8 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       );
     } else if (audience.type === 'csv' && audience.csvContacts) {
       contacts = await upsertCsvContacts(supabase, audience.csvContacts);
+    } else if (audience.type === 'lead_segment' && audience.leadSegment?.filters) {
+      contacts = await resolveLeadSegmentAudience(supabase, audience.leadSegment.filters);
     }
 
     // Apply exclude tags (works across all contact-derived audience
@@ -346,6 +351,57 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     return data ?? [];
   }
 
+  async function resolveLeadSegmentAudience(
+    supabase: ReturnType<typeof createClient>,
+    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[]
+  ): Promise<Contact[]> {
+    if (filters.length === 0) return [];
+
+    let query = supabase.from('lead_details').select('contact_id');
+
+    for (const filter of filters) {
+      if (filter.field === 'configuration_preference') {
+        // configuration_preference is TEXT[], requires array operators
+        if (filter.operator === 'contains' || filter.operator === 'equals') {
+          query = query.contains(filter.field, [filter.value]);
+        } else {
+          // fallback, though gte doesn't make much sense for array
+          query = query.contains(filter.field, [filter.value]);
+        }
+      } else {
+        if (filter.operator === 'equals') {
+          query = query.eq(filter.field, filter.value);
+        } else if (filter.operator === 'contains') {
+          query = query.ilike(filter.field, `%${filter.value}%`);
+        } else if (filter.operator === 'gte') {
+          query = query.gte(filter.field, filter.value);
+        }
+      }
+    }
+
+    const { data: matches, error: matchErr } = await query;
+    if (matchErr) throw new Error(`Lead segment filter failed: ${matchErr.message}`);
+
+    const contactIds = [...new Set((matches ?? []).map((m) => m.contact_id))];
+    if (contactIds.length === 0) return [];
+
+    const { data, error } = await supabase.from('contacts').select('*').in('id', contactIds);
+    if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
+    
+    // Deduplicate by phone_normalized (done implicity by unique DB constraint if returning standard contacts, but good to ensure uniqueness in array if multiple contact records with same phone exist, though that shouldn't happen)
+    const uniqueContacts = new Map<string, Contact>();
+    for (const contact of data ?? []) {
+      const key = normalizeKey(contact.phone ?? '');
+      if (key && !uniqueContacts.has(key)) {
+        uniqueContacts.set(key, contact);
+      } else if (!key) {
+        uniqueContacts.set(contact.id, contact); // Fallback to id if phone missing
+      }
+    }
+    
+    return Array.from(uniqueContacts.values());
+  }
+
   async function createAndSendBroadcast(
     payload: BroadcastPayload
   ): Promise<string> {
@@ -395,6 +451,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
             tagIds: payload.audience.tagIds,
             customField: payload.audience.customField,
             excludeTagIds: payload.audience.excludeTagIds,
+            leadSegment: payload.audience.leadSegment,
           },
           status: 'sending',
           total_recipients: contacts.length,

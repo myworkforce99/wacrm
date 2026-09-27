@@ -58,6 +58,8 @@ import {
   type SetTagNodeConfig,
   type StartNodeConfig,
   type KeywordTriggerConfig,
+  type UpdateContactFieldNodeConfig,
+  type AssignConversationNodeConfig,
 } from './types';
 
 // ============================================================
@@ -338,7 +340,8 @@ async function findEntryFlow(
   db: AdminClient,
   accountId: string,
   message: ParsedInbound,
-  isFirstInbound: boolean
+  isFirstInbound: boolean,
+  isNewContact: boolean
 ): Promise<FlowRow | null> {
   // A tap used to be rejected outright here, on the reasoning that
   // interactive replies are responses to existing prompts. That holds
@@ -378,6 +381,11 @@ async function findEntryFlow(
       // treated a tap that way (the webhook pushes
       // `first_inbound_message` regardless of envelope) — flows were
       // the inconsistent half.
+      return flow;
+    } else if (
+      flow.trigger_type === 'new_contact_created' &&
+      isNewContact
+    ) {
       return flow;
     }
     // 'manual' triggers do not auto-start from inbound messages.
@@ -861,6 +869,87 @@ async function advanceFromNodeKey(
       }
       return { outcome: 'advanced' };
     }
+    if (node.node_type === 'update_contact_field') {
+      const cfg = node.config as unknown as UpdateContactFieldNodeConfig;
+      const value = interpolateVars(cfg.value, run.vars);
+      if (cfg.field.startsWith('custom:lead_details.')) {
+        const leadField = cfg.field.slice('custom:lead_details.'.length);
+        const allowedLead = new Set(['budget_min', 'budget_max', 'location_preference', 'property_type', 'intent', 'configuration_preference', 'possession_preference', 'source']);
+        if (allowedLead.has(leadField)) {
+           let parsedValue: any = value;
+           if (leadField === 'budget_max' || leadField === 'budget_min') {
+             // Basic parse, keep it as string if it can't be parsed, it will fail cast if so
+             parsedValue = value.replace(/[^0-9.]/g, '') || null;
+           } else if (leadField === 'configuration_preference') {
+             parsedValue = [value];
+           }
+           await db.from('lead_details').upsert({
+             contact_id: run.contact_id!,
+             account_id: run.account_id,
+             [leadField]: parsedValue,
+           }, { onConflict: 'contact_id' });
+        }
+      } else if (cfg.field.startsWith('custom:')) {
+        const customFieldId = cfg.field.slice('custom:'.length);
+        if (customFieldId) {
+          const { data: field } = await db
+            .from('custom_fields')
+            .select('id')
+            .eq('id', customFieldId)
+            .eq('account_id', run.account_id)
+            .maybeSingle();
+          if (field) {
+            await db.from('contact_custom_values').upsert(
+              {
+                contact_id: run.contact_id!,
+                custom_field_id: customFieldId,
+                value,
+              },
+              { onConflict: 'contact_id,custom_field_id' }
+            );
+          }
+        }
+      } else {
+        const allowed = new Set(['name', 'email', 'company']);
+        if (allowed.has(cfg.field)) {
+          await db
+            .from('contacts')
+            .update({ [cfg.field]: value, updated_at: new Date().toISOString() })
+            .eq('id', run.contact_id!)
+            .eq('account_id', run.account_id);
+        }
+      }
+      currentKey = cfg.next_node_key;
+      await logEvent(db, run.id, 'node_entered', node.node_key, { updated_field: cfg.field });
+      continue;
+    }
+    if (node.node_type === 'assign_conversation') {
+      const cfg = node.config as unknown as AssignConversationNodeConfig;
+      if (run.conversation_id) {
+        let agentId = cfg.agent_id;
+        if (cfg.mode === 'round_robin') {
+          const { data, error } = await db.rpc('get_next_round_robin_agent', {
+            p_account_id: run.account_id,
+          });
+          if (!error && data) agentId = data;
+        }
+        if (agentId) {
+          await db
+            .from('conversations')
+            .update({ assigned_agent_id: agentId })
+            .eq('id', run.conversation_id)
+            .eq('account_id', run.account_id);
+        }
+      }
+      currentKey = cfg.next_node_key || '';
+      await logEvent(db, run.id, 'node_entered', node.node_key, { assigned: true });
+      if (!currentKey) {
+        await logEvent(db, run.id, 'completed', node.node_key);
+        await endRun(db, run.id, 'completed', 'end_node');
+        return { outcome: 'completed' };
+      }
+      continue;
+    }
     if (node.node_type === 'handoff') {
       await executeHandoff(db, run, node);
       return { outcome: 'handed_off' };
@@ -925,7 +1014,7 @@ async function advanceCurrentNodeKey(
 // ============================================================
 
 export async function dispatchInboundToFlows(
-  input: DispatchInboundInput & { isFirstInboundMessage: boolean }
+  input: DispatchInboundInput & { isFirstInboundMessage: boolean, isNewContact?: boolean }
 ): Promise<DispatchInboundResult> {
   const db = supabaseAdmin();
   try {
@@ -963,7 +1052,8 @@ export async function dispatchInboundToFlows(
       db,
       input.accountId,
       input.message,
-      input.isFirstInboundMessage
+      input.isFirstInboundMessage,
+      !!input.isNewContact
     );
     if (!flow || !flow.entry_node_id) {
       return { consumed: false, outcome: 'no_match' };
@@ -1028,6 +1118,11 @@ async function handleReplyForActiveRun(
       currentNode.node_type === 'send_list')
   ) {
     matched = matchReplyId(currentNode, message.reply_id);
+    if (matched) {
+      const newVars = { ...run.vars, __last_interactive_reply_id: message.reply_id };
+      await db.from('flow_runs').update({ vars: newVars }).eq('id', run.id);
+      run.vars = newVars;
+    }
   } else if (
     message.kind === 'text' &&
     currentNode.node_type === 'collect_input'
@@ -1036,7 +1131,7 @@ async function handleReplyForActiveRun(
     const captured = message.text.trim();
     if (captured.length > 0 && cfg.var_key) {
       // Persist captured value + reset reprompt count atomically.
-      const newVars = { ...run.vars, [cfg.var_key]: captured };
+      const newVars = { ...run.vars, [cfg.var_key]: captured, __last_message_text: captured };
       const { error: capErr } = await db
         .from('flow_runs')
         .update({
