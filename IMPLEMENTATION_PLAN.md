@@ -168,6 +168,7 @@ _Goal: this is effectively your product demo — treat its polish as seriously a
 _Goal: the upstream automation, flows, and broadcast engines are fully built — this section extends them with real estate team–specific content and closes B2B-critical gaps._
 
 > **Status note (verified 2026-09-27):** J1–J2 (mobile recipe list + builder gate) are **done**. Three upstream features exist but are underutilised for a B2B team context:
+>
 > - **Automations** (`app/(dashboard)/automations/page.tsx`, 438 lines) — recipes exist but none cover RE-specific flows or team routing.
 > - **Flows** (`app/(dashboard)/flows/page.tsx`, 508 lines) — fully functional conversation-bot builder, but no seeded RE qualifier flow.
 > - **Broadcasts** (`app/(dashboard)/broadcasts/page.tsx`, 308 lines) — works, but `canCreate` uses `canSendMessages(role)` which is true for **every `agent`** — any agent can blast the entire contact list. Gap: needs admin gate + segment targeting tied to `lead_details`.
@@ -188,7 +189,7 @@ _Goal: the upstream automation, flows, and broadcast engines are fully built —
   - **Diwali Offer 🪔**: `"Namaste {{contact_name}} ji! 🎉 Is Diwali, humne aapke liye ek khaas property offer select ki hai. {{property_title}} — sirf ₹{{price}} mein. Site visit book karein aaj hi! 🏠"`
   - **New Project Launch 🏠**: `"{{contact_name}} ji, exciting news! Nayi property launch — {{property_title}} in {{location}}. {{configuration}} BHK from ₹{{price}}. RERA: {{rera_id}}. Limited units — reply YES to book a priority visit."`
   - **Price Drop Alert 📉**: `"{{contact_name}} ji, price drop alert! {{property_title}} ({{configuration}} BHK, {{location}}) ki price ab ₹{{price}} ho gayi hai — pehle ₹{{old_price}} thi. Abhi enquire karein!"`
-  These appear as quick-select options in broadcast Step 1 (Choose Template), filterable by tag `real-estate`. Confirm the template seeding mechanism by reading `migrations/003_*.sql` or whichever migration first seeds `quick_replies`.
+    These appear as quick-select options in broadcast Step 1 (Choose Template), filterable by tag `real-estate`. Confirm the template seeding mechanism by reading `migrations/003_*.sql` or whichever migration first seeds `quick_replies`.
 
 - **J6.** _(new — Real Estate Qualifier Flow)_ **Seed a "Real Estate Qualifier" conversation Flow** that auto-qualifies new WhatsApp leads before routing them to an agent. This is the highest-leverage use of the existing Flows engine for a real estate team — it replaces the manual tele-caller qualification call.
   - In migration `117_re_qualifier_flow.sql`, insert a `flows` record (read `supabase/migrations/010_flows.sql` for the exact schema first) with:
@@ -233,6 +234,7 @@ _Goal: the one piece genuinely missing from wacrm — required before charging a
 > **Codebase state (verified 2026-09-27):** No Stripe/billing dependency in `package.json`. The `Account` interface in `src/types/index.ts` has only `id`, `name`, `owner_user_id`, `created_at`, `updated_at` — no subscription fields. The `accounts` table (migration 017) has no billing columns. Highest existing migration is `104_push_subscriptions.sql`. Start new migrations at `106_billing.sql` (assuming D6 takes `105`).
 
 - **L1.** New migration `106_billing.sql`:
+
   ```sql
   ALTER TABLE accounts
     ADD COLUMN IF NOT EXISTS subscription_status TEXT NOT NULL DEFAULT 'trialing'
@@ -244,6 +246,7 @@ _Goal: the one piece genuinely missing from wacrm — required before charging a
       CHECK (plan_tier IN ('starter','growth','pro')),
     ADD COLUMN IF NOT EXISTS seat_limit INTEGER NOT NULL DEFAULT 3;
   ```
+
   Update `src/types/index.ts`'s `Account` interface — add all six new fields with doc-comments explaining each. Then install Stripe: `npm install stripe` (server-only — do not add `@stripe/stripe-js` unless a client-side element is needed). Add to `.env.local.example`: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_STARTER_PRICE_ID`, `STRIPE_GROWTH_PRICE_ID`, `STRIPE_PRO_PRICE_ID`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
 
 - **L2.** New API routes — follow the `try/catch → toErrorResponse` pattern from every other route file:
@@ -261,6 +264,7 @@ _Goal: the one piece genuinely missing from wacrm — required before charging a
   - New page `app/(auth)/billing/page.tsx` (own layout, no dashboard shell): shows account name, current status pill, and two CTA buttons depending on status: "Reactivate Plan" (→ POST billing/portal → redirect) for `past_due`/`canceled`, "Start Free Trial" (→ POST billing/checkout → redirect) for `canceled` with no prior subscription. Mobile-first; reuse `Button` from `components/ui/`.
 
 - **L4.** Seat-limit enforcement: in the existing invite-creation route (find it under `app/api/account/invitations/` — check the exact handler file by reading the directory), after role-checking, add:
+
   ```ts
   const { count } = await supabase
     .from('profiles')
@@ -273,11 +277,15 @@ _Goal: the one piece genuinely missing from wacrm — required before charging a
     .single();
   if (count !== null && account && count >= account.seat_limit) {
     return NextResponse.json(
-      { error: 'SEAT_LIMIT_REACHED', message: `Your plan allows ${account.seat_limit} seats. Upgrade to invite more team members.` },
+      {
+        error: 'SEAT_LIMIT_REACHED',
+        message: `Your plan allows ${account.seat_limit} seats. Upgrade to invite more team members.`,
+      },
       { status: 403 }
     );
   }
   ```
+
   In `components/settings/invite-member-dialog.tsx` (or wherever the invite UI lives), handle the `SEAT_LIMIT_REACHED` error code: show a toast "Seat limit reached" + an inline "Upgrade Plan" button that triggers the Checkout flow.
 
 - **L5.** Settings → Billing tab: new file `components/settings/billing-tab.tsx` (follow the per-panel convention — `whatsapp-config.tsx`, `ai-config.tsx`, etc. are the models). Show: plan name badge, status pill, renewal date formatted relative ("Renews in 14 days"), seat usage ("2 of 3 seats used" — query `profiles` count), "Manage Plan" button (→ billing portal), "Upgrade" button (→ Checkout, only shown for `starter` plan). Visible to `owner` only — check with the existing `canTransferOwnership` predicate in `lib/auth/roles.ts` or add `isOwner(role)` there if it doesn't exist.
@@ -326,10 +334,12 @@ _Goal: expose the portal connection surface the demo shows — a first-class rou
 > **Codebase state:** No `(dashboard)/integrations/` route exists. `whatsapp_config` table holds WhatsApp connection state. Section M added the inbound email capture backend but no UI page. `Account` table has no `portal_connections` column.
 
 - **O1.** New migration `107_portal_connections.sql`:
+
   ```sql
   ALTER TABLE accounts
     ADD COLUMN IF NOT EXISTS portal_connections JSONB NOT NULL DEFAULT '{}'::jsonb;
   ```
+
   The JSONB value is a map keyed by portal slug: `{ "99acres": { "connected": true, "connected_at": "2026-01-01T00:00:00Z", "test_lead_received": true }, "MagicBricks": { ... } }`. Update `src/types/index.ts`'s `Account` interface: add `portal_connections: Record<string, { connected: boolean; connected_at?: string; test_lead_received?: boolean }>`. No new RLS policy needed — `accounts` already has an owner-update policy; this column inherits it.
 
 - **O2.** New API route `app/api/account/portal-connections/route.ts` — follow the `try/catch → toErrorResponse` shape of `app/api/account/route.ts`:
@@ -341,14 +351,14 @@ _Goal: expose the portal connection surface the demo shows — a first-class rou
   - **Universal Capture Email card**: display `capture_email` in a read-only `<input>` styled as a code block, with a client-side "Copy" button (`navigator.clipboard.writeText`). Subtitle: "Add this as CC in any portal's notification settings to auto-import leads." (i18n key: `integrations.capture_email.subtitle`).
   - **Portal tiles grid** — 3 columns on desktop, 2 on tablet, 1 on mobile. The six portals and their initial states:
 
-    | Portal | Connection source | Default state |
-    |--------|------------------|---------------|
-    | 99acres | `portal_connections['99acres']` | Not Connected |
-    | MagicBricks | `portal_connections['MagicBricks']` | Not Connected |
-    | Housing.com | `portal_connections['Housing.com']` | Not Connected |
-    | Gmail | `portal_connections['Gmail']` | Not Connected |
+    | Portal            | Connection source                             | Default state        |
+    | ----------------- | --------------------------------------------- | -------------------- |
+    | 99acres           | `portal_connections['99acres']`               | Not Connected        |
+    | MagicBricks       | `portal_connections['MagicBricks']`           | Not Connected        |
+    | Housing.com       | `portal_connections['Housing.com']`           | Not Connected        |
+    | Gmail             | `portal_connections['Gmail']`                 | Not Connected        |
     | WhatsApp Business | `whatsapp_config.phone_number_id IS NOT NULL` | reflects live config |
-    | Instagram | hardcoded | Coming Soon |
+    | Instagram         | hardcoded                                     | Coming Soon          |
 
   - Each tile: portal name, icon (`lucide-react` — use `Home` for 99acres/MagicBricks/Housing.com, `Mail` for Gmail, `MessageCircle` for WhatsApp, `Instagram` for Instagram), status badge ("✓ Connected" green / "Not Connected" grey / "Coming Soon" purple), CTA button ("Manage →" if connected / "+ Connect →" if not / disabled if Coming Soon). If `test_lead_received` is true, show a sub-label "✓ Test lead received" in green below the status badge.
   - Add `integrations` entry to `components/layout/sidebar.tsx` (desktop) under a "Connections" nav group. Add to the `MoreSheet` in `BottomNav` (Section B3's component).
@@ -372,6 +382,7 @@ _Goal: power the "Today's Tasks" dashboard widget and the "Follow-ups Due" stat 
 > **Codebase state:** No `tasks` table, no task API route, no task UI. The SLA query (migration 102, `lib/dashboard/queries.ts`) tracks conversation-level response time but not explicit task items. `quick_replies` exists but must not be repurposed for tasks — different data shape and UX.
 
 - **P1.** New migration `108_tasks.sql`:
+
   ```sql
   CREATE TABLE IF NOT EXISTS tasks (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -401,6 +412,7 @@ _Goal: power the "Today's Tasks" dashboard widget and the "Follow-ups Due" stat 
   CREATE TRIGGER set_updated_at BEFORE UPDATE ON tasks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
   ```
+
   Update `src/types/index.ts` — add a `Task` interface matching the table shape exactly, with doc-comments on each field explaining _why_ it exists (match the existing documentation style in the file — see `LeadDetail` as a model).
 
 - **P2.** New dashboard API routes — pattern: `app/api/quick-replies/route.ts` (same `getCurrentAccount` + RLS-via-user-client read, service-role write, `try/catch → toErrorResponse`):
@@ -495,26 +507,32 @@ _Goal: make the product feel native to Indian real estate agents and legally com
 > **Codebase state:** `lib/currency.ts` uses `formatCompactNumber` which outputs "₹1.5M" — wrong for India. `properties` table has no BHK, RERA, builder, or possession fields. `site_visits` has no pickup fields. All automation templates are English-only. `whatsapp_config` holds the team's shared WhatsApp number.
 
 - **R1.** `lib/currency.ts` — add two new exported functions. Do NOT change the existing `formatCurrency` / `formatCurrencyShort` — they are used globally.
+
   ```ts
   /** Format a rupee value using Indian L/Cr scale. Always shows ₹ symbol.
    *  Examples: 4500000 → "₹45L", 10000000 → "₹1Cr", 15000000 → "₹1.5Cr", 75000 → "₹75,000" */
   export function formatINR(value: number): string {
     const v = Number(value || 0);
     if (v >= 1_00_00_000) return `₹${+(v / 1_00_00_000).toFixed(2)}Cr`;
-    if (v >= 1_00_000)    return `₹${+(v / 1_00_000).toFixed(1)}L`;
+    if (v >= 1_00_000) return `₹${+(v / 1_00_000).toFixed(1)}L`;
     return `₹${v.toLocaleString('en-IN')}`;
   }
   /** Format a budget range: "₹45L–60L", "₹1.5Cr–2Cr", "₹45L+" if no max */
-  export function formatINRRange(min?: number | null, max?: number | null): string {
+  export function formatINRRange(
+    min?: number | null,
+    max?: number | null
+  ): string {
     if (!min && !max) return '—';
     if (!max) return `${formatINR(min!)}+`;
     return `${formatINR(min!)}–${formatINR(max!)}`;
   }
   ```
+
   Find every place `formatCurrencyShort` or `formatCurrency` is called in RE-specific screens (C2 leads list, C4 pipeline cards, Dashboard stat cards, H2 property detail, H3 property match, Q cost sheet modal) and replace with `formatINR` / `formatINRRange` when the account's `default_currency === 'INR'`. Use a conditional: if INR use new functions, else fall back to existing ones — don't break other currencies.
   Also update the `handle_new_user` trigger in `supabase/migrations/100_real_estate_schema.sql` — add (in a new migration, not by editing 100): `UPDATE accounts SET default_currency = 'INR' WHERE id = v_account_id AND default_currency = 'USD';` in a new migration `110_india_defaults.sql`.
 
 - **R2.** New migration `110_india_defaults.sql` (same file as the currency trigger update):
+
   ```sql
   -- Set INR as default for all existing accounts (safe, idempotent)
   UPDATE accounts SET default_currency = 'INR' WHERE default_currency = 'USD';
@@ -564,7 +582,7 @@ _Goal: make the product feel native to Indian real estate agents and legally com
   - T-24h: `"Namaste {{contact_name}} ji! 🙏 Kal {{visit_time}} baje aapka site visit confirm hai. Property: {{property_title}}, {{property_location}}. Koi bhi sawaal ho toh humein WhatsApp karein."`
   - T-2h: `"{{contact_name}} ji, 2 ghante baad aapka site visit hai! {{#if pickup_required}}Hamara agent aapko {{pickup_location}} se pick karenge {{pickup_time}} baje par.{{/if}} Property ka address: {{property_location}} 🏠"`
   - No-show: `"{{contact_name}} ji, lagta hai aaj site visit chhoot gayi. Koi baat nahi! Kab convenient rahega — is week ya agli week? Hum nayi timing arrange kar sakte hain 🙏"`
-  In `lib/automations/engine.ts`, after resolving the automation to run, add a language-selection step: if `account.preferred_language !== 'en'`, prefer a template with the matching `[HI]` name prefix if one exists for the same trigger. This is a simple lookup — no new table needed.
+    In `lib/automations/engine.ts`, after resolving the automation to run, add a language-selection step: if `account.preferred_language !== 'en'`, prefer a template with the matching `[HI]` name prefix if one exists for the same trigger. This is a simple lookup — no new table needed.
 
 - **R7.** Two client-side utility components (zero backend, zero new migrations):
   - `components/properties/emi-calculator.tsx`: a collapsible card on the property detail page. Inputs: loan amount (pre-filled as `property.price * 0.8`), tenure (years, default 20), interest rate % (default 8.5). Output: monthly EMI using standard formula `P × r × (1+r)^n / ((1+r)^n - 1)`, displayed as `formatINR(emi)/month`. Also show "Total interest: `formatINR(totalInterest)`" and a green/amber/red "Fits budget?" indicator comparing EMI to `lead_details.budget_max / 200` (rough monthly affordability heuristic). Wire into property detail (H2) as a collapsible bottom section.
@@ -583,6 +601,7 @@ _Goal: make lead management work for a 10-30 person team. The most business-crit
 > **Codebase state:** Round-robin is a stub (literally returns `LIMIT 1`). No `is_available` on profiles. No lead routing rules. No bulk reassignment. No stale-lead detection. `loadTeamPerformance` returns per-agent stats but not open-lead counts.
 
 - **S1.** Fix round-robin in `lib/automations/engine.ts` (`assign_conversation` case). Replace the stub with real load-balanced round-robin:
+
   ```ts
   if (cfg.mode === 'round_robin') {
     // Real round-robin: find the available agent with the fewest open assigned leads
@@ -591,7 +610,7 @@ _Goal: make lead management work for a 10-30 person team. The most business-crit
       .select('user_id')
       .eq('account_id', args.automation.account_id)
       .eq('account_role', 'agent')
-      .eq('is_available', true);  // only available agents (S2 adds this column)
+      .eq('is_available', true); // only available agents (S2 adds this column)
 
     if (!profiles?.length) return 'no available agents';
 
@@ -611,18 +630,22 @@ _Goal: make lead management work for a 10-30 person team. The most business-crit
     agentId = counts[0].userId;
   }
   ```
+
   Add a unit test `lib/automations/engine.test.ts` specifically for round-robin: mock 3 agents with different open-conversation counts, assert the least-loaded one is selected.
 
 - **S2.** New migration `112_agent_availability.sql`:
+
   ```sql
   ALTER TABLE profiles
     ADD COLUMN IF NOT EXISTS is_available BOOLEAN NOT NULL DEFAULT TRUE,
     ADD COLUMN IF NOT EXISTS unavailable_reason TEXT;
     -- e.g. 'On leave', 'On a call', 'Out of office'
   ```
+
   UI: in Settings → Team (admin+ view), each agent row gets an availability toggle. An agent can also toggle their own availability from their profile menu (top-right avatar dropdown). Show an "On Leave" badge on unavailable agents in the Team Dashboard. The round-robin engine (S1) skips unavailable agents. If ALL agents are unavailable, create the contact/conversation unassigned and alert the admin via a push notification.
 
 - **S3.** Lead routing rules — new migration `113_lead_routing_rules.sql`:
+
   ```sql
   CREATE TABLE IF NOT EXISTS lead_routing_rules (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -645,6 +668,7 @@ _Goal: make lead management work for a 10-30 person team. The most business-crit
   CREATE POLICY routing_rules_select ON lead_routing_rules FOR SELECT USING (is_account_member(account_id));
   CREATE POLICY routing_rules_manage ON lead_routing_rules FOR ALL USING (is_account_member(account_id, 'admin'));
   ```
+
   New API route `app/api/account/routing-rules/route.ts` (GET, POST) and `app/api/account/routing-rules/[id]/route.ts` (PATCH, DELETE). Follow the `try/catch → toErrorResponse` pattern of `app/api/account/route.ts`.
   In `lib/automations/engine.ts` `assign_conversation` case: before round-robin, evaluate routing rules for the account in priority order. If a rule matches the contact's `source`, `budget`, `location_preference`, or `configuration_preference`, apply its action. Fall through to round-robin only if no rule matches.
   UI: Settings → Team → "Lead Routing" tab. Shows a drag-reorderable list of rules. Each rule: condition (`source = 99acres`) → action (`assign to Agent: Rahul`). "+ Add Rule" button opens a simple form. Uses `@dnd-kit/sortable` (already in `package.json` — verify; if not, use `react-beautiful-dnd` or a simple up/down arrow UI instead). `admin+` only.
@@ -663,7 +687,7 @@ _Goal: make lead management work for a 10-30 person team. The most business-crit
 - **S6.** Escalation automation recipes — extend the Recipes list (Section J1). Add two pre-seeded, disabled-by-default automation records in migration `114_escalation_recipes.sql`:
   - "No WhatsApp reply in 30 min → notify manager": trigger `sla_breach` (the `first_unanswered_at` check from Section F), action: send a WhatsApp/push notification to all `admin`-role profiles in the account: "⚠️ SLA breach: {{contact_name}} has been waiting {{minutes}} min. Assigned to: {{agent_name}}."
   - "Lead in New stage for 48h → escalate": trigger `stale_lead` (from S4's cron), action: send notification to admin + optionally reassign round-robin. Config: threshold in hours (default 48), escalation action (notify-only or reassign).
-  Toggle these on/off in the Recipes UI (Section J). The recipe config panel shows a "Threshold (hours)" number input.
+    Toggle these on/off in the Recipes UI (Section J). The recipe config panel shows a "Threshold (hours)" number input.
 
 **Definition of done:** round-robin assigns to the least-loaded available agent (verified by unit test); unavailable agents are skipped; a routing rule matching `source=99acres` assigns to the configured agent instead of round-robin; the stale-leads cron endpoint returns correct counts in a test DB; bulk reassignment of 5 contacts updates all their open conversation assignments; `npm run typecheck && npm run lint && npm run test` all pass.
 
@@ -676,23 +700,32 @@ _Goal: the screen the business owner opens every morning. Upgrade the Team Dashb
 > **Codebase state:** `app/(dashboard)/team/team-client.tsx` is 110 lines, shows agent cards with 5 stats (response time, leads worked, visits, no-show rate, conversion rate). `AgentPerformance` in `lib/dashboard/types.ts` has no `openLeadsCount`, `isAvailable`, `targetVisits`, or `staleLeadCount`. There is no unassigned lead pool view.
 
 - **T1.** Extend `AgentPerformance` in `lib/dashboard/types.ts`:
+
   ```ts
   export interface AgentPerformance {
     // existing fields unchanged
-    agentId: string; name: string; avatarUrl: string | null; role: string;
-    avgResponseTimeMin: number | null; leadsWorked: number;
-    visitsCompleted: number; noShowRate: number | null; conversionRate: number | null;
+    agentId: string;
+    name: string;
+    avatarUrl: string | null;
+    role: string;
+    avgResponseTimeMin: number | null;
+    leadsWorked: number;
+    visitsCompleted: number;
+    noShowRate: number | null;
+    conversionRate: number | null;
     // new B2B team fields
-    openLeadsCount: number;       // currently open conversations assigned to this agent
-    isAvailable: boolean;         // from profiles.is_available (Section S2)
-    staleLeadCount: number;       // leads with deals.updated_at > 48h ago in early stages
-    targetVisits: number | null;  // from agent_targets for current calendar month
+    openLeadsCount: number; // currently open conversations assigned to this agent
+    isAvailable: boolean; // from profiles.is_available (Section S2)
+    staleLeadCount: number; // leads with deals.updated_at > 48h ago in early stages
+    targetVisits: number | null; // from agent_targets for current calendar month
     actualVisitsThisMonth: number; // completed site visits this calendar month
   }
   ```
+
   Update `loadTeamPerformance` in `lib/dashboard/queries.ts` to populate these new fields. Add a 6th parallel query for `openLeadsCount` (count conversations per `assigned_agent_id` where `status='open'`). Add `staleLeadCount` using the same query logic as S4's cron but returning per-agent counts. Fetch `agent_targets` for the current month (Section T2 adds this table). Fetch `is_available` from profiles.
 
 - **T2.** New migration `115_agent_targets.sql`:
+
   ```sql
   CREATE TABLE IF NOT EXISTS agent_targets (
     id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -708,6 +741,7 @@ _Goal: the screen the business owner opens every morning. Upgrade the Team Dashb
   CREATE POLICY agent_targets_select ON agent_targets FOR SELECT USING (is_account_member(account_id));
   CREATE POLICY agent_targets_manage ON agent_targets FOR ALL USING (is_account_member(account_id, 'admin'));
   ```
+
   New API route `app/api/account/targets/route.ts` (GET, POST/PATCH). Admin can set monthly targets per agent from the Team Dashboard via an inline edit (click the target number → number input → save). Pre-populate new months by copying the previous month's targets.
 
 - **T3.** Unassigned Lead Pool widget — new component `components/team/unassigned-pool.tsx`. Shows at the top of the Team Dashboard page (above agent cards), visible to `admin+` only. Content:
@@ -751,7 +785,7 @@ _Goal: the first 10 minutes for a new business-owner customer. B2B SaaS retentio
   4. Import leads → links to `/contacts/import`
   5. Set routing rules → links to Settings → Team → Routing Rules (Section S3)
   6. Set monthly targets → links to `/team`
-  Dismiss button: "Got it, don't show again" → sets `account.settings.onboarding_dismissed = true` (JSONB, no migration needed). Checklist disappears after all steps are done OR after dismissal.
+     Dismiss button: "Got it, don't show again" → sets `account.settings.onboarding_dismissed = true` (JSONB, no migration needed). Checklist disappears after all steps are done OR after dismissal.
 
 - **U3.** Role-aware navigation — update `components/layout/sidebar.tsx` and the mobile `BottomNav` component. For users with role `agent` (not admin or owner):
   - **Show**: Dashboard (personal — scoped to their own leads), Leads (their assigned leads only), Site Visits (their scheduled visits), Inbox (their conversations)

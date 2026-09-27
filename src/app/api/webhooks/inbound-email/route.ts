@@ -7,7 +7,7 @@ import {
   resolveAuditUserId,
   findOrCreateContact,
   setContactTags,
-  ContactError
+  ContactError,
 } from '@/lib/api/v1/contacts';
 
 export async function POST(request: Request) {
@@ -72,13 +72,16 @@ export async function POST(request: Request) {
               .from('contact_tags')
               .select('tags(name)')
               .eq('contact_id', id);
-            
+
             const existingTagNames = (currentTags || [])
-              .map(t => (t.tags as unknown as { name: string })?.name)
+              .map((t) => (t.tags as unknown as { name: string })?.name)
               .filter(Boolean);
-            
+
             if (!existingTagNames.includes(lead.source)) {
-              await setContactTags(db, accountId, auditUserId, id, [...existingTagNames, lead.source]);
+              await setContactTags(db, accountId, auditUserId, id, [
+                ...existingTagNames,
+                lead.source,
+              ]);
             }
           }
         }
@@ -86,7 +89,10 @@ export async function POST(request: Request) {
         if (err instanceof ContactError) {
           console.warn('[inbound-email] Lead creation failed:', err.message);
           // Return 200 so SendGrid doesn't retry a bad payload
-          return NextResponse.json({ ok: true, warn: err.message }, { status: 200 });
+          return NextResponse.json(
+            { ok: true, warn: err.message },
+            { status: 200 }
+          );
         }
         throw err;
       }

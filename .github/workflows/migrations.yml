@@ -72,4 +72,3 @@ jobs:
 
       - name: Verify two-tenant RLS isolation
         run: supabase db query --local --file supabase/ci/verify-rls-isolation.sql
-

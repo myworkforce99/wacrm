@@ -25,6 +25,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -56,6 +63,8 @@ export function ContactForm({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
+  const [source, setSource] = useState('');
+  const [otherSource, setOtherSource] = useState('');
   const [saving, setSaving] = useState(false);
 
   // Duplicate-phone detection for NEW contacts. `exact` (same digits)
@@ -81,6 +90,11 @@ export function ContactForm({
       setSelectedTagIds(contactTags.map((ct) => ct.tag_id));
       setDupMatch(null);
       fetchTags();
+      if (contact?.id) fetchSource(contact.id);
+      else {
+        setSource('');
+        setOtherSource('');
+      }
     }
   }, [open, contact]);
 
@@ -103,6 +117,27 @@ export function ContactForm({
       );
     } finally {
       setCheckingDup(false);
+    }
+  }
+
+  async function fetchSource(contactId: string) {
+    const { data } = await supabase
+      .from('lead_details')
+      .select('source')
+      .eq('contact_id', contactId)
+      .single();
+    if (data?.source) {
+      const knownSources = ['99acres', 'MagicBricks', 'Housing.com', 'Manual'];
+      if (knownSources.includes(data.source)) {
+        setSource(data.source);
+        setOtherSource('');
+      } else {
+        setSource('Other');
+        setOtherSource(data.source);
+      }
+    } else {
+      setSource('');
+      setOtherSource('');
     }
   }
 
@@ -188,6 +223,23 @@ export function ContactForm({
           .single();
         if (error) throw error;
         contactId = data.id;
+      }
+
+      // Upsert lead source
+      if (contactId && source) {
+        const actualSource = source === 'Other' ? otherSource.trim() : source;
+        if (actualSource) {
+          const { error: ldError } = await supabase.from('lead_details').upsert(
+            {
+              account_id: accountId,
+              contact_id: contactId,
+              source: actualSource,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: 'contact_id' }
+          );
+          if (ldError) throw ldError;
+        }
       }
 
       // Sync tags
@@ -331,6 +383,38 @@ export function ContactForm({
               placeholder={t('companyPlaceholder')}
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cf-source" className="text-muted-foreground">
+              Source
+            </Label>
+            <Select
+              value={source}
+              onValueChange={(val) => setSource(val || '')}
+            >
+              <SelectTrigger
+                id="cf-source"
+                className="bg-muted border-border text-foreground"
+              >
+                <SelectValue placeholder="Select a source..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="99acres">99acres</SelectItem>
+                <SelectItem value="MagicBricks">MagicBricks</SelectItem>
+                <SelectItem value="Housing.com">Housing.com</SelectItem>
+                <SelectItem value="Manual">Manual</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {source === 'Other' && (
+              <Input
+                value={otherSource}
+                onChange={(e) => setOtherSource(e.target.value)}
+                placeholder="Enter custom source"
+                className="bg-muted border-border text-foreground placeholder:text-muted-foreground mt-2"
+              />
+            )}
           </div>
 
           <div className="space-y-2">

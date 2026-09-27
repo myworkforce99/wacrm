@@ -1,0 +1,1 @@
+ALTER TABLE lead_details ADD COLUMN IF NOT EXISTS source TEXT;

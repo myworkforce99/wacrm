@@ -149,6 +149,8 @@ export interface LeadDetail {
   location_preference?: string;
   property_type?: string;
   intent?: string;
+  /** Portal this lead came from, e.g. '99acres', 'MagicBricks', 'Housing.com', 'Manual'. Set by the email parser (Section M) or manually via the contact form. */
+  source?: string;
   created_at: string;
   updated_at: string;
 }
