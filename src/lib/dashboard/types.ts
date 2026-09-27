@@ -72,4 +72,10 @@ export interface AgentPerformance {
   visitsCompleted: number;
   noShowRate: number | null;
   conversionRate: number | null;
+  // new B2B team fields
+  openLeadsCount: number; // currently open conversations assigned to this agent
+  isAvailable: boolean; // from profiles.is_available (Section S2)
+  staleLeadCount: number; // leads with deals.updated_at > 48h ago in early stages
+  targetVisits: number | null; // from agent_targets for current calendar month
+  actualVisitsThisMonth: number; // completed site visits this calendar month
 }

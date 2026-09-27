@@ -74,6 +74,7 @@ interface ContactWithTags extends Contact {
 export default function ContactsPage() {
   const t = useTranslations('Contacts.page');
   const supabase = createClient();
+  const { accountRole, user } = useAuth();
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
 
@@ -164,9 +165,18 @@ export default function ContactsPage() {
     } else {
       let query = supabase
         .from('contacts')
-        .select('*', { count: 'exact' })
+        .select(
+          accountRole === 'agent'
+            ? '*, conversations!inner(assigned_agent_id)'
+            : '*',
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false })
         .range(from, to);
+
+      if (accountRole === 'agent' && user?.id) {
+        query = query.eq('conversations.assigned_agent_id', user.id);
+      }
 
       if (term) {
         const like = `%${term}%`;

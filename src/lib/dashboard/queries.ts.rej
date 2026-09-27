@@ -1,0 +1,24 @@
+--- src/lib/dashboard/queries.ts
++++ src/lib/dashboard/queries.ts
+@@ -486,16 +486,21 @@
+     .not('assigned_agent_id', 'is', null);
+   if (cErr) throw cErr;
+ 
+   const contactToAgent = new Map<string, string>();
+   const leadsWorkedByAgent = new Map<string, number>();
++  const openLeadsByAgent = new Map<string, number>();
+ 
+   for (const c of (convosRes ?? []) as {
+     assigned_agent_id: string;
+     contact_id: string;
++    status?: string;
+   }[]) {
+     contactToAgent.set(c.contact_id, c.assigned_agent_id);
+     leadsWorkedByAgent.set(
+       c.assigned_agent_id,
+       (leadsWorkedByAgent.get(c.assigned_agent_id) ?? 0) + 1
+     );
++    if (c.status === 'open') {
++      openLeadsByAgent.set(c.assigned_agent_id, (openLeadsByAgent.get(c.assigned_agent_id) ?? 0) + 1);
++    }
+   }

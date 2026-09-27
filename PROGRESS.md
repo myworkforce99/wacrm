@@ -43,7 +43,7 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [ ] Section Q — Cost Sheet (run after R so RERA fields available in template)
 - [x] Section R — India Localization & Compliance ← **run before O/P/Q**
 - [x] Section S — Lead Distribution & Team Workflows
-- [ ] Section T — Manager Command Center (upgrades Section G)
+- [x] Section T — Manager Command Center (upgrades Section G)
 - [ ] Section U — Business Team Onboarding (supplements Section I)
 - [ ] Section V — Reporting & Exports
 - [x] Section D6 — Lead source column (105_lead_source.sql)
