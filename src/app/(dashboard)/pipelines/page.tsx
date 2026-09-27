@@ -227,16 +227,34 @@ export default function PipelinesPage() {
       setDeals((prev) =>
         prev.map((d) => (d.id === dealId ? { ...d, stage_id: newStageId } : d))
       );
-      const { error } = await supabase
-        .from('deals')
-        .update({ stage_id: newStageId })
-        .eq('id', dealId);
-      if (error) {
-        toast.error(t('toastFailedMoveDeal'));
+      const res = await fetch(`/api/deals/${dealId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stage_id: newStageId }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.error === 'DEAL_NOT_YOURS') {
+          // Because of optimistic update, deals inside useCallback scope might be slightly stale if we don't use a ref,
+          // but we can just use setDeals to grab it if we needed to, or find it directly.
+          setDeals((prev) => {
+            const deal = prev.find((d) => d.id === dealId);
+            const ownerName =
+              deal?.assignee?.full_name ||
+              deal?.assignee?.email ||
+              'another agent';
+            toast.error(
+              `This lead belongs to ${ownerName}. Contact your admin to move it.`
+            );
+            return prev;
+          });
+        } else {
+          toast.error(t('toastFailedMoveDeal'));
+        }
         refreshDeals();
       }
     },
-    [supabase, refreshDeals, t]
+    [refreshDeals, t]
   );
 
   const handleAddDeal = useCallback(

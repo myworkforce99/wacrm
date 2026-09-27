@@ -171,12 +171,18 @@ export function DealForm({
     };
 
     if (deal) {
-      const { error } = await supabase
-        .from('deals')
-        .update(payload)
-        .eq('id', deal.id);
-      if (error) {
-        toast.error(t('toastFailedSave'));
+      const res = await fetch(`/api/deals/${deal.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.error === 'DEAL_NOT_YOURS') {
+          toast.error(body.message);
+        } else {
+          toast.error(t('toastFailedSave'));
+        }
         setSaving(false);
         return;
       }
@@ -217,13 +223,19 @@ export function DealForm({
   async function handleStatusChange(status: DealStatus) {
     if (!deal) return;
     setStatusAction(status);
-    const { error } = await supabase
-      .from('deals')
-      .update({ status })
-      .eq('id', deal.id);
+    const res = await fetch(`/api/deals/${deal.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+      headers: { 'Content-Type': 'application/json' },
+    });
     setStatusAction(null);
-    if (error) {
-      toast.error(t('toastFailedStatus'));
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (body.error === 'DEAL_NOT_YOURS') {
+        toast.error(body.message);
+      } else {
+        toast.error(t('toastFailedStatus'));
+      }
       return;
     }
     toast.success(

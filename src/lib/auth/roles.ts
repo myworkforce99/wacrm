@@ -107,3 +107,21 @@ export function canDeleteAccount(role: AccountRole): boolean {
 export function canTransferOwnership(role: AccountRole): boolean {
   return role === 'owner';
 }
+
+/** Admin bypasses ownership guard; Agents can only move their own deals. */
+export function canMoveDeal(
+  role: AccountRole,
+  dealAssignedTo: string | null | undefined,
+  contactAssignedAgentId: string | null | undefined,
+  currentUserId: string
+): boolean {
+  if (hasMinRole(role, 'admin')) return true;
+  return (
+    dealAssignedTo === currentUserId || contactAssignedAgentId === currentUserId
+  );
+}
+
+/** Admin only: create broadcasts */
+export function canCreateBroadcast(role: AccountRole): boolean {
+  return hasMinRole(role, 'admin');
+}

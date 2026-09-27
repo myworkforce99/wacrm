@@ -13,6 +13,7 @@ import { Step4ScheduleSend } from '@/components/broadcasts/step4-schedule-send';
 import { useBroadcastSending } from '@/hooks/use-broadcast-sending';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useCan } from '@/hooks/use-can';
 
 const steps = [
   { label: 'template', key: 'template' },
@@ -24,9 +25,16 @@ const steps = [
 export default function NewBroadcastPage() {
   const router = useRouter();
   const t = useTranslations('Broadcasts.new');
-  const { accountId } = useAuth();
+  const { accountId, profileLoading } = useAuth();
   const { createAndSendBroadcast, isProcessing, progress } =
     useBroadcastSending();
+  const canCreate = useCan('create-broadcast');
+
+  useEffect(() => {
+    if (!profileLoading && !canCreate) {
+      router.replace('/broadcasts');
+    }
+  }, [profileLoading, canCreate, router]);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [template, setTemplate] = useState<MessageTemplate | null>(null);

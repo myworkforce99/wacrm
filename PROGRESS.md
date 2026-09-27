@@ -26,14 +26,14 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 
 - [x] Section A — Repo Reconnaissance & Environment (Completed via direct push df15010 / 751a4e4)
 - [x] Section B — Design Tokens & Mobile Shell Foundation
-- [x] Section C — Core Screens: Mobile-Responsive Pass (C1–C5 done; C6 pipeline deal-move guard pending)
+- [x] Section C — Core Screens: Mobile-Responsive Pass (C1–C6 done)
 - [x] Section D — Real Estate Data Model Extensions (D1–D6 done)
 - [x] Section E — Site Visits: UI + No-Show Automation
 - [x] Section F — Response SLA & Lead Ownership Visibility
 - [x] Section G — Team / Manager Dashboard (basic version; T supersedes)
 - [x] Section H — Properties & Lead Matching
 - [x] Section I — Onboarding Wizard & Real Estate Template (individual; U adds team setup)
-- [x] Section J — Automations, Flows & Broadcasts (J1–J2 done; J3 broadcast admin gate, J4 segment targeting, J5 RE templates, J6 qualifier flow pending)
+- [x] Section J — Automations, Flows & Broadcasts (J1–J3 done; J4 segment targeting, J5 RE templates, J6 qualifier flow pending)
 - [x] Section K — PWA & Native-Feel Polish
 - [ ] Section L — Billing & Plan Gating
 - [x] Section M — Portal Lead Capture (Email Parser)
