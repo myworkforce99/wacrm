@@ -59,8 +59,33 @@ export async function PATCH(
 
     const body = (await request.json().catch(() => null)) as {
       role?: unknown;
+      is_available?: boolean;
     } | null;
-    const role = body?.role;
+
+    if (!body) {
+      return NextResponse.json({ error: 'Missing body' }, { status: 400 });
+    }
+
+    if (typeof body.is_available === 'boolean') {
+      const { supabaseAdmin } = await import('@/lib/automations/admin-client');
+      const { error } = await supabaseAdmin()
+        .from('profiles')
+        .update({ is_available: body.is_available })
+        .eq('user_id', userId)
+        .eq('account_id', ctx.accountId);
+
+      if (error) {
+        console.error('[PATCH /api/account/members/[userId]] availability error:', error);
+        return NextResponse.json({ error: 'Failed to update member availability' }, { status: 500 });
+      }
+      
+      // If only updating availability, return now
+      if (body.role === undefined) {
+        return NextResponse.json({ ok: true });
+      }
+    }
+
+    const role = body.role;
 
     if (!isAccountRole(role)) {
       return NextResponse.json(

@@ -28,6 +28,7 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart';
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut';
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
+import { TeamSetupChecklist } from '@/components/onboarding/team-setup-checklist';
 
 import { useTranslations } from 'next-intl';
 
@@ -122,6 +123,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
+      <TeamSetupChecklist />
       {/* Header */}
       <div>
         <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { vibrate } from '@/lib/utils/vibrate';
@@ -55,7 +56,7 @@ import {
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
-import { ImportModal } from '@/components/contacts/import-modal';
+import { useRouter } from 'next/navigation';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
 import { BulkReassignModal } from '@/components/contacts/bulk-reassign-modal';
 import { useCan } from '@/hooks/use-can';
@@ -73,6 +74,7 @@ interface ContactWithTags extends Contact {
 
 export default function ContactsPage() {
   const t = useTranslations('Contacts.page');
+  const router = useRouter();
   const supabase = createClient();
   const { accountRole, user } = useAuth();
   const canEdit = useCan('send-messages');
@@ -92,7 +94,6 @@ export default function ContactsPage() {
   const [editContactTags, setEditContactTags] = useState<ContactTag[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailContactId, setDetailContactId] = useState<string | null>(null);
-  const [importOpen, setImportOpen] = useState(false);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
@@ -166,9 +167,9 @@ export default function ContactsPage() {
       let query = supabase
         .from('contacts')
         .select(
-          accountRole === 'agent'
+          (accountRole === 'agent'
             ? '*, conversations!inner(assigned_agent_id)'
-            : '*',
+            : '*') as any,
           { count: 'exact' }
         )
         .order('created_at', { ascending: false })
@@ -192,7 +193,7 @@ export default function ContactsPage() {
         setLoading(false);
         return;
       }
-      contactRows = data ?? [];
+      contactRows = (data as unknown as Contact[]) ?? [];
       count = exactCount ?? 0;
     }
 
@@ -428,9 +429,9 @@ export default function ContactsPage() {
             )}
             <GatedButton
               variant="outline"
-              canAct={canEdit}
+              canAct={canEditSettings}
               gateReason="add or import contacts"
-              onClick={() => setImportOpen(true)}
+              onClick={() => router.push('/contacts/import')}
               className="border-border text-muted-foreground hover:bg-muted"
             >
               <Upload className="size-4" />
@@ -1026,13 +1027,6 @@ export default function ContactsPage() {
           onOpenChange={setDetailOpen}
           contactId={detailContactId}
           onUpdated={fetchContacts}
-        />
-
-        {/* Import Modal */}
-        <ImportModal
-          open={importOpen}
-          onOpenChange={setImportOpen}
-          onImported={fetchContacts}
         />
 
         {/* Custom Fields Manager (admin+) */}

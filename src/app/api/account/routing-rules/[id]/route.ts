@@ -6,9 +6,10 @@ import { toApiErrorResponse } from '@/lib/api/v1/respond';
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const account = await getCurrentAccount();
     if (!account)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,7 +24,7 @@ export async function PATCH(
     const { data, error } = await supabase
       .from('lead_routing_rules')
       .update(body)
-      .eq('id', context.params.id)
+      .eq('id', id)
       .eq('account_id', account.accountId)
       .select()
       .single();
@@ -37,9 +38,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const account = await getCurrentAccount();
     if (!account)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -52,7 +54,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('lead_routing_rules')
       .delete()
-      .eq('id', context.params.id)
+      .eq('id', id)
       .eq('account_id', account.accountId);
 
     if (error) throw error;
