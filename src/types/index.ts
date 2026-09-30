@@ -60,6 +60,18 @@ export interface Account {
   /** auth.users.id of the immutable owner. */
   owner_user_id: string;
   preferred_language?: 'en' | 'hi' | 'hi-en';
+  /** Subscription status for the account */
+  subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
+  /** Stripe customer ID */
+  stripe_customer_id?: string | null;
+  /** Stripe subscription ID */
+  stripe_subscription_id?: string | null;
+  /** End of the current billing period */
+  current_period_end?: string | null;
+  /** Plan tier */
+  plan_tier: 'starter' | 'growth' | 'pro';
+  /** Seat limit for the account */
+  seat_limit: number;
   created_at: string;
   updated_at: string;
 }

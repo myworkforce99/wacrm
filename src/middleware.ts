@@ -13,7 +13,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
+          cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           );
           supabaseResponse = NextResponse.next({ request });
@@ -83,6 +83,7 @@ export async function middleware(request: NextRequest) {
     '/broadcasts',
     '/automations',
     '/settings',
+    '/billing',
   ];
   if (
     !user &&
@@ -93,15 +94,53 @@ export async function middleware(request: NextRequest) {
     return withRefreshedCookies(NextResponse.redirect(url));
   }
 
+  // Billing gate - redirect to /billing if account is past_due or canceled
+  if (
+    user &&
+    !request.nextUrl.pathname.startsWith('/billing') &&
+    protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path))
+  ) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('account_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profile?.account_id) {
+      const { data: account } = await supabase
+        .from('accounts')
+        .select('subscription_status')
+        .eq('id', profile.account_id)
+        .single();
+
+      if (
+        account &&
+        (account.subscription_status === 'canceled' ||
+          account.subscription_status === 'past_due')
+      ) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/billing';
+        return withRefreshedCookies(NextResponse.redirect(url));
+      }
+    }
+  }
+
   // API routes that need auth (not webhooks)
   if (
     !user &&
-    request.nextUrl.pathname.startsWith('/api/whatsapp/') &&
-    !request.nextUrl.pathname.includes('/webhook')
+    request.nextUrl.pathname.startsWith('/api/') &&
+    !request.nextUrl.pathname.includes('/webhook') &&
+    // Public routes that don't need auth
+    !request.nextUrl.pathname.startsWith('/api/billing/webhook') &&
+    !request.nextUrl.pathname.startsWith('/api/inbound-email') // assuming inbound email doesn't need auth
   ) {
-    return withRefreshedCookies(
-      NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    );
+    // Keep original check for whatsapp API routes specifically if needed, 
+    // but the original code was only for /api/whatsapp/. Let's match the original.
+    if (request.nextUrl.pathname.startsWith('/api/whatsapp/')) {
+      return withRefreshedCookies(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      );
+    }
   }
 
   return supabaseResponse;

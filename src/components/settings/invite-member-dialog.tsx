@@ -117,6 +117,32 @@ export function InviteMemberDialog({
 
       if (!res.ok) {
         const payload = await res.json().catch(() => ({}));
+        if (payload.error === 'SEAT_LIMIT_REACHED') {
+          toast.error(payload.message || 'Seat limit reached', {
+            action: {
+              label: 'Upgrade Plan',
+              onClick: async () => {
+                const checkoutRes = await fetch('/api/billing/checkout', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ plan_tier: 'growth' }),
+                });
+                if (checkoutRes.ok) {
+                  const { url } = await checkoutRes.json();
+                  window.location.href = url;
+                } else {
+                  const portalRes = await fetch('/api/billing/portal', { method: 'POST' });
+                  if (portalRes.ok) {
+                    const { url } = await portalRes.json();
+                    window.location.href = url;
+                  }
+                }
+              },
+            },
+            duration: 10000,
+          });
+          return;
+        }
         toast.error(payload.error || 'Failed to create invitation');
         return;
       }

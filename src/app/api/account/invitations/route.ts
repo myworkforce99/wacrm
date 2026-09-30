@@ -178,6 +178,27 @@ export async function POST(request: Request) {
     );
     if (!limit.success) return rateLimitResponse(limit);
 
+    const { count } = await ctx.supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('account_id', ctx.accountId);
+    
+    const { data: account } = await ctx.supabase
+      .from('accounts')
+      .select('seat_limit')
+      .eq('id', ctx.accountId)
+      .single();
+      
+    if (count !== null && account && count >= account.seat_limit) {
+      return NextResponse.json(
+        {
+          error: 'SEAT_LIMIT_REACHED',
+          message: `Your plan allows ${account.seat_limit} seats. Upgrade to invite more team members.`,
+        },
+        { status: 403 }
+      );
+    }
+
     const body = (await request.json().catch(() => null)) as {
       role?: unknown;
       expiresInDays?: unknown;

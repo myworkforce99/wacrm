@@ -35,6 +35,7 @@ export const SETTINGS_SECTIONS = [
   'members',
   'api',
   'routing',
+  'billing',
 ] as const;
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
@@ -115,6 +116,12 @@ export const SECTION_META: Record<SettingsSection, SectionMeta> = {
     id: 'routing',
     label: 'Lead Routing',
     icon: Route,
+    group: 'workspace',
+  },
+  billing: {
+    id: 'billing',
+    label: 'Billing',
+    icon: Coins,
     group: 'workspace',
   },
 };

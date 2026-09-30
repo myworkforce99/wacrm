@@ -19,6 +19,7 @@ import { DealsSettings } from '@/components/settings/deals-settings';
 import { MembersTab } from '@/components/settings/members-tab';
 import { ApiKeysSettings } from '@/components/settings/api-keys-settings';
 import { RoutingSettings } from '@/components/settings/routing-settings';
+import { BillingTab } from '@/components/settings/billing-tab';
 import {
   resolveSection,
   type SettingsSection,
@@ -83,6 +84,7 @@ function SettingsPageInner() {
     members: <MembersTab />,
     api: <ApiKeysSettings />,
     routing: <RoutingSettings />,
+    billing: <BillingTab />,
   };
 
   const restrictedForAgent = !['profile', 'appearance', 'security'].includes(section);

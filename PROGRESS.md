@@ -35,7 +35,7 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [x] Section I — Onboarding Wizard & Real Estate Template (individual; U adds team setup)
 - [x] Section J — Automations, Flows & Broadcasts (J1–J6 done)
 - [x] Section K — PWA & Native-Feel Polish
-- [ ] Section L — Billing & Plan Gating
+- [x] Section L — Billing & Plan Gating
 - [x] Section M — Portal Lead Capture (Email Parser)
 - [x] Section N — QA, Performance & Launch Readiness (re-run after every 2 new sections)
 - [ ] Section O — Integrations Page UI (run after R so NoBroker tile is ready)
