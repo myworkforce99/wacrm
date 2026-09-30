@@ -76,7 +76,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="bg-background flex h-screen overflow-hidden">
+    <div className="bg-background flex h-screen overflow-hidden print:h-auto print:overflow-visible">
       {/* Reports this tab's online/away presence once we know a user is
           signed in. Headless — renders nothing. */}
       <PresenceHeartbeat />
@@ -84,23 +84,29 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           Your profile). Headless — renders nothing. */}
       <BrowserNotificationsListener />
 
-      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+      <div className="print:hidden">
+        <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+      </div>
 
-      <div className="relative flex flex-1 flex-col overflow-hidden">
-        <MobileHeader />
-        <div className="hidden md:block">
+      <div className="relative flex flex-1 flex-col overflow-hidden print:overflow-visible">
+        <div className="print:hidden">
+          <MobileHeader />
+        </div>
+        <div className="hidden md:block print:hidden">
           <Header onOpenSidebar={() => setSidebarOpen(true)} />
         </div>
 
         {/* Thinner horizontal padding on mobile so cards have room to breathe.
             Add bottom padding on mobile to account for the bottom nav. */}
-        <main className="flex-1 overflow-y-auto p-4 pb-20 sm:p-6 md:pb-6">
+        <main className="flex-1 overflow-y-auto p-4 pb-20 sm:p-6 md:pb-6 print:overflow-visible print:p-0">
           {/* Above every page: writes are being rejected and here's why.
               Renders nothing unless the account/role failed to resolve. */}
           <AccountAccessAlert />
           {children}
         </main>
-        <BottomNav />
+        <div className="print:hidden">
+          <BottomNav />
+        </div>
       </div>
     </div>
   );

@@ -43,6 +43,7 @@ import {
   Search,
   Plus,
   Upload,
+  Download,
   MoreHorizontal,
   Pencil,
   Trash2,
@@ -417,6 +418,18 @@ export default function ContactsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {canEditSettings && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  window.location.href = '/api/contacts/export';
+                }}
+                className="border-border text-muted-foreground hover:bg-muted"
+              >
+                <Download className="size-4" />
+                {t('exportBtn') || 'Export CSV'}
+              </Button>
+            )}
             {canEditSettings && (
               <Button
                 variant="outline"

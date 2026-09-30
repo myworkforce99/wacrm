@@ -8,6 +8,8 @@ DECLARE
   contact_b uuid := gen_random_uuid();
   prop_a uuid := gen_random_uuid();
   prop_b uuid := gen_random_uuid();
+  task_a uuid := gen_random_uuid();
+  task_b uuid := gen_random_uuid();
 BEGIN
   -- Insert dummy users
   INSERT INTO auth.users (id, email, raw_user_meta_data) VALUES 
@@ -40,6 +42,11 @@ BEGIN
     (acct_a, contact_a, 'manual'),
     (acct_b, contact_b, 'manual');
 
+  -- Seed tasks
+  INSERT INTO public.tasks (id, account_id, title) VALUES
+    (task_a, acct_a, 'Task A'),
+    (task_b, acct_b, 'Task B');
+
   -- Act as User A (Tenant A)
   PERFORM set_config('role', 'authenticated', true);
   PERFORM set_config('request.jwt.claims', format('{"sub": "%s"}', user_a), true);
@@ -61,9 +68,17 @@ BEGIN
     RAISE EXCEPTION 'RLS Leakage: User A sees % assignment_history, expected 1', (SELECT count(*) FROM public.assignment_history);
   END IF;
 
+  IF (SELECT count(*) FROM public.tasks) <> 1 THEN
+    RAISE EXCEPTION 'RLS Leakage: User A sees % tasks, expected 1', (SELECT count(*) FROM public.tasks);
+  END IF;
+
+  IF (SELECT count(*) FROM public.accounts) <> 1 THEN
+    RAISE EXCEPTION 'RLS Leakage: User A sees % accounts, expected 1', (SELECT count(*) FROM public.accounts);
+  END IF;
+
   -- Revert to postgres superuser
   PERFORM set_config('role', 'postgres', true);
 
-  RAISE NOTICE 'Two-tenant RLS isolation test passed for D-M extensions';
+  RAISE NOTICE 'Two-tenant RLS isolation test passed for D-Q extensions';
 END
 $$;
