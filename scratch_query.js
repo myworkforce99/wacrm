@@ -1,10 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 async function test() {
-  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-  
+  const fortyEightHoursAgo = new Date(
+    Date.now() - 48 * 60 * 60 * 1000
+  ).toISOString();
+
   const { data: staleDeals, error: dealsErr } = await supabase
     .from('deals')
     .select(

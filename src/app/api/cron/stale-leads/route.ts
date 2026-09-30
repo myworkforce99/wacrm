@@ -49,7 +49,9 @@ export async function GET(request: Request) {
       const conversations = Array.isArray(deal.contact?.conversations)
         ? deal.contact?.conversations
         : [deal.contact?.conversations];
-      const conversation = conversations.find((c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id);
+      const conversation = conversations.find(
+        (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
+      );
 
       if (conversation?.assigned_agent_id) {
         stale++;

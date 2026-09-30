@@ -25,12 +25,17 @@ export async function POST(request: Request) {
   }
 
   let priceId = '';
-  if (plan_tier === 'starter') priceId = process.env.STRIPE_STARTER_PRICE_ID || '';
-  if (plan_tier === 'growth') priceId = process.env.STRIPE_GROWTH_PRICE_ID || '';
+  if (plan_tier === 'starter')
+    priceId = process.env.STRIPE_STARTER_PRICE_ID || '';
+  if (plan_tier === 'growth')
+    priceId = process.env.STRIPE_GROWTH_PRICE_ID || '';
   if (plan_tier === 'pro') priceId = process.env.STRIPE_PRO_PRICE_ID || '';
 
   if (!priceId) {
-    return NextResponse.json({ error: 'Price ID not configured' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Price ID not configured' },
+      { status: 500 }
+    );
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
@@ -54,8 +59,11 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ url: session.url }, { status: 200 });
-  } catch (err: any) {
+  } catch (err) {
     console.error('[billing/checkout] error:', err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : String(err) },
+      { status: 500 }
+    );
   }
 }

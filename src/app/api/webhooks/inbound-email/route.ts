@@ -84,6 +84,29 @@ export async function POST(request: Request) {
               ]);
             }
           }
+
+          // Update portal_connections to mark test_lead_received: true
+          const { data: acc } = await db
+            .from('accounts')
+            .select('portal_connections')
+            .eq('id', accountId)
+            .single();
+          if (acc) {
+            const currentConns = acc.portal_connections || {};
+            const portalKey = lead.source;
+            const updatedConns = {
+              ...currentConns,
+              [portalKey]: {
+                ...(currentConns[portalKey] || {}),
+                test_lead_received: true,
+                connected: currentConns[portalKey]?.connected || false, // keep existing connected status
+              },
+            };
+            await db
+              .from('accounts')
+              .update({ portal_connections: updatedConns })
+              .eq('id', accountId);
+          }
         }
       } catch (err) {
         if (err instanceof ContactError) {

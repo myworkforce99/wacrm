@@ -88,11 +88,20 @@ export interface AccountContext {
   /** Caller's role within their account. */
   role: AccountRole;
   /** Lightweight account meta — id + name. */
-  account: { 
-    id: string; 
+  account: {
+    id: string;
     name: string;
-    subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
+    subscription_status:
+      'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
     plan_tier: 'starter' | 'growth' | 'pro';
+    portal_connections?: Record<
+      string,
+      {
+        connected: boolean;
+        connected_at?: string;
+        test_lead_received?: boolean;
+      }
+    >;
   };
 }
 
@@ -154,7 +163,7 @@ export async function getCurrentAccount(): Promise<AccountContext> {
   // RLS, so it stays robust against cache staleness and older schemas.
   const { data: account, error: accountErr } = await supabase
     .from('accounts')
-    .select('id, name, subscription_status, plan_tier')
+    .select('id, name, subscription_status, plan_tier, portal_connections')
     .eq('id', data.account_id)
     .maybeSingle();
 
@@ -173,11 +182,12 @@ export async function getCurrentAccount(): Promise<AccountContext> {
     userId: user.id,
     accountId: data.account_id,
     role: data.account_role,
-    account: { 
-      id: account.id, 
+    account: {
+      id: account.id,
       name: account.name,
       subscription_status: account.subscription_status,
-      plan_tier: account.plan_tier 
+      plan_tier: account.plan_tier,
+      portal_connections: account.portal_connections,
     },
   };
 }

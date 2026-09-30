@@ -75,10 +75,16 @@ export async function PATCH(
         .eq('account_id', ctx.accountId);
 
       if (error) {
-        console.error('[PATCH /api/account/members/[userId]] availability error:', error);
-        return NextResponse.json({ error: 'Failed to update member availability' }, { status: 500 });
+        console.error(
+          '[PATCH /api/account/members/[userId]] availability error:',
+          error
+        );
+        return NextResponse.json(
+          { error: 'Failed to update member availability' },
+          { status: 500 }
+        );
       }
-      
+
       // If only updating availability, return now
       if (body.role === undefined) {
         return NextResponse.json({ ok: true });

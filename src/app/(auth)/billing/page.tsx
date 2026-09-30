@@ -1,7 +1,13 @@
 import { redirect } from 'next/navigation';
 import { getCurrentAccount } from '@/lib/auth/account';
 import BillingActions from './billing-actions';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { CreditCard } from 'lucide-react';
 
 export default async function BillingPage() {
@@ -13,8 +19,11 @@ export default async function BillingPage() {
   }
 
   const { account } = ctx;
-  
-  if (account.subscription_status === 'active' || account.subscription_status === 'trialing') {
+
+  if (
+    account.subscription_status === 'active' ||
+    account.subscription_status === 'trialing'
+  ) {
     // If they stumbled here but are active, send them to dashboard
     redirect('/dashboard');
   }
@@ -27,14 +36,20 @@ export default async function BillingPage() {
             <CreditCard className="text-primary h-6 w-6" />
           </div>
           <CardTitle className="text-foreground text-xl">
-            Account {account.subscription_status === 'past_due' ? 'Past Due' : 'Canceled'}
+            Account{' '}
+            {account.subscription_status === 'past_due'
+              ? 'Past Due'
+              : 'Canceled'}
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             {account.name} needs an active plan to continue.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BillingActions status={account.subscription_status} planTier={account.plan_tier} />
+          <BillingActions
+            status={account.subscription_status}
+            planTier={account.plan_tier}
+          />
         </CardContent>
       </Card>
     </div>

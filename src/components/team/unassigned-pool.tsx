@@ -24,7 +24,9 @@ type UnassignedLead = {
 
 export function UnassignedPool() {
   const [leads, setLeads] = useState<UnassignedLead[]>([]);
-  const [agents, setAgents] = useState<{ id: string; name: string; openCount: number }[]>([]);
+  const [agents, setAgents] = useState<
+    { id: string; name: string; openCount: number }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<string | null>(null);
@@ -51,31 +53,34 @@ export function UnassignedPool() {
       .from('profiles')
       .select('user_id, full_name, is_available')
       .eq('account_role', 'agent');
-      
+
     if (profiles) {
-      const agentIds = profiles.map(p => p.user_id);
+      const agentIds = profiles.map((p) => p.user_id);
       const { data: convs } = await supabase
         .from('conversations')
         .select('assigned_agent_id')
         .in('assigned_agent_id', agentIds)
         .eq('status', 'open');
-        
+
       const counts = new Map<string, number>();
-      convs?.forEach(c => {
+      convs?.forEach((c) => {
         if (c.assigned_agent_id) {
-          counts.set(c.assigned_agent_id, (counts.get(c.assigned_agent_id) || 0) + 1);
+          counts.set(
+            c.assigned_agent_id,
+            (counts.get(c.assigned_agent_id) || 0) + 1
+          );
         }
       });
-      
+
       const enriched = profiles
-        .filter(p => p.is_available)
-        .map(p => ({
+        .filter((p) => p.is_available)
+        .map((p) => ({
           id: p.user_id,
           name: p.full_name || 'Agent',
-          openCount: counts.get(p.user_id) || 0
+          openCount: counts.get(p.user_id) || 0,
         }))
         .sort((a, b) => a.openCount - b.openCount);
-        
+
       setAgents(enriched);
     }
   };
@@ -83,7 +88,7 @@ export function UnassignedPool() {
   useEffect(() => {
     fetchPool();
     fetchAgents();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openAssignSheet = (leadId: string) => {
@@ -104,9 +109,9 @@ export function UnassignedPool() {
           contact_ids: [selectedLead],
         }),
       });
-      
+
       if (!res.ok) throw new Error('Failed to assign');
-      
+
       toast.success('Lead assigned successfully');
       setSheetOpen(false);
       setSelectedLead(null);
@@ -130,18 +135,26 @@ export function UnassignedPool() {
           </span>
           unassigned leads
         </h3>
-        <Link href="/contacts?unassigned=true" className="text-sm font-medium text-amber-700 hover:underline dark:text-amber-400">
+        <Link
+          href="/contacts?unassigned=true"
+          className="text-sm font-medium text-amber-700 hover:underline dark:text-amber-400"
+        >
           View All &rarr;
         </Link>
       </div>
 
       <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4">
         {leads.slice(0, 10).map((lead) => (
-          <div key={lead.id} className="flex min-w-[280px] snap-start flex-col gap-3 rounded-md border bg-card p-3 shadow-sm">
+          <div
+            key={lead.id}
+            className="bg-card flex min-w-[280px] snap-start flex-col gap-3 rounded-md border p-3 shadow-sm"
+          >
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-medium text-foreground">{lead.name || lead.phone}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-foreground font-medium">
+                  {lead.name || lead.phone}
+                </p>
+                <p className="text-muted-foreground text-xs">
                   {new Date(lead.created_at).toLocaleDateString()}
                 </p>
               </div>
@@ -154,7 +167,12 @@ export function UnassignedPool() {
                 ) : null;
               })()}
             </div>
-            <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => openAssignSheet(lead.id)}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2"
+              onClick={() => openAssignSheet(lead.id)}
+            >
               <UserPlus className="size-4" />
               Assign
             </Button>
@@ -163,27 +181,34 @@ export function UnassignedPool() {
       </div>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="bottom" className="sm:max-w-md h-[80vh] sm:h-auto sm:side-right">
+        <SheetContent
+          side="bottom"
+          className="sm:side-right h-[80vh] sm:h-auto sm:max-w-md"
+        >
           <SheetHeader>
             <SheetTitle>Assign Lead</SheetTitle>
           </SheetHeader>
           <div className="mt-4 flex flex-col gap-2 overflow-y-auto pb-8">
-            {agents.map(agent => (
+            {agents.map((agent) => (
               <button
                 key={agent.id}
                 onClick={() => assignLead(agent.id)}
                 disabled={assigning}
-                className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50 disabled:opacity-50 text-left transition-colors"
+                className="hover:bg-muted/50 flex items-center justify-between rounded-md border p-3 text-left transition-colors disabled:opacity-50"
               >
                 <div className="flex flex-col">
                   <span className="font-medium">{agent.name}</span>
-                  <span className="text-xs text-muted-foreground">{agent.openCount} open leads</span>
+                  <span className="text-muted-foreground text-xs">
+                    {agent.openCount} open leads
+                  </span>
                 </div>
-                <ChevronRight className="size-4 text-muted-foreground" />
+                <ChevronRight className="text-muted-foreground size-4" />
               </button>
             ))}
             {agents.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-8">No available agents.</p>
+              <p className="text-muted-foreground py-8 text-center text-sm">
+                No available agents.
+              </p>
             )}
           </div>
         </SheetContent>

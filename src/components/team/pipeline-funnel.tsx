@@ -1,8 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from 'recharts';
 
 export function PipelineFunnelChart() {
   const [data, setData] = useState<{ stage: string; count: number }[]>([]);
@@ -10,13 +24,13 @@ export function PipelineFunnelChart() {
 
   useEffect(() => {
     fetch('/api/dashboard/pipeline-funnel')
-      .then(res => res.json())
-      .then(d => {
+      .then((res) => res.json())
+      .then((d) => {
         if (d.funnel) {
           setData(d.funnel);
         }
       })
-      .catch(err => console.error(err))
+      .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -27,8 +41,8 @@ export function PipelineFunnelChart() {
           <CardTitle>Pipeline Funnel</CardTitle>
           <CardDescription>Loading...</CardDescription>
         </CardHeader>
-        <CardContent className="h-[300px] flex items-center justify-center">
-          <div className="animate-pulse bg-muted w-full h-[200px] rounded-md"></div>
+        <CardContent className="flex h-[300px] items-center justify-center">
+          <div className="bg-muted h-[200px] w-full animate-pulse rounded-md"></div>
         </CardContent>
       </Card>
     );
@@ -42,7 +56,9 @@ export function PipelineFunnelChart() {
     <Card>
       <CardHeader>
         <CardTitle>Pipeline Funnel</CardTitle>
-        <CardDescription>Total open leads across all stages for your team</CardDescription>
+        <CardDescription>
+          Total open leads across all stages for your team
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full">
@@ -51,28 +67,31 @@ export function PipelineFunnelChart() {
               data={data}
               margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
             >
-              <XAxis 
-                dataKey="stage" 
+              <XAxis
+                dataKey="stage"
                 tickLine={false}
                 axisLine={false}
                 fontSize={12}
                 tickMargin={10}
               />
-              <YAxis 
+              <YAxis
                 tickLine={false}
                 axisLine={false}
                 fontSize={12}
                 allowDecimals={false}
               />
-              <Tooltip 
+              <Tooltip
                 cursor={{ fill: 'transparent' }}
-                contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0' }}
+                contentStyle={{
+                  borderRadius: '8px',
+                  border: '1px solid #e2e8f0',
+                }}
               />
               <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                 {data.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={`hsl(var(--chart-${(index % 5) + 1}))`} 
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={`hsl(var(--chart-${(index % 5) + 1}))`}
                   />
                 ))}
               </Bar>

@@ -38,7 +38,11 @@ interface AudienceConfig {
   csvContacts?: { phone: string; name?: string }[];
   excludeTagIds?: string[];
   leadSegment?: {
-    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[];
+    filters: {
+      field: string;
+      operator: 'contains' | 'equals' | 'gte';
+      value: string;
+    }[];
   };
 }
 
@@ -104,7 +108,9 @@ export function Step2SelectAudience({
       {
         type: 'lead_segment',
         label: t('selectAudience.method.leadSegment') || 'Lead Details Segment',
-        description: t('selectAudience.leadSegmentDesc') || 'Filter by BHK, budget, location, etc.',
+        description:
+          t('selectAudience.leadSegmentDesc') ||
+          'Filter by BHK, budget, location, etc.',
         icon: Building2,
       },
     ],
@@ -212,7 +218,8 @@ export function Step2SelectAudience({
         let q = supabase.from('lead_details').select('contact_id');
         for (const f of audience.leadSegment.filters) {
           if (f.operator === 'equals') q = q.eq(f.field, f.value);
-          else if (f.operator === 'contains') q = q.ilike(f.field, `%${f.value}%`);
+          else if (f.operator === 'contains')
+            q = q.ilike(f.field, `%${f.value}%`);
           else if (f.operator === 'gte') q = q.gte(f.field, f.value);
         }
         const { data } = await q;
@@ -334,7 +341,7 @@ export function Step2SelectAudience({
     (audience.type === 'lead_segment' &&
       audience.leadSegment?.filters &&
       audience.leadSegment.filters.length > 0 &&
-      audience.leadSegment.filters.every(f => f.field && f.value));
+      audience.leadSegment.filters.every((f) => f.field && f.value));
 
   return (
     <div className="space-y-6">
@@ -375,7 +382,9 @@ export function Step2SelectAudience({
                     csvContacts:
                       option.type === 'csv' ? audience.csvContacts : undefined,
                     leadSegment:
-                      option.type === 'lead_segment' ? audience.leadSegment : undefined,
+                      option.type === 'lead_segment'
+                        ? audience.leadSegment
+                        : undefined,
                   })
                 }
                 className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all ${
@@ -542,24 +551,32 @@ export function Step2SelectAudience({
         </div>
       )}
 
-
       {audience.type === 'lead_segment' && (
         <div className="border-border bg-card/50 space-y-3 rounded-xl border p-4">
-          <p className="text-foreground text-sm font-medium">Lead Details Segment</p>
+          <p className="text-foreground text-sm font-medium">
+            Lead Details Segment
+          </p>
           <div className="space-y-2">
             {(audience.leadSegment?.filters ?? []).map((filter, index) => (
               <div key={index} className="flex items-center gap-2">
                 <select
                   value={filter.field}
                   onChange={(e) => {
-                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
+                    const newFilters = [
+                      ...(audience.leadSegment?.filters ?? []),
+                    ];
                     newFilters[index].field = e.target.value;
-                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                    onUpdate({
+                      ...audience,
+                      leadSegment: { filters: newFilters },
+                    });
                   }}
                   className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
                 >
                   <option value="">Select field...</option>
-                  <option value="configuration_preference">BHK / Configuration</option>
+                  <option value="configuration_preference">
+                    BHK / Configuration
+                  </option>
                   <option value="location_preference">Location</option>
                   <option value="budget_min">Min Budget</option>
                   <option value="budget_max">Max Budget</option>
@@ -570,9 +587,15 @@ export function Step2SelectAudience({
                 <select
                   value={filter.operator}
                   onChange={(e) => {
-                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
-                    newFilters[index].operator = e.target.value as any;
-                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                    const newFilters = [
+                      ...(audience.leadSegment?.filters ?? []),
+                    ];
+                    newFilters[index].operator = e.target.value as
+                      'contains' | 'equals' | 'gte';
+                    onUpdate({
+                      ...audience,
+                      leadSegment: { filters: newFilters },
+                    });
                   }}
                   className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
                 >
@@ -584,19 +607,29 @@ export function Step2SelectAudience({
                   type="text"
                   value={filter.value}
                   onChange={(e) => {
-                    const newFilters = [...(audience.leadSegment?.filters ?? [])];
+                    const newFilters = [
+                      ...(audience.leadSegment?.filters ?? []),
+                    ];
                     newFilters[index].value = e.target.value;
-                    onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                    onUpdate({
+                      ...audience,
+                      leadSegment: { filters: newFilters },
+                    });
                   }}
                   placeholder="Value..."
-                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary h-9 rounded-lg border px-2.5 text-sm outline-none focus:ring-1 flex-1"
+                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-primary h-9 flex-1 rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
                 />
                 <button
                   onClick={() => {
-                    const newFilters = audience.leadSegment?.filters.filter((_, i) => i !== index);
-                    onUpdate({ ...audience, leadSegment: { filters: newFilters || [] } });
+                    const newFilters = audience.leadSegment?.filters.filter(
+                      (_, i) => i !== index
+                    );
+                    onUpdate({
+                      ...audience,
+                      leadSegment: { filters: newFilters || [] },
+                    });
                   }}
-                  className="text-muted-foreground hover:text-destructive flex h-9 w-9 items-center justify-center rounded-lg border border-transparent transition-colors hover:bg-destructive/10 hover:border-destructive/20"
+                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20 flex h-9 w-9 items-center justify-center rounded-lg border border-transparent transition-colors"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -607,8 +640,14 @@ export function Step2SelectAudience({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  const newFilters = [...(audience.leadSegment?.filters ?? []), { field: '', operator: 'contains', value: '' } as const];
-                  onUpdate({ ...audience, leadSegment: { filters: newFilters } });
+                  const newFilters = [
+                    ...(audience.leadSegment?.filters ?? []),
+                    { field: '', operator: 'contains', value: '' } as const,
+                  ];
+                  onUpdate({
+                    ...audience,
+                    leadSegment: { filters: newFilters },
+                  });
                 }}
                 className="mt-2 text-xs"
               >

@@ -87,15 +87,19 @@ function SettingsPageInner() {
     billing: <BillingTab />,
   };
 
-  const restrictedForAgent = !['profile', 'appearance', 'security'].includes(section);
+  const restrictedForAgent = !['profile', 'appearance', 'security'].includes(
+    section
+  );
   if ((isAgent || isViewer) && restrictedForAgent) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
-        <p className="text-muted-foreground">Contact your admin to manage account settings.</p>
+        <h2 className="mb-2 text-xl font-semibold">Access Restricted</h2>
+        <p className="text-muted-foreground">
+          Contact your admin to manage account settings.
+        </p>
         <button
           onClick={() => go('profile')}
-          className="mt-6 text-primary hover:underline"
+          className="text-primary mt-6 hover:underline"
         >
           Go to Profile Settings
         </button>

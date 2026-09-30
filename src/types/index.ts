@@ -61,7 +61,8 @@ export interface Account {
   owner_user_id: string;
   preferred_language?: 'en' | 'hi' | 'hi-en';
   /** Subscription status for the account */
-  subscription_status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
+  subscription_status:
+    'trialing' | 'active' | 'past_due' | 'canceled' | 'paused';
   /** Stripe customer ID */
   stripe_customer_id?: string | null;
   /** Stripe subscription ID */
@@ -72,6 +73,10 @@ export interface Account {
   plan_tier: 'starter' | 'growth' | 'pro';
   /** Seat limit for the account */
   seat_limit: number;
+  portal_connections: Record<
+    string,
+    { connected: boolean; connected_at?: string; test_lead_received?: boolean }
+  >;
   created_at: string;
   updated_at: string;
 }
@@ -823,7 +828,8 @@ export const PROPERTY_CONFIGURATIONS = [
   'Commercial',
 ];
 
-export type BroadcastAudienceType = 'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
+export type BroadcastAudienceType =
+  'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
 
 export interface LeadSegmentFilter {
   field: string;

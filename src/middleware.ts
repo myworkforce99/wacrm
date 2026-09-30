@@ -134,7 +134,7 @@ export async function middleware(request: NextRequest) {
     !request.nextUrl.pathname.startsWith('/api/billing/webhook') &&
     !request.nextUrl.pathname.startsWith('/api/inbound-email') // assuming inbound email doesn't need auth
   ) {
-    // Keep original check for whatsapp API routes specifically if needed, 
+    // Keep original check for whatsapp API routes specifically if needed,
     // but the original code was only for /api/whatsapp/. Let's match the original.
     if (request.nextUrl.pathname.startsWith('/api/whatsapp/')) {
       return withRefreshedCookies(

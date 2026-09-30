@@ -48,10 +48,10 @@ export function TeamSetupChecklist() {
   };
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+    <div className="border-primary/20 bg-primary/5 relative mb-6 overflow-hidden rounded-xl border p-6 shadow-sm">
       <button
         onClick={handleDismiss}
-        className="absolute top-4 right-4 rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+        className="text-muted-foreground hover:bg-muted hover:text-foreground absolute top-4 right-4 rounded-md p-1"
         aria-label="Dismiss checklist"
       >
         <X className="size-4" />
@@ -59,19 +59,18 @@ export function TeamSetupChecklist() {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Users className="size-5 text-primary" />
+          <h3 className="text-foreground flex items-center gap-2 text-lg font-semibold">
+            <Users className="text-primary size-5" />
             Invite your team to get started
           </h3>
-          <p className="text-sm text-muted-foreground max-w-xl">
-            WACRM works best when your whole team is here. Invite agents to assign leads and track their performance.
+          <p className="text-muted-foreground max-w-xl text-sm">
+            WACRM works best when your whole team is here. Invite agents to
+            assign leads and track their performance.
           </p>
         </div>
 
         <Link href="/settings?tab=members">
-          <Button className="shrink-0">
-            Invite Team Members
-          </Button>
+          <Button className="shrink-0">Invite Team Members</Button>
         </Link>
       </div>
     </div>

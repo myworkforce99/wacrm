@@ -1,7 +1,7 @@
 export function parseBudget(input: string): number | null {
   if (!input) return null;
   const normalized = input.toLowerCase().replace(/,/g, '').trim();
-  
+
   // Extract numbers (can be decimal like 1.5)
   const numMatch = normalized.match(/[\d.]+/);
   if (!numMatch) return null;
@@ -12,7 +12,11 @@ export function parseBudget(input: string): number | null {
   if (normalized.includes('cr') || normalized.includes('crore')) {
     return num * 10000000;
   }
-  if (normalized.includes('l') || normalized.includes('lac') || normalized.includes('lakh')) {
+  if (
+    normalized.includes('l') ||
+    normalized.includes('lac') ||
+    normalized.includes('lakh')
+  ) {
     return num * 100000;
   }
   if (normalized.includes('k') || normalized.includes('thousand')) {

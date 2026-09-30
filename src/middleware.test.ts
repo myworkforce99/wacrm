@@ -36,14 +36,14 @@ vi.mock('@supabase/ssr', () => ({
       select: () => ({
         eq: () => ({
           maybeSingle: async () => ({
-            data: { account_id: 'mock-account', subscription_status: 'active' }
+            data: { account_id: 'mock-account', subscription_status: 'active' },
           }),
           single: async () => ({
-            data: { account_id: 'mock-account', subscription_status: 'active' }
-          })
-        })
-      })
-    })
+            data: { account_id: 'mock-account', subscription_status: 'active' },
+          }),
+        }),
+      }),
+    }),
   }),
 }));
 

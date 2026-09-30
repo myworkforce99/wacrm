@@ -17,6 +17,7 @@ import {
   Radio,
   Blocks,
   Settings as SettingsIcon,
+  Plug,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -41,6 +42,7 @@ const moreNavItems = [
   { href: '/broadcasts', labelKey: 'broadcasts', icon: Radio },
   { href: '/agents', labelKey: 'aiAgents', icon: Blocks },
   { href: '/team', labelKey: 'team', icon: Users, adminOnly: true },
+  { href: '/integrations', labelKey: 'integrations', icon: Plug, adminOnly: true },
   {
     href: '/settings',
     labelKey: 'settings',

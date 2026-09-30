@@ -4,14 +4,20 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function BillingTab() {
   const { isOwner, accountId } = useAuth();
   const supabase = createClient();
-  
+
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [data, setData] = useState<{
@@ -31,13 +37,15 @@ export function BillingTab() {
         const [accountRes, profilesRes] = await Promise.all([
           supabase
             .from('accounts')
-            .select('subscription_status, plan_tier, current_period_end, seat_limit')
+            .select(
+              'subscription_status, plan_tier, current_period_end, seat_limit'
+            )
             .eq('id', accountId)
             .single(),
           supabase
             .from('profiles')
             .select('*', { count: 'exact', head: true })
-            .eq('account_id', accountId)
+            .eq('account_id', accountId),
         ]);
 
         if (accountRes.error) throw accountRes.error;
@@ -61,8 +69,10 @@ export function BillingTab() {
   if (!isOwner) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
-        <p className="text-muted-foreground">Only the account owner can manage billing.</p>
+        <h2 className="mb-2 text-xl font-semibold">Access Restricted</h2>
+        <p className="text-muted-foreground">
+          Only the account owner can manage billing.
+        </p>
       </div>
     );
   }
@@ -113,7 +123,7 @@ export function BillingTab() {
     paused: 'bg-yellow-500/10 text-yellow-500',
   };
 
-  const renewalText = data.current_period_end 
+  const renewalText = data.current_period_end
     ? `Renews on ${new Date(data.current_period_end).toLocaleDateString()}`
     : 'No active renewal';
 
@@ -121,7 +131,9 @@ export function BillingTab() {
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-medium">Billing & Plan</h2>
-        <p className="text-muted-foreground text-sm">Manage your subscription and billing details.</p>
+        <p className="text-muted-foreground text-sm">
+          Manage your subscription and billing details.
+        </p>
       </div>
 
       <Card>
@@ -130,38 +142,51 @@ export function BillingTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <span className="capitalize">{data.plan_tier} Plan</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[data.subscription_status] || statusColors.canceled}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[data.subscription_status] || statusColors.canceled}`}
+                >
                   {data.subscription_status.replace('_', ' ')}
                 </span>
               </CardTitle>
-              <CardDescription className="mt-1">
-                {renewalText}
-              </CardDescription>
+              <CardDescription className="mt-1">{renewalText}</CardDescription>
             </div>
             {data.plan_tier === 'starter' ? (
-              <Button onClick={() => handleUpgrade('growth')} disabled={actionLoading}>
-                {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              <Button
+                onClick={() => handleUpgrade('growth')}
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Upgrade Plan
               </Button>
             ) : (
-              <Button onClick={handlePortal} variant="outline" disabled={actionLoading}>
-                {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              <Button
+                onClick={handlePortal}
+                variant="outline"
+                disabled={actionLoading}
+              >
+                {actionLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 Manage Plan
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mt-4 pt-4 border-t">
-            <h3 className="text-sm font-medium mb-2">Seat Usage</h3>
+          <div className="mt-4 border-t pt-4">
+            <h3 className="mb-2 text-sm font-medium">Seat Usage</h3>
             <div className="flex items-center gap-4">
-              <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-primary h-full" 
-                  style={{ width: `${Math.min(100, (data.seat_usage / data.seat_limit) * 100)}%` }} 
+              <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
+                <div
+                  className="bg-primary h-full"
+                  style={{
+                    width: `${Math.min(100, (data.seat_usage / data.seat_limit) * 100)}%`,
+                  }}
                 />
               </div>
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
+              <span className="text-muted-foreground text-sm whitespace-nowrap">
                 {data.seat_usage} of {data.seat_limit} seats used
               </span>
             </div>

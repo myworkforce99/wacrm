@@ -32,9 +32,12 @@ export function TeamDashboardClient() {
   return (
     <div className="space-y-6 pb-6">
       <div>
-        <h1 className="text-foreground text-2xl font-bold">Manager Command Center</h1>
+        <h1 className="text-foreground text-2xl font-bold">
+          Manager Command Center
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Monitor response times, agent capacity, and pipeline funnel across your team.
+          Monitor response times, agent capacity, and pipeline funnel across
+          your team.
         </p>
       </div>
 
@@ -44,11 +47,7 @@ export function TeamDashboardClient() {
         {loading || !performance
           ? Array.from({ length: 3 }).map((_, i) => <SkeletonCard key={i} />)
           : performance.map((agent) => (
-              <AgentCard 
-                key={agent.agentId} 
-                agent={agent} 
-                onUpdate={loadAll} 
-              />
+              <AgentCard key={agent.agentId} agent={agent} onUpdate={loadAll} />
             ))}
       </div>
 

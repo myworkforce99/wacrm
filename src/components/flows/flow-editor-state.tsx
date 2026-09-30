@@ -61,7 +61,8 @@ import { NODE_META, slugify, type BuilderNode, type NodeType } from './shared';
 export interface BuilderState {
   name: string;
   description: string;
-  trigger_type: 'keyword' | 'first_inbound_message' | 'manual' | 'new_contact_created';
+  trigger_type:
+    'keyword' | 'first_inbound_message' | 'manual' | 'new_contact_created';
   trigger_config: Record<string, unknown>;
   entry_node_id: string | null;
   status: FlowRow['status'];

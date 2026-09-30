@@ -21,8 +21,9 @@ export async function parseInboundEmail(
   // 1. Template matching (Regex)
   let source = 'email_lead';
   if (content.includes('99acres')) source = '99acres';
-  else if (content.includes('magicbricks')) source = 'magicbricks';
-  else if (content.includes('housing.com')) source = 'housing.com';
+  else if (content.includes('magicbricks')) source = 'MagicBricks';
+  else if (content.includes('housing.com')) source = 'Housing.com';
+  else if (content.includes('nobroker')) source = 'NoBroker';
 
   // Basic regex for Indian numbers or international
   // For the sake of this test, let's try to find Phone, Name, Email.

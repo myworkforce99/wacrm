@@ -167,9 +167,9 @@ export default function ContactsPage() {
       let query = supabase
         .from('contacts')
         .select(
-          (accountRole === 'agent'
+          accountRole === 'agent'
             ? '*, conversations!inner(assigned_agent_id)'
-            : '*') as any,
+            : '*',
           { count: 'exact' }
         )
         .order('created_at', { ascending: false })
@@ -269,7 +269,7 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, tagsMap, t]);
+  }, [supabase, page, search, selectedTagIds, tagsMap, t, user, accountRole]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not

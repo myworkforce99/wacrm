@@ -182,13 +182,13 @@ export async function POST(request: Request) {
       .from('profiles')
       .select('*', { count: 'exact', head: true })
       .eq('account_id', ctx.accountId);
-    
+
     const { data: account } = await ctx.supabase
       .from('accounts')
       .select('seat_limit')
       .eq('id', ctx.accountId)
       .single();
-      
+
     if (count !== null && account && count >= account.seat_limit) {
       return NextResponse.json(
         {

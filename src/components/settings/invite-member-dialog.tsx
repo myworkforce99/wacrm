@@ -131,7 +131,9 @@ export function InviteMemberDialog({
                   const { url } = await checkoutRes.json();
                   window.location.href = url;
                 } else {
-                  const portalRes = await fetch('/api/billing/portal', { method: 'POST' });
+                  const portalRes = await fetch('/api/billing/portal', {
+                    method: 'POST',
+                  });
                   if (portalRes.ok) {
                     const { url } = await portalRes.json();
                     window.location.href = url;

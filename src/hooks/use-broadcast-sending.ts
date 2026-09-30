@@ -23,7 +23,11 @@ export interface AudienceConfig {
   /** Contacts carrying any of these tags are subtracted from the result. */
   excludeTagIds?: string[];
   leadSegment?: {
-    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[];
+    filters: {
+      field: string;
+      operator: 'contains' | 'equals' | 'gte';
+      value: string;
+    }[];
   };
 }
 
@@ -203,8 +207,14 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
       );
     } else if (audience.type === 'csv' && audience.csvContacts) {
       contacts = await upsertCsvContacts(supabase, audience.csvContacts);
-    } else if (audience.type === 'lead_segment' && audience.leadSegment?.filters) {
-      contacts = await resolveLeadSegmentAudience(supabase, audience.leadSegment.filters);
+    } else if (
+      audience.type === 'lead_segment' &&
+      audience.leadSegment?.filters
+    ) {
+      contacts = await resolveLeadSegmentAudience(
+        supabase,
+        audience.leadSegment.filters
+      );
     }
 
     // Apply exclude tags (works across all contact-derived audience
@@ -353,7 +363,11 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
 
   async function resolveLeadSegmentAudience(
     supabase: ReturnType<typeof createClient>,
-    filters: { field: string; operator: 'contains' | 'equals' | 'gte'; value: string }[]
+    filters: {
+      field: string;
+      operator: 'contains' | 'equals' | 'gte';
+      value: string;
+    }[]
   ): Promise<Contact[]> {
     if (filters.length === 0) return [];
 
@@ -380,14 +394,18 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
     }
 
     const { data: matches, error: matchErr } = await query;
-    if (matchErr) throw new Error(`Lead segment filter failed: ${matchErr.message}`);
+    if (matchErr)
+      throw new Error(`Lead segment filter failed: ${matchErr.message}`);
 
     const contactIds = [...new Set((matches ?? []).map((m) => m.contact_id))];
     if (contactIds.length === 0) return [];
 
-    const { data, error } = await supabase.from('contacts').select('*').in('id', contactIds);
+    const { data, error } = await supabase
+      .from('contacts')
+      .select('*')
+      .in('id', contactIds);
     if (error) throw new Error(`Failed to fetch contacts: ${error.message}`);
-    
+
     // Deduplicate by phone_normalized (done implicity by unique DB constraint if returning standard contacts, but good to ensure uniqueness in array if multiple contact records with same phone exist, though that shouldn't happen)
     const uniqueContacts = new Map<string, Contact>();
     for (const contact of data ?? []) {
@@ -398,7 +416,7 @@ export function useBroadcastSending(): UseBroadcastSendingReturn {
         uniqueContacts.set(contact.id, contact); // Fallback to id if phone missing
       }
     }
-    
+
     return Array.from(uniqueContacts.values());
   }
 

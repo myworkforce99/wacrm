@@ -565,7 +565,8 @@ async function runStep(
                   break;
                 case 'configuration':
                   matched =
-                    leadDetails?.configuration_preference?.includes(val) ?? false;
+                    leadDetails?.configuration_preference?.includes(val) ??
+                    false;
                   break;
               }
               if (matched) {
@@ -635,7 +636,7 @@ async function runStep(
           .eq('account_role', 'admin');
 
         if (admins && admins.length > 0) {
-          const notifications = admins.map(admin => ({
+          const notifications = admins.map((admin) => ({
             account_id: args.automation.account_id,
             user_id: admin.user_id,
             type: 'conversation_assigned',
@@ -715,25 +716,26 @@ async function runStep(
           return `field ${cfg.field} not writable from automations`;
         }
 
-        let finalValue: any = value;
+        let finalValue: unknown = value;
         if (leadField === 'budget_max' || leadField === 'budget_min') {
           finalValue = parseBudget(value);
           if (finalValue === null) {
-             return `could not parse budget value ${value}`;
+            return `could not parse budget value ${value}`;
           }
         } else if (leadField === 'configuration_preference') {
           finalValue = [value];
         }
 
-        await db
-          .from('lead_details')
-          .upsert({
+        await db.from('lead_details').upsert(
+          {
             account_id: args.automation.account_id,
             contact_id: args.contactId,
             [leadField]: finalValue,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'contact_id' });
-        
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'contact_id' }
+        );
+
         return `${cfg.field} updated`;
       }
 

@@ -27,14 +27,17 @@ const CRM_FIELDS = [
 function smartMapHeader(header: string): string {
   const h = header.toLowerCase().replace(/[^a-z]/g, '');
   if (h.includes('name')) return 'name';
-  if (h.includes('phone') || h.includes('mobile') || h.includes('contact')) return 'phone';
+  if (h.includes('phone') || h.includes('mobile') || h.includes('contact'))
+    return 'phone';
   if (h.includes('email')) return 'email';
   if (h.includes('source')) return 'source';
   if (h.includes('min') && h.includes('budget')) return 'budget_min';
   if (h.includes('max') && h.includes('budget')) return 'budget_max';
   if (h.includes('budget')) return 'budget_min'; // fallback
-  if (h.includes('location') || h.includes('city') || h.includes('area')) return 'location';
-  if (h.includes('bhk') || h.includes('type') || h.includes('config')) return 'bhk_config';
+  if (h.includes('location') || h.includes('city') || h.includes('area'))
+    return 'location';
+  if (h.includes('bhk') || h.includes('type') || h.includes('config'))
+    return 'bhk_config';
   if (h.includes('stage') || h.includes('status')) return 'stage';
   if (h.includes('note')) return 'notes';
   return 'ignore';
@@ -42,7 +45,8 @@ function smartMapHeader(header: string): string {
 
 function parseIndianMobile(raw: string): string {
   let cleaned = String(raw).replace(/[\s-]/g, '');
-  if (cleaned.startsWith('0') && cleaned.length > 1) cleaned = cleaned.substring(1);
+  if (cleaned.startsWith('0') && cleaned.length > 1)
+    cleaned = cleaned.substring(1);
   if (cleaned.length === 10 && /^[6-9]\d{9}$/.test(cleaned)) {
     return `+91${cleaned}`;
   }
@@ -60,15 +64,21 @@ export default function ImportLeadsPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [data, setData] = useState<any[][]>([]);
+  const [data, setData] = useState<unknown[][]>([]);
   const [mapping, setMapping] = useState<Record<number, string>>({});
   const [importing, setImporting] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<{
+    created?: number;
+    skipped?: number;
+    errors?: number;
+  } | null>(null);
 
   if (accountRole !== 'owner' && accountRole !== 'admin') {
     return (
       <div className="flex h-64 items-center justify-center">
-        <p className="text-muted-foreground">Admin access required to import leads.</p>
+        <p className="text-muted-foreground">
+          Admin access required to import leads.
+        </p>
       </div>
     );
   }
@@ -85,15 +95,21 @@ export default function ImportLeadsPage() {
         const wb = xlsx.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
-        const rawData: any[][] = xlsx.utils.sheet_to_json(ws, { header: 1 });
+        const rawData: unknown[][] = xlsx.utils.sheet_to_json(ws, {
+          header: 1,
+        });
 
         if (rawData.length < 2) {
-          toast.error('File must contain a header row and at least one data row.');
+          toast.error(
+            'File must contain a header row and at least one data row.'
+          );
           return;
         }
 
         const h = rawData[0].map(String);
-        const rows = rawData.slice(1).filter((r) => r.length > 0 && r.some((cell) => cell));
+        const rows = rawData
+          .slice(1)
+          .filter((r) => r.length > 0 && r.some((cell) => cell));
 
         if (rows.length > 2000) {
           toast.error('Max 2000 rows allowed for MVP.');
@@ -111,7 +127,9 @@ export default function ImportLeadsPage() {
         setStep(2);
       } catch (err) {
         console.error(err);
-        toast.error('Failed to parse file. Ensure it is a valid CSV or Excel file.');
+        toast.error(
+          'Failed to parse file. Ensure it is a valid CSV or Excel file.'
+        );
       }
     };
     reader.readAsBinaryString(f);
@@ -129,14 +147,16 @@ export default function ImportLeadsPage() {
 
     try {
       const payload = data.map((row) => {
-        const mappedRow: any = {};
+        const mappedRow: Record<string, unknown> = {};
         headers.forEach((_, idx) => {
           const field = mapping[idx];
           if (field && field !== 'ignore') {
             const val = row[idx];
             if (val !== undefined && val !== null) {
-              if (field === 'phone') mappedRow[field] = parseIndianMobile(val);
-              else if (field === 'budget_min' || field === 'budget_max') mappedRow[field] = parseBudget(String(val));
+              if (field === 'phone')
+                mappedRow[field] = parseIndianMobile(String(val));
+              else if (field === 'budget_min' || field === 'budget_max')
+                mappedRow[field] = parseBudget(String(val));
               else mappedRow[field] = String(val);
             }
           }
@@ -155,8 +175,10 @@ export default function ImportLeadsPage() {
 
       setResult(json);
       setStep(3);
-    } catch (err: any) {
-      toast.error(err.message || 'An error occurred during import.');
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'An error occurred during import.'
+      );
     } finally {
       setImporting(false);
     }
@@ -172,31 +194,49 @@ export default function ImportLeadsPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">Import Leads</h1>
-          <p className="text-muted-foreground text-sm">Upload CSV or Excel files to bulk-create contacts and lead details.</p>
+          <p className="text-muted-foreground text-sm">
+            Upload CSV or Excel files to bulk-create contacts and lead details.
+          </p>
         </div>
       </div>
 
       <div className="flex items-center gap-2 border-b pb-4">
-        <div className={`flex items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
+        <div
+          className={`flex items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}
+        >
           <Upload className="size-4" /> <span>Upload</span>
         </div>
-        <div className="h-px w-8 bg-border" />
-        <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
+        <div className="bg-border h-px w-8" />
+        <div
+          className={`flex items-center gap-2 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}
+        >
           <TableProperties className="size-4" /> <span>Map Columns</span>
         </div>
-        <div className="h-px w-8 bg-border" />
-        <div className={`flex items-center gap-2 ${step >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+        <div className="bg-border h-px w-8" />
+        <div
+          className={`flex items-center gap-2 ${step >= 3 ? 'text-primary' : 'text-muted-foreground'}`}
+        >
           <PlayCircle className="size-4" /> <span>Result</span>
         </div>
       </div>
 
       {step === 1 && (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-24">
-          <input type="file" ref={fileInputRef} className="hidden" accept=".csv,.xlsx" onChange={handleFileUpload} />
-          <Upload className="mb-4 size-10 text-muted-foreground" />
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".csv,.xlsx"
+            onChange={handleFileUpload}
+          />
+          <Upload className="text-muted-foreground mb-4 size-10" />
           <h3 className="mb-2 text-lg font-medium">Select a file to upload</h3>
-          <p className="mb-6 text-sm text-muted-foreground">Supported formats: .csv, .xlsx (Max 2000 rows)</p>
-          <Button onClick={() => fileInputRef.current?.click()}>Browse Files</Button>
+          <p className="text-muted-foreground mb-6 text-sm">
+            Supported formats: .csv, .xlsx (Max 2000 rows)
+          </p>
+          <Button onClick={() => fileInputRef.current?.click()}>
+            Browse Files
+          </Button>
         </div>
       )}
 
@@ -208,7 +248,9 @@ export default function ImportLeadsPage() {
                 <tr>
                   <th className="p-3 font-medium">File Column Header</th>
                   <th className="p-3 font-medium">CRM Field</th>
-                  <th className="p-3 font-medium text-muted-foreground">Preview (Row 1)</th>
+                  <th className="text-muted-foreground p-3 font-medium">
+                    Preview (Row 1)
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y">
@@ -217,9 +259,14 @@ export default function ImportLeadsPage() {
                     <td className="p-3 font-medium">{header}</td>
                     <td className="p-3">
                       <select
-                        className="rounded-md border bg-background px-3 py-1.5 text-sm"
+                        className="bg-background rounded-md border px-3 py-1.5 text-sm"
                         value={mapping[idx]}
-                        onChange={(e) => setMapping((prev) => ({ ...prev, [idx]: e.target.value }))}
+                        onChange={(e) =>
+                          setMapping((prev) => ({
+                            ...prev,
+                            [idx]: e.target.value,
+                          }))
+                        }
                       >
                         {CRM_FIELDS.map((f) => (
                           <option key={f.id} value={f.id}>
@@ -228,7 +275,7 @@ export default function ImportLeadsPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="truncate p-3 max-w-[200px] text-muted-foreground">
+                    <td className="text-muted-foreground max-w-[200px] truncate p-3">
                       {data[0] ? String(data[0][idx] || '') : ''}
                     </td>
                   </tr>
@@ -249,23 +296,27 @@ export default function ImportLeadsPage() {
       )}
 
       {step === 3 && result && (
-        <div className="rounded-lg border p-6 text-center space-y-4">
+        <div className="space-y-4 rounded-lg border p-6 text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100 text-green-600">
             <PlayCircle className="size-6" />
           </div>
           <h2 className="text-xl font-semibold">Import Complete</h2>
           <div className="flex justify-center gap-8 pt-4">
             <div>
-              <p className="text-3xl font-bold text-green-600">{result.created}</p>
-              <p className="text-sm text-muted-foreground">Imported</p>
+              <p className="text-3xl font-bold text-green-600">
+                {result.created}
+              </p>
+              <p className="text-muted-foreground text-sm">Imported</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-500">{result.skipped}</p>
-              <p className="text-sm text-muted-foreground">Skipped (Dupes)</p>
+              <p className="text-3xl font-bold text-amber-500">
+                {result.skipped}
+              </p>
+              <p className="text-muted-foreground text-sm">Skipped (Dupes)</p>
             </div>
             <div>
               <p className="text-3xl font-bold text-red-500">{result.errors}</p>
-              <p className="text-sm text-muted-foreground">Errors</p>
+              <p className="text-muted-foreground text-sm">Errors</p>
             </div>
           </div>
           <div className="pt-6">

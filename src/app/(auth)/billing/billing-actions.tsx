@@ -21,8 +21,8 @@ export default function BillingActions({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to open portal');
       window.location.href = data.url;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
       setLoading(false);
     }
   };
@@ -39,8 +39,8 @@ export default function BillingActions({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start checkout');
       window.location.href = data.url;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
       setLoading(false);
     }
   };

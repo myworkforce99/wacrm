@@ -46,20 +46,22 @@ export function Step1ChooseTemplate({
           .order('created_at', { ascending: false });
 
         if (fetchError) throw fetchError;
-        
+
         const { data: globalData, error: globalError } = await supabase
           .from('broadcast_templates')
           .select('*')
           .order('created_at', { ascending: false });
-          
+
         if (globalError) throw globalError;
 
-        const globalTemplates: MessageTemplate[] = (globalData ?? []).map((t) => ({
-          ...t,
-          status: 'APPROVED',
-          category: t.category as any,
-          user_id: 'system',
-        }));
+        const globalTemplates: MessageTemplate[] = (globalData ?? []).map(
+          (t) => ({
+            ...t,
+            status: 'APPROVED',
+            category: t.category as 'MARKETING' | 'UTILITY' | 'AUTHENTICATION',
+            user_id: 'system',
+          })
+        );
 
         setTemplates([...globalTemplates, ...(data ?? [])]);
       } catch (err) {
@@ -131,44 +133,49 @@ export function Step1ChooseTemplate({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates
-            .filter((t: any) => filterTag === 'all' || (t.tags && t.tags.includes(filterTag)))
+            .filter(
+              (t: MessageTemplate) =>
+                filterTag === 'all' ||
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                ((t as any).tags && (t as any).tags.includes(filterTag))
+            )
             .map((template) => {
-            const isSelected = selectedTemplate?.id === template.id;
-            const catColor =
-              categoryColors[template.category] ?? categoryColors.Utility;
+              const isSelected = selectedTemplate?.id === template.id;
+              const catColor =
+                categoryColors[template.category] ?? categoryColors.Utility;
 
-            return (
-              <button
-                key={template.id}
-                onClick={() => onSelect(template)}
-                className={`flex flex-col gap-3 rounded-xl border p-4 text-left transition-all ${
-                  isSelected
-                    ? 'border-primary bg-primary/5 ring-primary/30 ring-1'
-                    : 'border-border bg-card/50 hover:border-border hover:bg-card'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <h3 className="text-foreground text-sm font-medium">
-                    {template.name}
-                  </h3>
-                  <span
-                    className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${catColor}`}
-                  >
-                    {template.category}
-                  </span>
-                </div>
-                <p className="text-muted-foreground line-clamp-3 text-xs">
-                  {template.body_text}
-                </p>
-                <div className="text-muted-foreground flex items-center gap-2 text-[10px]">
-                  <span>{template.language ?? 'en_US'}</span>
-                  {/* Status is omitted on purpose — every template
+              return (
+                <button
+                  key={template.id}
+                  onClick={() => onSelect(template)}
+                  className={`flex flex-col gap-3 rounded-xl border p-4 text-left transition-all ${
+                    isSelected
+                      ? 'border-primary bg-primary/5 ring-primary/30 ring-1'
+                      : 'border-border bg-card/50 hover:border-border hover:bg-card'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-foreground text-sm font-medium">
+                      {template.name}
+                    </h3>
+                    <span
+                      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${catColor}`}
+                    >
+                      {template.category}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground line-clamp-3 text-xs">
+                    {template.body_text}
+                  </p>
+                  <div className="text-muted-foreground flex items-center gap-2 text-[10px]">
+                    <span>{template.language ?? 'en_US'}</span>
+                    {/* Status is omitted on purpose — every template
                       shown here is already filtered to APPROVED,
                       so the chip carried no information. */}
-                </div>
-              </button>
-            );
-          })}
+                  </div>
+                </button>
+              );
+            })}
         </div>
       )}
 

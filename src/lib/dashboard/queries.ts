@@ -599,10 +599,14 @@ export async function loadTeamPerformance(
   }
 
   // 6. Fetch stale leads
-  const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+  const fortyEightHoursAgo = new Date(
+    Date.now() - 48 * 60 * 60 * 1000
+  ).toISOString();
   const { data: staleDealsRes } = await db
     .from('deals')
-    .select('stage:pipeline_stages(name), contact:contacts(conversations!inner(assigned_agent_id))')
+    .select(
+      'stage:pipeline_stages(name), contact:contacts(conversations!inner(assigned_agent_id))'
+    )
     .lt('updated_at', fortyEightHoursAgo)
     .in('stage.name', ['New', 'Contacted'])
     .not('contact.conversations', 'is', null);
@@ -614,7 +618,9 @@ export async function loadTeamPerformance(
       ? d.contact.conversations
       : [d.contact?.conversations];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const agentId = convs.find((c: any) => c?.assigned_agent_id)?.assigned_agent_id;
+    const agentId = convs.find(
+      (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
+    )?.assigned_agent_id;
     if (agentId) {
       staleLeadsByAgent.set(agentId, (staleLeadsByAgent.get(agentId) ?? 0) + 1);
     }
@@ -622,14 +628,19 @@ export async function loadTeamPerformance(
 
   // 7. Fetch agent_targets
   const today = new Date();
-  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1)
+    .toISOString()
+    .split('T')[0];
   const { data: targetsRes } = await db
     .from('agent_targets')
     .select('agent_id, target_visits')
     .eq('period_start', firstDayOfMonth);
 
   const targetsByAgent = new Map<string, number>();
-  for (const t of (targetsRes ?? []) as { agent_id: string; target_visits: number }[]) {
+  for (const t of (targetsRes ?? []) as {
+    agent_id: string;
+    target_visits: number;
+  }[]) {
     targetsByAgent.set(t.agent_id, t.target_visits);
   }
 
