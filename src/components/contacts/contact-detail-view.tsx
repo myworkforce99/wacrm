@@ -22,6 +22,7 @@ import {
   TemplatePicker,
   type TemplateSendValues,
 } from '@/components/inbox/template-picker';
+import { CostSheetModal } from '@/components/contacts/cost-sheet-modal';
 import { TasksWidget } from '@/components/dashboard/tasks-widget';
 import {
   Sheet,
@@ -36,6 +37,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   Phone,
   Mail,
@@ -52,6 +59,7 @@ import {
   User,
   Building,
   Send,
+  Zap,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
@@ -72,7 +80,8 @@ export function ContactDetailView({
 }: ContactDetailViewProps) {
   const t = useTranslations('Contacts.detailView');
   const supabase = createClient();
-  const { accountId, defaultCurrency } = useAuth();
+  const { accountId, defaultCurrency, account } = useAuth();
+  const hasCostSheet = !!account?.cost_sheet_template_id;
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(false);
@@ -99,6 +108,9 @@ export function ContactDetailView({
   // find-or-creates the conversation, so no inbound message is required.
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState(false);
+
+  // Cost Sheet modal
+  const [costSheetModalOpen, setCostSheetModalOpen] = useState(false);
 
   // Details tab
   const [editName, setEditName] = useState('');
@@ -970,7 +982,7 @@ export function ContactDetailView({
                     )}
                   </div>
                 </div>
-                <div className="mt-3">
+                <div className="mt-3 flex gap-2">
                   <Button
                     size="sm"
                     onClick={() => setTemplatePickerOpen(true)}
@@ -984,6 +996,25 @@ export function ContactDetailView({
                     )}
                     {t('sendTemplateBtn')}
                   </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger
+                        onClick={() => {
+                          if (hasCostSheet) setCostSheetModalOpen(true);
+                        }}
+                        disabled={!hasCostSheet}
+                        className="border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium whitespace-nowrap shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                      >
+                        <Zap className="mr-1 size-4 text-emerald-500" />
+                        Cost Sheet
+                      </TooltipTrigger>
+                      {!hasCostSheet && (
+                        <TooltipContent>
+                          Set up your Cost Sheet in Settings -&gt; Cost Sheet
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </SheetHeader>
 
@@ -1217,6 +1248,11 @@ export function ContactDetailView({
         open={templatePickerOpen}
         onOpenChange={setTemplatePickerOpen}
         onSelect={handleSendTemplate}
+      />
+      <CostSheetModal
+        open={costSheetModalOpen}
+        onOpenChange={setCostSheetModalOpen}
+        contactId={contactId || undefined}
       />
     </>
   );

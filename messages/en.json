@@ -1689,7 +1689,10 @@
       "fields": "Fields & tags",
       "deals": "Deals & currency",
       "members": "Team members",
-      "api": "API keys"
+      "api": "API keys",
+      "routing": "Lead Routing",
+      "billing": "Billing",
+      "cost-sheet": "Cost Sheet"
     },
     "groups": {
       "account": "Account",

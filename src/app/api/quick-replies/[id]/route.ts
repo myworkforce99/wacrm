@@ -39,9 +39,13 @@ export async function PATCH(
   // drives which content column is authoritative and the other is cleared —
   // otherwise a switched row keeps a stale payload the picker mis-routes on.
   if ('kind' in body) {
-    if (body.kind !== 'text' && body.kind !== 'interactive') {
+    if (
+      body.kind !== 'text' &&
+      body.kind !== 'interactive' &&
+      body.kind !== 'cost_sheet'
+    ) {
       return NextResponse.json(
-        { error: 'kind must be "text" or "interactive"' },
+        { error: 'kind must be "text", "interactive", or "cost_sheet"' },
         { status: 400 }
       );
     }

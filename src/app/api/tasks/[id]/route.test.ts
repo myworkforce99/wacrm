@@ -12,26 +12,32 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth/account', () => ({
   getCurrentAccount: mocks.getCurrentAccount,
   requireRole: mocks.requireRole,
-  toErrorResponse: vi.fn(() => Response.json({ error: 'error' }, { status: 500 })),
+  toErrorResponse: vi.fn(() =>
+    Response.json({ error: 'error' }, { status: 500 })
+  ),
 }));
 
 describe('/api/tasks/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    const singleMock = vi.fn().mockResolvedValue({ data: { id: '1' }, error: null });
-    
+
+    const singleMock = vi
+      .fn()
+      .mockResolvedValue({ data: { id: '1' }, error: null });
+
     // For GET
     const eqMockGet = vi.fn().mockReturnValue({ single: singleMock });
     const selectMockGet = vi.fn().mockReturnValue({ eq: eqMockGet });
-    
+
     // For PATCH
     const selectMockUpdate = vi.fn().mockReturnValue({ single: singleMock });
     const eqMockUpdate = vi.fn().mockReturnValue({ select: selectMockUpdate });
     const updateMock = vi.fn().mockReturnValue({ eq: eqMockUpdate });
-    
+
     // For DELETE
-    const deleteMock = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const deleteMock = vi
+      .fn()
+      .mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
 
     mocks.supabaseUser.from.mockReturnValue({
       select: selectMockGet,

@@ -76,10 +76,7 @@ export async function DELETE(
   }
 
   const { id } = await props.params;
-  const { error } = await ctx.supabase
-    .from('tasks')
-    .delete()
-    .eq('id', id);
+  const { error } = await ctx.supabase.from('tasks').delete().eq('id', id);
 
   if (error)
     return NextResponse.json({ error: error.message }, { status: 500 });

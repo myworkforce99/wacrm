@@ -102,6 +102,7 @@ export interface AccountContext {
         test_lead_received?: boolean;
       }
     >;
+    cost_sheet_template_id?: string | null;
   };
 }
 
@@ -163,7 +164,9 @@ export async function getCurrentAccount(): Promise<AccountContext> {
   // RLS, so it stays robust against cache staleness and older schemas.
   const { data: account, error: accountErr } = await supabase
     .from('accounts')
-    .select('id, name, subscription_status, plan_tier, portal_connections')
+    .select(
+      'id, name, subscription_status, plan_tier, portal_connections, cost_sheet_template_id'
+    )
     .eq('id', data.account_id)
     .maybeSingle();
 

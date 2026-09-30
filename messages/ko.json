@@ -1689,7 +1689,10 @@
       "fields": "필드 & 태그",
       "deals": "딜 & 통화",
       "members": "팀원",
-      "api": "API 키"
+      "api": "API 키",
+      "routing": "Lead Routing",
+      "billing": "Billing",
+      "cost-sheet": "Cost Sheet"
     },
     "groups": {
       "account": "계정",

@@ -15,7 +15,7 @@ import { addContactTagAndDispatch } from '@/lib/contacts/tag-events';
 import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
 
 /** Row select that embeds the contact's tags for serialization. */
-export const CONTACT_SELECT = '*, contact_tags(tags(*))';
+export const CONTACT_SELECT = '*, contact_tags(tags(*)), lead_details(*)';
 
 export interface ApiContact {
   id: string;
@@ -25,6 +25,7 @@ export interface ApiContact {
   company: string | null;
   avatar_url: string | null;
   tags: { id: string; name: string; color: string }[];
+  lead_details?: Record<string, unknown>[];
   created_at: string;
   updated_at: string;
 }
@@ -55,6 +56,9 @@ export function serializeContact(row: Record<string, unknown>): ApiContact {
       .map((j) => j.tags)
       .filter((t): t is NonNullable<RawTagJoin['tags']> => t != null)
       .map((t) => ({ id: t.id, name: t.name, color: t.color })),
+    lead_details: Array.isArray(row.lead_details)
+      ? (row.lead_details as Record<string, unknown>[])
+      : undefined,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

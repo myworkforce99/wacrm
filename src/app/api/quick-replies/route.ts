@@ -41,7 +41,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
 
   const title = typeof body.title === 'string' ? body.title.trim() : '';
-  const kind = body.kind === 'interactive' ? 'interactive' : 'text';
+  const kind =
+    body.kind === 'interactive' || body.kind === 'cost_sheet'
+      ? body.kind
+      : 'text';
   if (!title) {
     return NextResponse.json({ error: 'title is required' }, { status: 400 });
   }

@@ -77,6 +77,7 @@ export interface Account {
     string,
     { connected: boolean; connected_at?: string; test_lead_received?: boolean }
   >;
+  cost_sheet_template_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -799,7 +800,7 @@ export interface AutomationLog {
 // Quick replies — reusable snippets (migration 035)
 // ============================================================
 
-export type QuickReplyKind = 'text' | 'interactive';
+export type QuickReplyKind = 'text' | 'interactive' | 'cost_sheet';
 
 export interface QuickReply {
   id: string;

@@ -12,21 +12,32 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/lib/auth/account', () => ({
   getCurrentAccount: mocks.getCurrentAccount,
   requireRole: mocks.requireRole,
-  toErrorResponse: vi.fn(() => Response.json({ error: 'error' }, { status: 500 })),
+  toErrorResponse: vi.fn(() =>
+    Response.json({ error: 'error' }, { status: 500 })
+  ),
 }));
 
 describe('/api/tasks', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // For GET
-    const orderMock = vi.fn().mockResolvedValue({ data: [{ id: '1' }], error: null });
-    const eqMock = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ order: orderMock }), order: orderMock });
+    const orderMock = vi
+      .fn()
+      .mockResolvedValue({ data: [{ id: '1' }], error: null });
+    const eqMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockReturnValue({ order: orderMock }),
+      order: orderMock,
+    });
     const lteMock = vi.fn().mockReturnValue({ eq: eqMock });
-    const selectMockGet = vi.fn().mockReturnValue({ lte: lteMock, eq: eqMock, order: orderMock });
-    
+    const selectMockGet = vi
+      .fn()
+      .mockReturnValue({ lte: lteMock, eq: eqMock, order: orderMock });
+
     // For POST
-    const singleMock = vi.fn().mockResolvedValue({ data: { id: '2' }, error: null });
+    const singleMock = vi
+      .fn()
+      .mockResolvedValue({ data: { id: '2' }, error: null });
     const selectMockInsert = vi.fn().mockReturnValue({ single: singleMock });
     const insertMock = vi.fn().mockReturnValue({ select: selectMockInsert });
 

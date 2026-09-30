@@ -1689,7 +1689,10 @@
       "fields": "Campos e tags",
       "deals": "Negócios e moeda",
       "members": "Membros da equipe",
-      "api": "Chaves de API"
+      "api": "Chaves de API",
+      "routing": "Lead Routing",
+      "billing": "Billing",
+      "cost-sheet": "Cost Sheet"
     },
     "groups": {
       "account": "Conta",

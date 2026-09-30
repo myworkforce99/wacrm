@@ -54,26 +54,50 @@ export async function PATCH(request: Request) {
 
     const body = (await request.json().catch(() => null)) as {
       name?: unknown;
+      cost_sheet_template_id?: unknown;
     } | null;
-    const rawName = body?.name;
 
-    if (typeof rawName !== 'string') {
-      return NextResponse.json(
-        { error: "'name' must be a string" },
-        { status: 400 }
-      );
+    const updates: Record<string, string | null> = {};
+
+    if (body?.name !== undefined) {
+      if (typeof body.name !== 'string') {
+        return NextResponse.json(
+          { error: "'name' must be a string" },
+          { status: 400 }
+        );
+      }
+      const name = body.name.trim();
+      if (name.length === 0) {
+        return NextResponse.json(
+          { error: 'Account name cannot be empty' },
+          { status: 400 }
+        );
+      }
+      if (name.length > MAX_NAME_LEN) {
+        return NextResponse.json(
+          { error: `Account name must be ${MAX_NAME_LEN} characters or fewer` },
+          { status: 400 }
+        );
+      }
+      updates.name = name;
     }
 
-    const name = rawName.trim();
-    if (name.length === 0) {
-      return NextResponse.json(
-        { error: 'Account name cannot be empty' },
-        { status: 400 }
-      );
+    if (body?.cost_sheet_template_id !== undefined) {
+      if (
+        typeof body.cost_sheet_template_id !== 'string' &&
+        body.cost_sheet_template_id !== null
+      ) {
+        return NextResponse.json(
+          { error: "'cost_sheet_template_id' must be a string or null" },
+          { status: 400 }
+        );
+      }
+      updates.cost_sheet_template_id = body.cost_sheet_template_id;
     }
-    if (name.length > MAX_NAME_LEN) {
+
+    if (Object.keys(updates).length === 0) {
       return NextResponse.json(
-        { error: `Account name must be ${MAX_NAME_LEN} characters or fewer` },
+        { error: 'No valid fields provided for update' },
         { status: 400 }
       );
     }
@@ -83,9 +107,9 @@ export async function PATCH(request: Request) {
     // guaranteed the caller is admin+.
     const { data, error } = await ctx.supabase
       .from('accounts')
-      .update({ name })
+      .update(updates)
       .eq('id', ctx.accountId)
-      .select('id, name')
+      .select('id, name, cost_sheet_template_id')
       .single();
 
     if (error) {

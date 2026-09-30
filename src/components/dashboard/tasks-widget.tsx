@@ -99,7 +99,9 @@ export function TasksWidget({ contactId }: TasksWidgetProps) {
         body: JSON.stringify({
           title: newTaskTitle,
           contact_id: contactId || undefined,
-          due_at: dueDate ? new Date(dueDate).toISOString() : new Date().toISOString(),
+          due_at: dueDate
+            ? new Date(dueDate).toISOString()
+            : new Date().toISOString(),
         }),
       });
       if (!res.ok) throw new Error('Failed to create task');
@@ -179,7 +181,7 @@ export function TasksWidget({ contactId }: TasksWidgetProps) {
           type="datetime-local"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          className="w-auto sm:w-[180px] shrink-0"
+          className="w-auto shrink-0 sm:w-[180px]"
         />
         <Button type="submit" disabled={!newTaskTitle.trim()}>
           Add

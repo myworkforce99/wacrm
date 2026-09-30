@@ -5,6 +5,15 @@ import { UserPlus, Briefcase, Radio, Zap } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { CostSheetModal } from '@/components/contacts/cost-sheet-modal';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 // Quick-action shortcuts. Each navigates to the page that owns the
 // relevant "create" flow. We deliberately don't try to auto-open any
@@ -46,6 +55,9 @@ const ACTIONS: Action[] = [
 
 export function QuickActions() {
   const t = useTranslations('Dashboard.quickActions');
+  const [costSheetOpen, setCostSheetOpen] = useState(false);
+  const { account } = useAuth();
+  const hasCostSheet = !!account?.cost_sheet_template_id;
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -68,6 +80,37 @@ export function QuickActions() {
           </Link>
         );
       })}
+
+      {/* Cost Sheet Quick Action */}
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger
+            onClick={() => {
+              if (hasCostSheet) setCostSheetOpen(true);
+            }}
+            disabled={!hasCostSheet}
+            className={`group border-border flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+              hasCostSheet
+                ? 'bg-card hover:border-border hover:bg-muted/60'
+                : 'bg-muted/30 cursor-not-allowed opacity-50'
+            }`}
+          >
+            <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-lg text-emerald-500">
+              <Zap className="h-4 w-4" />
+            </div>
+            <span className="text-foreground text-sm font-medium">
+              Send Cost Sheet
+            </span>
+          </TooltipTrigger>
+          {!hasCostSheet && (
+            <TooltipContent>
+              Set up your Cost Sheet in Settings -&gt; Cost Sheet
+            </TooltipContent>
+          )}
+        </Tooltip>
+      </TooltipProvider>
+
+      <CostSheetModal open={costSheetOpen} onOpenChange={setCostSheetOpen} />
     </div>
   );
 }

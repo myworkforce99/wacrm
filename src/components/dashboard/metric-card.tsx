@@ -45,7 +45,14 @@ export function MetricCard({
       {delta ? (
         <DeltaRow sign={delta.sign} label={delta.label} />
       ) : subtitle ? (
-        <p className={cn("mt-2 text-sm", subtitleClassName || "text-muted-foreground")}>{subtitle}</p>
+        <p
+          className={cn(
+            'mt-2 text-sm',
+            subtitleClassName || 'text-muted-foreground'
+          )}
+        >
+          {subtitle}
+        </p>
       ) : null}
     </div>
   );
