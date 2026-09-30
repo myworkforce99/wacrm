@@ -19,6 +19,8 @@ interface MetricCardProps {
   };
   /** Used instead of `delta` when the metric has a static subtitle. */
   subtitle?: string;
+  /** Optional class name to override subtitle color. */
+  subtitleClassName?: string;
 }
 
 export function MetricCard({
@@ -27,6 +29,7 @@ export function MetricCard({
   icon: Icon,
   delta,
   subtitle,
+  subtitleClassName,
 }: MetricCardProps) {
   return (
     <div className="border-border bg-card rounded-xl border p-5">
@@ -42,7 +45,7 @@ export function MetricCard({
       {delta ? (
         <DeltaRow sign={delta.sign} label={delta.label} />
       ) : subtitle ? (
-        <p className="text-muted-foreground mt-2 text-sm">{subtitle}</p>
+        <p className={cn("mt-2 text-sm", subtitleClassName || "text-muted-foreground")}>{subtitle}</p>
       ) : null}
     </div>
   );

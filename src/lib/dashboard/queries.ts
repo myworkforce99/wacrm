@@ -617,7 +617,6 @@ export async function loadTeamPerformance(
     const convs = Array.isArray(d.contact?.conversations)
       ? d.contact.conversations
       : [d.contact?.conversations];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const agentId = convs.find(
       (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
     )?.assigned_agent_id;
@@ -682,4 +681,43 @@ export async function loadTeamPerformance(
       actualVisitsThisMonth: visits.completed, // NOTE: this might need date filtering to strictly 'this month' if visitsCompleted covers rangeDays
     };
   });
+}
+
+export async function getFollowupsDueCount(
+  db: DB
+): Promise<{ count: number; overdue: number }> {
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const thirtyMinsAgo = new Date(Date.now() - 30 * 60000).toISOString();
+
+  const [tasksCount, tasksOverdue, convsCount, convsOverdue] =
+    await Promise.all([
+      db
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('done', false)
+        .lte('due_at', todayEnd.toISOString()),
+      db
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('done', false)
+        .lt('due_at', todayStart.toISOString()),
+      db
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .not('first_unanswered_at', 'is', null),
+      db
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .lt('first_unanswered_at', thirtyMinsAgo),
+    ]);
+
+  const count = (tasksCount.count ?? 0) + (convsCount.count ?? 0);
+  const overdue = (tasksOverdue.count ?? 0) + (convsOverdue.count ?? 0);
+
+  return { count, overdue };
 }

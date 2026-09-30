@@ -836,3 +836,28 @@ export interface LeadSegmentFilter {
   operator: 'contains' | 'equals' | 'gte';
   value: string;
 }
+
+export interface Task {
+  id: string;
+  /** Tenancy key. */
+  account_id: string;
+  /** Linked contact if any. */
+  contact_id?: string | null;
+  /** Linked site visit if any. */
+  site_visit_id?: string | null;
+  /** The description of what needs to be done. */
+  title: string;
+  /** Deadline for the task. */
+  due_at?: string | null;
+  /** Checked off when done. */
+  done: boolean;
+  /** Timestamp when done was set to true. */
+  done_at?: string | null;
+  /** User who created the task. */
+  created_by?: string | null;
+  /** Agent responsible for the task. */
+  assigned_to?: string | null;
+  created_at: string;
+  updated_at: string;
+  contacts?: { name: string } | null;
+}

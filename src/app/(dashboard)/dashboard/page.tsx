@@ -4,7 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageSquare, UserPlus, DollarSign, Send } from 'lucide-react';
+import {
+  MessageSquare,
+  UserPlus,
+  DollarSign,
+  Send,
+  CheckSquare,
+} from 'lucide-react';
 
 import {
   loadActivity,
@@ -12,6 +18,7 @@ import {
   loadMetrics,
   loadPipelineDonut,
   loadResponseTime,
+  getFollowupsDueCount,
 } from '@/lib/dashboard/queries';
 import type {
   ActivityItem,
@@ -28,6 +35,7 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart';
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut';
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
+import { TasksWidget } from '@/components/dashboard/tasks-widget';
 import { TeamSetupChecklist } from '@/components/onboarding/team-setup-checklist';
 
 import { useTranslations } from 'next-intl';
@@ -39,6 +47,12 @@ export default function DashboardPage() {
   const { defaultCurrency } = useAuth();
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
+
+  const [followups, setFollowups] = useState<{
+    count: number;
+    overdue: number;
+  } | null>(null);
+  const [followupsLoading, setFollowupsLoading] = useState(true);
 
   const [range, setRange] = useState<RangeDays>(30);
   // Keep a cache per range so switching tabs doesn't re-fetch what we
@@ -74,6 +88,11 @@ export default function DashboardPage() {
       .then((m) => setMetrics(m))
       .catch((err) => console.error('[dashboard] metrics failed:', err))
       .finally(() => setMetricsLoading(false));
+
+    void getFollowupsDueCount(db)
+      .then((f) => setFollowups(f))
+      .catch((err) => console.error('[dashboard] followups failed:', err))
+      .finally(() => setFollowupsLoading(false));
 
     void loadConversationsSeries(db, 30)
       .then((s) => setSeries((prev) => ({ ...prev, 30: s })))
@@ -131,9 +150,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Metric cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {metricsLoading || !metrics ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        {metricsLoading || !metrics || followupsLoading ? (
+          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
             <MetricCard
@@ -191,6 +210,19 @@ export default function DashboardPage() {
                 ),
               }}
             />
+            <MetricCard
+              title="Follow-ups Due"
+              value={followups?.count.toLocaleString() || '0'}
+              icon={CheckSquare}
+              subtitle={
+                (followups?.overdue || 0) > 0
+                  ? `${followups?.overdue} overdue`
+                  : 'All caught up'
+              }
+              subtitleClassName={
+                (followups?.overdue || 0) > 0 ? 'text-red-600 font-medium' : ''
+              }
+            />
           </>
         )}
       </div>
@@ -226,8 +258,15 @@ export default function DashboardPage() {
       {/* Response time */}
       <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
 
-      {/* Activity feed */}
-      <ActivityFeed items={activity} loading={activityLoading} />
+      {/* Tasks and Activity feed */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="bg-card border-border flex min-h-0 flex-col rounded-xl border p-4 shadow-sm">
+          <TasksWidget />
+        </div>
+        <div className="flex min-h-0 flex-col">
+          <ActivityFeed items={activity} loading={activityLoading} />
+        </div>
+      </div>
     </div>
   );
 }

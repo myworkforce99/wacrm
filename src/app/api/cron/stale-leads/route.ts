@@ -59,9 +59,14 @@ export async function GET(request: Request) {
         const contactName = deal.contact?.name || 'Unknown Contact';
 
         // (a) create a task
-        // TODO(SectionP): implement task creation
-        // await db.from('tasks').insert({ ... })
-
+        await db.from('tasks').insert({
+          account_id: deal.account_id,
+          contact_id: deal.contact_id,
+          title: `Follow up: ${contactName} — no activity for 2+ days`,
+          due_at: new Date().toISOString(),
+          assigned_to: agentId,
+          created_by: agentId,
+        });
         // (b) send a push notification
         // Just an insert to notifications table for now, since web push might not be fully available to call server-side here.
         await db.from('notifications').insert({

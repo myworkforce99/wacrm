@@ -101,7 +101,12 @@ const navItems: NavItem[] = [
   { href: '/flows', labelKey: 'flows', icon: Workflow, beta: true },
   { href: '/agents', labelKey: 'aiAgents', icon: Bot },
   { href: '/team', labelKey: 'team', icon: UsersRound, adminOnly: true },
-  { href: '/integrations', labelKey: 'integrations', icon: Plug, adminOnly: true },
+  {
+    href: '/integrations',
+    labelKey: 'integrations',
+    icon: Plug,
+    adminOnly: true,
+  },
 ];
 
 const bottomNavItems = [

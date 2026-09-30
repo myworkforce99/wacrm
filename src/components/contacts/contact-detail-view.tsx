@@ -22,6 +22,7 @@ import {
   TemplatePicker,
   type TemplateSendValues,
 } from '@/components/inbox/template-picker';
+import { TasksWidget } from '@/components/dashboard/tasks-widget';
 import {
   Sheet,
   SheetContent,
@@ -91,6 +92,7 @@ export function ContactDetailView({
     AssignmentHistory[]
   >([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [taskCount, setTaskCount] = useState(0);
 
   // Send template — lets the business initiate (or re-open) a conversation
   // with this contact by sending an approved template. The send route
@@ -279,6 +281,16 @@ export function ContactDetailView({
     setLoadingMatches(false);
   }, [contactId, supabase]);
 
+  const fetchTaskCount = useCallback(async () => {
+    if (!contactId) return;
+    const { count } = await supabase
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('contact_id', contactId)
+      .eq('done', false);
+    setTaskCount(count ?? 0);
+  }, [contactId, supabase]);
+
   useEffect(() => {
     if (open && contactId) {
       fetchContact();
@@ -287,6 +299,7 @@ export function ContactDetailView({
       fetchCustomFields();
       fetchDeals();
       fetchMatches();
+      fetchTaskCount();
     }
   }, [
     open,
@@ -297,6 +310,7 @@ export function ContactDetailView({
     fetchCustomFields,
     fetchDeals,
     fetchMatches,
+    fetchTaskCount,
   ]);
 
   async function fetchAssignmentHistory() {
@@ -1013,6 +1027,10 @@ export function ContactDetailView({
                   </h3>
                   {customContent}
                 </section>
+                <section>
+                  <h3 className="text-foreground mb-3 font-semibold">Tasks</h3>
+                  <TasksWidget contactId={contactId || undefined} />
+                </section>
               </div>
 
               {/* Desktop Tabs — hidden on mobile to avoid double-rendering
@@ -1058,6 +1076,17 @@ export function ContactDetailView({
                     className="data-active:bg-muted data-active:text-primary text-muted-foreground"
                   >
                     {t('tabs.match')}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tasks"
+                    className="data-active:bg-muted data-active:text-primary text-muted-foreground flex items-center space-x-2"
+                  >
+                    <span>Tasks</span>
+                    {taskCount > 0 && (
+                      <span className="bg-primary/10 text-primary flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium">
+                        {taskCount}
+                      </span>
+                    )}
                   </TabsTrigger>
                 </TabsList>
 
@@ -1107,6 +1136,14 @@ export function ContactDetailView({
                   className="flex-1 overflow-y-auto px-4 py-3"
                 >
                   {matchContent}
+                </TabsContent>
+
+                {/* Tasks Tab */}
+                <TabsContent
+                  value="tasks"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  <TasksWidget contactId={contactId || undefined} />
                 </TabsContent>
               </Tabs>
             </div>
