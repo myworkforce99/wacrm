@@ -61,7 +61,7 @@ export function ContactForm({
   const isEdit = !!contact;
 
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+91');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
   const [source, setSource] = useState('');
@@ -89,7 +89,7 @@ export function ContactForm({
   useEffect(() => {
     if (open) {
       setName(contact?.name ?? '');
-      setPhone(contact?.phone ?? '');
+      setPhone(contact?.phone ?? '+91');
       setEmail(contact?.email ?? '');
       setCompany(contact?.company ?? '');
       setSelectedTagIds(contactTags.map((ct) => ct.tag_id));

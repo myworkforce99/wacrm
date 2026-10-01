@@ -113,7 +113,10 @@ describe('parseInternationalPhone', () => {
   it('rejects national-format numbers with no country code', () => {
     expect(parseInternationalPhone('4155551212')).toBeNull(); // US national → would parse as +41 (CH)
     expect(parseInternationalPhone('07700900123')).toBeNull(); // UK national, trunk 0
-    expect(parseInternationalPhone('9876543210')).toBeNull(); // 10-digit national → would parse as +98 (IR)
+  });
+
+  it('implicitly prepends +91 for 10-digit Indian numbers without country code', () => {
+    expect(parseInternationalPhone('9876543210')).toBe('919876543210');
   });
 
   it('rejects digits that carry a country code but no + (the caller cannot tell)', () => {

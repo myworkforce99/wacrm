@@ -89,8 +89,11 @@ describe('parseBroadcastCsv', () => {
     expect(result).toEqual({
       ok: true,
       duplicates: 0,
-      invalid: 2,
-      contacts: [{ phone: '+14155551212', name: 'Ada' }],
+      invalid: 1, // The 10-digit Indian number is now accepted, so only US is invalid
+      contacts: [
+        { phone: '+14155551212', name: 'Ada' },
+        { phone: '9876543210', name: 'National IN' },
+      ],
     });
   });
 
