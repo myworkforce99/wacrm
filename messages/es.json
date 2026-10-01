@@ -330,6 +330,7 @@
       "subtitle": "Administra tu lista de contactos. {count} contactos en total.",
       "subtitleZero": "Administra tu lista de contactos.",
       "customFieldsBtn": "Campos personalizados",
+      "exportBtn": "Exportar CSV",
       "selectAllOnPage": "Seleccionar todos los contactos de esta página",
       "importBtn": "Importar",
       "addContactBtn": "Agregar contacto",
@@ -474,7 +475,9 @@
       "toastCustomFieldsSaved": "Campos personalizados guardados",
       "toastCustomFieldsFailed": "Error al guardar los campos personalizados",
       "toastTemplateSent": "Plantilla \"{name}\" enviada",
-      "toastTemplateFailed": "Error al enviar la plantilla: {reason}"
+      "toastTemplateFailed": "Error al enviar la plantilla: {reason}",
+      "assignmentHistoryTitle": "Historial de asignación",
+      "noAssignmentHistory": "No se encontró historial de asignación."
     },
     "importModal": {
       "title": "Importar contactos",
@@ -543,6 +546,16 @@
       "toastRenameFailed": "No se pudo renombrar el campo.",
       "toastDeleteFailed": "No se pudo eliminar el campo.",
       "toastDeleted": "\"{name}\" eliminado."
+    },
+    "bulkReassign": {
+      "title": "Reasignar Leads",
+      "description": "Reasignar {count, plural, one {# lead} other {# leads}} a otro agente. Esto también actualizará las conversaciones de WhatsApp.",
+      "selectAgent": "Seleccionar Agente",
+      "placeholder": "-- Elige un agente --",
+      "cancel": "Cancelar",
+      "save": "Reasignar",
+      "success": "{count, plural, one {# lead reasignado} other {# leads reasignados}} exitosamente.",
+      "error": "Error al reasignar leads. Inténtelo de nuevo."
     }
   },
   "Pipelines": {
@@ -2124,7 +2137,7 @@
       "MagicBricks": {
         "instructions": "1. Log in to your MagicBricks Agent dashboard.\n2. Go to Settings > Lead Alerts.\n3. Add the capture email above to the 'Additional Email' field.\n4. Save settings and send a test lead."
       },
-      "Housing.com": {
+      "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       },
       "Gmail": {

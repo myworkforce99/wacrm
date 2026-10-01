@@ -367,7 +367,8 @@
       "toastFailedDelete": "연락처를 삭제하지 못했습니다",
       "toastDeleted": "연락처가 삭제되었습니다",
       "toastBulkFailedDelete": "연락처를 삭제하지 못했습니다",
-      "toastBulkDeleted": "연락처 {count}개가 삭제되었습니다"
+      "toastBulkDeleted": "연락처 {count}개가 삭제되었습니다",
+      "exportBtn": "CSV 내보내기"
     },
     "form": {
       "addTitle": "연락처 추가",
@@ -474,7 +475,9 @@
       "toastCustomFieldsSaved": "커스텀 필드가 저장되었습니다",
       "toastCustomFieldsFailed": "커스텀 필드를 저장하지 못했습니다",
       "toastTemplateSent": "\"{name}\" 템플릿을 보냈습니다",
-      "toastTemplateFailed": "템플릿을 보내지 못했습니다: {reason}"
+      "toastTemplateFailed": "템플릿을 보내지 못했습니다: {reason}",
+      "assignmentHistoryTitle": "담당 이력",
+      "noAssignmentHistory": "담당 이력이 없습니다."
     },
     "importModal": {
       "title": "연락처 가져오기",
@@ -543,6 +546,16 @@
       "toastRenameFailed": "필드 이름을 변경할 수 없습니다.",
       "toastDeleteFailed": "필드를 삭제할 수 없습니다.",
       "toastDeleted": "\"{name}\"을(를) 삭제했습니다."
+    },
+    "bulkReassign": {
+      "title": "리드 재담당",
+      "description": "{count, plural, one {# 건의 리드} other {# 건의 리드}}를 다른 에이전트에게 재담당합니다.",
+      "selectAgent": "에이전트 선택",
+      "placeholder": "-- 에이전트 선택 --",
+      "cancel": "취소",
+      "save": "재담당",
+      "success": "{count, plural, one {# 건의 리드} other {# 건의 리드}}가 성공적으로 재담당되었습니다.",
+      "error": "리드 재담당에 실패했습니다. 다시 시도해 주세요."
     }
   },
   "Pipelines": {
@@ -2124,7 +2137,7 @@
       "MagicBricks": {
         "instructions": "1. Log in to your MagicBricks Agent dashboard.\n2. Go to Settings > Lead Alerts.\n3. Add the capture email above to the 'Additional Email' field.\n4. Save settings and send a test lead."
       },
-      "Housing.com": {
+      "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       },
       "Gmail": {

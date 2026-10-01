@@ -55,12 +55,12 @@ export default async function IntegrationsPage() {
     },
     {
       name: 'Housing.com',
-      slug: 'Housing.com',
+      slug: 'HousingCom',
       icon: Home,
-      status: (portalConnections['Housing.com']?.connected
+      status: (portalConnections['HousingCom']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
-      test_lead: !!portalConnections['Housing.com']?.test_lead_received,
+      test_lead: !!portalConnections['HousingCom']?.test_lead_received,
     },
     {
       name: 'Gmail',

@@ -330,6 +330,7 @@
       "subtitle": "Manage your contact list. {count} total contacts.",
       "subtitleZero": "Manage your contact list.",
       "customFieldsBtn": "Custom fields",
+      "exportBtn": "Export CSV",
       "selectAllOnPage": "Select all contacts on this page",
       "importBtn": "Import",
       "addContactBtn": "Add Contact",
@@ -474,7 +475,9 @@
       "toastCustomFieldsSaved": "Custom fields saved",
       "toastCustomFieldsFailed": "Failed to save custom fields",
       "toastTemplateSent": "Template \"{name}\" sent",
-      "toastTemplateFailed": "Failed to send template: {reason}"
+      "toastTemplateFailed": "Failed to send template: {reason}",
+      "assignmentHistoryTitle": "Assignment History",
+      "noAssignmentHistory": "No assignment history found."
     },
     "importModal": {
       "title": "Import Contacts",
@@ -543,6 +546,16 @@
       "toastRenameFailed": "Could not rename field.",
       "toastDeleteFailed": "Could not delete field.",
       "toastDeleted": "Deleted \"{name}\"."
+    },
+    "bulkReassign": {
+      "title": "Reassign Leads",
+      "description": "Reassign {count, plural, one {# lead} other {# leads}} to a different agent. This also updates their WhatsApp conversation assignments.",
+      "selectAgent": "Select Agent",
+      "placeholder": "-- Choose an agent --",
+      "cancel": "Cancel",
+      "save": "Reassign",
+      "success": "{count, plural, one {# lead reassigned} other {# leads reassigned}} successfully.",
+      "error": "Failed to reassign leads. Please try again."
     }
   },
   "Pipelines": {
@@ -2124,7 +2137,7 @@
       "MagicBricks": {
         "instructions": "1. Log in to your MagicBricks Agent dashboard.\n2. Go to Settings > Lead Alerts.\n3. Add the capture email above to the 'Additional Email' field.\n4. Save settings and send a test lead."
       },
-      "Housing.com": {
+      "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       },
       "Gmail": {
