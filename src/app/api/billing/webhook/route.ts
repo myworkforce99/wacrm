@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { supabaseAdmin } from '@/lib/automations/admin-client';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
   apiVersion: '2026-08-26.dahlia',
 });
 
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
         const subscriptionId =
           typeof subRef === 'string'
             ? subRef
-            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
+            : ((subRef as Stripe.Subscription | undefined)?.id ?? null);
 
         if (!subscriptionId) break;
 
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         const subscriptionId =
           typeof subRef === 'string'
             ? subRef
-            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
+            : ((subRef as Stripe.Subscription | undefined)?.id ?? null);
 
         if (!subscriptionId) break;
 

@@ -56,7 +56,9 @@ export async function GET(request: Request) {
     processed = staleDeals.length;
 
     for (const deal of staleDeals) {
-      const contactObj = Array.isArray(deal.contact) ? deal.contact[0] : deal.contact;
+      const contactObj = Array.isArray(deal.contact)
+        ? deal.contact[0]
+        : deal.contact;
       const conversations = Array.isArray(contactObj?.conversations)
         ? contactObj?.conversations
         : [contactObj?.conversations];
@@ -79,7 +81,10 @@ export async function GET(request: Request) {
           created_by: agentId,
         });
         if (taskErr) {
-          console.error('[cron/stale-leads] task insert failed:', taskErr.message);
+          console.error(
+            '[cron/stale-leads] task insert failed:',
+            taskErr.message
+          );
         }
 
         // (b) Notify the assigned agent.

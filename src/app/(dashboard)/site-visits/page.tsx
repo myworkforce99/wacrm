@@ -5,7 +5,15 @@ import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Phone, Search, MessageCircle, Pencil, Calendar } from 'lucide-react';
+import {
+  Loader2,
+  Plus,
+  Phone,
+  Search,
+  MessageCircle,
+  Pencil,
+  Calendar,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
@@ -31,10 +39,25 @@ const VISIT_STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
   completed: { bg: 'bg-gray-100', text: 'text-gray-700' },
 };
 
-function VisitStatusBadge({ status, label }: { status: string; label: string }) {
-  const cfg = VISIT_STATUS_CONFIG[status] ?? { bg: 'bg-gray-100', text: 'text-gray-600' };
+function VisitStatusBadge({
+  status,
+  label,
+}: {
+  status: string;
+  label: string;
+}) {
+  const cfg = VISIT_STATUS_CONFIG[status] ?? {
+    bg: 'bg-gray-100',
+    text: 'text-gray-600',
+  };
   return (
-    <span className={cn('inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.bg, cfg.text)}>
+    <span
+      className={cn(
+        'inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium',
+        cfg.bg,
+        cfg.text
+      )}
+    >
       {label}
     </span>
   );
@@ -128,23 +151,30 @@ export default function SiteVisitsPage() {
     const ampm = dateObj ? format(dateObj, 'a') : '';
 
     return (
-      <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
+      <div className="border-border bg-card flex items-center gap-4 rounded-xl border px-5 py-4">
         {/* Date block */}
-        <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-center w-16">
-          <div className="text-[9px] font-bold uppercase tracking-wide text-primary">
-            {isVisitToday ? 'TODAY' : isVisitTomorrow ? 'TOMORROW' : formattedDate}
+        <div className="bg-primary/10 w-16 shrink-0 rounded-xl p-3 text-center">
+          <div className="text-primary text-[9px] font-bold tracking-wide uppercase">
+            {isVisitToday
+              ? 'TODAY'
+              : isVisitTomorrow
+                ? 'TOMORROW'
+                : formattedDate}
           </div>
-          <div className="mt-0.5 text-xl font-bold text-primary">{hour}:{minute}</div>
-          <div className="text-[9px] text-primary/70 uppercase">{ampm}</div>
+          <div className="text-primary mt-0.5 text-xl font-bold">
+            {hour}:{minute}
+          </div>
+          <div className="text-primary/70 text-[9px] uppercase">{ampm}</div>
         </div>
 
         {/* Name + Property */}
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-foreground truncate">
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground truncate font-semibold">
             {visit.contact?.name || visit.contact?.phone || 'Unknown Contact'}
           </p>
-          <p className="text-sm text-muted-foreground mt-0.5 truncate">
-            📍 {visit.property?.title || 'No Property'}{visit.property?.location ? `, ${visit.property.location}` : ''}
+          <p className="text-muted-foreground mt-0.5 truncate text-sm">
+            📍 {visit.property?.title || 'No Property'}
+            {visit.property?.location ? `, ${visit.property.location}` : ''}
           </p>
         </div>
 
@@ -152,22 +182,87 @@ export default function SiteVisitsPage() {
         <VisitStatusBadge status={visit.status} label={statusLabel} />
 
         {/* Actions */}
-        <div className="flex items-center gap-2 text-muted-foreground ml-2">
-          {visit.contact && (
-            <Link href={`/inbox?contact=${visit.contact.id}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
-              <MessageCircle className="size-4" />
-            </Link>
+        <div className="text-muted-foreground ml-auto flex items-center gap-2">
+          {visit.status === 'pending' && canEdit && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-xs"
+                onClick={() => updateStatus(visit.id, 'confirmed')}
+              >
+                {t('confirm')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-xs"
+                onClick={() => updateStatus(visit.id, 'rescheduled')}
+              >
+                {t('reschedule')}
+              </Button>
+            </>
           )}
-          {visit.contact?.phone && (
-            <a href={`tel:${visit.contact.phone}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
-              <Phone className="size-4" />
-            </a>
+          {visit.status === 'confirmed' && canEdit && (
+            <>
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-7 rounded-full px-2.5 text-xs"
+                onClick={() => updateStatus(visit.id, 'completed')}
+              >
+                {t('markCompleted')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 rounded-full px-2.5 text-xs"
+                onClick={() => updateStatus(visit.id, 'no_show')}
+              >
+                {t('markNoShow')}
+              </Button>
+            </>
           )}
-          {canEdit && (
-            <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" onClick={() => setScheduleOpen(true)}>
-              <Pencil className="size-4" />
-            </button>
-          )}
+
+          <div className="border-border ml-1 flex items-center border-l pl-2">
+            {visit.contact && (
+              <Link
+                href={`/inbox?contact=${visit.contact.id}`}
+                className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                title="Internal Inbox"
+              >
+                <MessageCircle className="size-4" />
+              </Link>
+            )}
+            {visit.contact?.phone && (
+              <a
+                href={`https://wa.me/${visit.contact.phone.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                title="WhatsApp"
+              >
+                <span className="font-bold">W</span>
+              </a>
+            )}
+            {visit.contact?.phone && (
+              <a
+                href={`tel:${visit.contact.phone}`}
+                className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                title="Call"
+              >
+                <Phone className="size-4" />
+              </a>
+            )}
+            {canEdit && (
+              <button
+                className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                onClick={() => setScheduleOpen(true)}
+              >
+                <Pencil className="size-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -176,15 +271,15 @@ export default function SiteVisitsPage() {
   return (
     <PullToRefresh onRefresh={fetchVisits}>
       <div className="space-y-6 pb-20">
-        <PageHeader 
-          title={t('title')} 
+        <PageHeader
+          title={t('title')}
           subtitle={`${visits.length} visits scheduled`}
           action={
             <GatedButton
               canAct={canEdit}
               gateReason="schedule visits"
               onClick={() => setScheduleOpen(true)}
-              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 text-sm"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4 text-sm"
             >
               <Plus className="mr-1 size-4" />
               {t('scheduleBtn')}

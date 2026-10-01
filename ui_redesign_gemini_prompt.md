@@ -17,6 +17,7 @@ The full redesign specification is in `ui_redesign_plan.md` (attached). Execute 
 ## CRITICAL: READ THESE BEFORE WRITING ANY CODE
 
 ### 1. Stack (exact — do not assume defaults)
+
 - **Framework:** Next.js 16.3.5 App Router + Turbopack
 - **React:** 19.2.4
 - **Styling:** Tailwind CSS v4 (`@tailwindcss/postcss`) — **not v3**. Class utilities and config differ from v3. Check existing files before inventing utilities.
@@ -28,21 +29,23 @@ The full redesign specification is in `ui_redesign_plan.md` (attached). Execute 
 - **Drag & drop on pipelines:** `@dnd-kit/core` + `@dnd-kit/sortable`. Do not replace or remove this.
 
 ### 2. Absolute DO NOT TOUCH list
+
 Modifying any of these without an explicit reason is a critical failure:
 
-| What | Why |
-|---|---|
-| `supabase/migrations/` | Never edit existing migrations. No new migrations needed for this UI task. |
-| `src/app/api/**` | All API route handlers — untouched |
-| `src/middleware.ts` | Has a critical wedged-session fix. Leave it. |
-| `src/lib/auth/**` | Role checks, API auth — untouched |
-| `src/lib/rate-limit.ts` | Intentional in-memory design — untouched |
-| `src/hooks/**` | All hooks (useAuth, useTotalUnread, etc.) — untouched |
-| RLS policies | Never loosen, remove, or rewrite any Supabase RLS policy |
-| `messages/*.json` key hierarchy | Add new keys only. Never rename or restructure existing ones. |
-| `AGENTS.md` `<!-- BEGIN:nextjs-agent-rules -->` block | Tool-managed, leave intact |
+| What                                                  | Why                                                                        |
+| ----------------------------------------------------- | -------------------------------------------------------------------------- |
+| `supabase/migrations/`                                | Never edit existing migrations. No new migrations needed for this UI task. |
+| `src/app/api/**`                                      | All API route handlers — untouched                                         |
+| `src/middleware.ts`                                   | Has a critical wedged-session fix. Leave it.                               |
+| `src/lib/auth/**`                                     | Role checks, API auth — untouched                                          |
+| `src/lib/rate-limit.ts`                               | Intentional in-memory design — untouched                                   |
+| `src/hooks/**`                                        | All hooks (useAuth, useTotalUnread, etc.) — untouched                      |
+| RLS policies                                          | Never loosen, remove, or rewrite any Supabase RLS policy                   |
+| `messages/*.json` key hierarchy                       | Add new keys only. Never rename or restructure existing ones.              |
+| `AGENTS.md` `<!-- BEGIN:nextjs-agent-rules -->` block | Tool-managed, leave intact                                                 |
 
 ### 3. Safe to create (new files)
+
 - `src/components/layout/announcement-banner.tsx`
 - `src/components/layout/page-header.tsx`
 - `src/components/ui/source-badge.tsx`
@@ -51,19 +54,19 @@ Modifying any of these without an explicit reason is a critical failure:
 
 ### 4. Files to modify (and what NOT to break in each)
 
-| File | What to preserve |
-|---|---|
-| `src/app/globals.css` | All dark mode token values, all existing token names, all accent theme variable names |
-| `src/app/layout.tsx` | Metadata exports, font loading logic, `next-intl` provider, script execution order |
-| `src/app/(dashboard)/layout.tsx` | Route group structure, `DashboardShell` import, children prop |
-| `src/app/(dashboard)/dashboard-shell.tsx` | All auth logic (`useAuth`, `useRouter`), loading states, mobile sidebar state |
-| `src/components/layout/sidebar.tsx` | All auth/role checks, `useAuth` hook usage, `useTotalUnread` hook, `useUnreadNotifications` hook, sign-out handler, availability toggle and its API call |
-| `src/components/layout/header.tsx` | `useAuth` hook, availability toggle and its `fetch('/api/account/members/...')` call, sign-out, ModeToggle (keep it in settings or header, do not delete) |
-| `src/app/(dashboard)/contacts/page.tsx` | All `supabase.from(...)` queries, all state management, all toast calls, pagination logic, filter logic, bulk delete logic |
-| `src/app/(dashboard)/site-visits/page.tsx` | All data fetching, status update handlers, all existing props/types |
-| `src/app/(dashboard)/pipelines/**` | All `@dnd-kit` drag logic, all deal CRUD handlers, all Supabase queries |
-| `src/app/(dashboard)/integrations/page.tsx` | Portal connection logic, all fetch calls |
-| `src/app/(dashboard)/dashboard/page.tsx` | All `loadMetrics`, `loadActivity`, `loadPipelineDonut` calls and their state, `range` selector logic |
+| File                                        | What to preserve                                                                                                                                          |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/globals.css`                       | All dark mode token values, all existing token names, all accent theme variable names                                                                     |
+| `src/app/layout.tsx`                        | Metadata exports, font loading logic, `next-intl` provider, script execution order                                                                        |
+| `src/app/(dashboard)/layout.tsx`            | Route group structure, `DashboardShell` import, children prop                                                                                             |
+| `src/app/(dashboard)/dashboard-shell.tsx`   | All auth logic (`useAuth`, `useRouter`), loading states, mobile sidebar state                                                                             |
+| `src/components/layout/sidebar.tsx`         | All auth/role checks, `useAuth` hook usage, `useTotalUnread` hook, `useUnreadNotifications` hook, sign-out handler, availability toggle and its API call  |
+| `src/components/layout/header.tsx`          | `useAuth` hook, availability toggle and its `fetch('/api/account/members/...')` call, sign-out, ModeToggle (keep it in settings or header, do not delete) |
+| `src/app/(dashboard)/contacts/page.tsx`     | All `supabase.from(...)` queries, all state management, all toast calls, pagination logic, filter logic, bulk delete logic                                |
+| `src/app/(dashboard)/site-visits/page.tsx`  | All data fetching, status update handlers, all existing props/types                                                                                       |
+| `src/app/(dashboard)/pipelines/**`          | All `@dnd-kit` drag logic, all deal CRUD handlers, all Supabase queries                                                                                   |
+| `src/app/(dashboard)/integrations/page.tsx` | Portal connection logic, all fetch calls                                                                                                                  |
+| `src/app/(dashboard)/dashboard/page.tsx`    | All `loadMetrics`, `loadActivity`, `loadPipelineDonut` calls and their state, `range` selector logic                                                      |
 
 ---
 
@@ -78,6 +81,7 @@ Execute phases in this exact order. After each phase, verify the dev server comp
 **Goal:** Switch light mode to a clean white/blue palette matching the demo.
 
 **Rules:**
+
 - Only edit the `html[data-mode='light']` block — do NOT touch the `:root, html[data-mode='dark']` block.
 - Do NOT rename any existing token names — only change values.
 - Add the new `html[data-theme='blue']` block AFTER all existing theme blocks.
@@ -86,47 +90,49 @@ Execute phases in this exact order. After each phase, verify the dev server comp
 **Changes:**
 
 In `html[data-mode='light']`, update these token values:
+
 ```css
---background: #F9FAFB;
+--background: #f9fafb;
 --foreground: #111827;
---card: #FFFFFF;
---card-2: #F9FAFB;
+--card: #ffffff;
+--card-2: #f9fafb;
 --card-foreground: #111827;
---popover: #FFFFFF;
+--popover: #ffffff;
 --popover-foreground: #111827;
---secondary: #F3F4F6;
---secondary-foreground: #1F2937;
---muted: #F3F4F6;
---muted-foreground: #6B7280;
---accent: #F3F4F6;
---accent-foreground: #1F2937;
---border: #E5E7EB;
---input: #E5E7EB;
---sidebar: #FFFFFF;
+--secondary: #f3f4f6;
+--secondary-foreground: #1f2937;
+--muted: #f3f4f6;
+--muted-foreground: #6b7280;
+--accent: #f3f4f6;
+--accent-foreground: #1f2937;
+--border: #e5e7eb;
+--input: #e5e7eb;
+--sidebar: #ffffff;
 --sidebar-foreground: #111827;
---sidebar-accent: #EFF6FF;
---sidebar-accent-foreground: #1D4ED8;
---sidebar-border: #E5E7EB;
---status-new: #2563EB;
---status-contacted: #7C3AED;
---status-site-visit: #0D9488;
---status-negotiation: #D97706;
---status-closed: #16A34A;
+--sidebar-accent: #eff6ff;
+--sidebar-accent-foreground: #1d4ed8;
+--sidebar-border: #e5e7eb;
+--status-new: #2563eb;
+--status-contacted: #7c3aed;
+--status-site-visit: #0d9488;
+--status-negotiation: #d97706;
+--status-closed: #16a34a;
 ```
 
 Add new blue accent theme block (after all existing accent theme blocks):
+
 ```css
 html[data-theme='blue'] {
-  --primary: #2563EB;
-  --primary-foreground: #FFFFFF;
-  --primary-hover: #1D4ED8;
-  --primary-soft: rgba(37, 99, 235, 0.10);
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --primary-hover: #1d4ed8;
+  --primary-soft: rgba(37, 99, 235, 0.1);
   --primary-soft-2: rgba(37, 99, 235, 0.18);
-  --ring: #2563EB;
-  --chart-1: #2563EB;
-  --sidebar-primary: #2563EB;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-ring: #2563EB;
+  --ring: #2563eb;
+  --chart-1: #2563eb;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #2563eb;
 }
 ```
 
@@ -137,13 +143,15 @@ html[data-theme='blue'] {
 ### PHASE 1b — Default Mode + Accent (`src/app/layout.tsx`)
 
 Find the inline `<script>` that sets `document.documentElement.dataset.mode`. Change the fallback:
+
 ```diff
 - document.documentElement.dataset.mode = saved || 'dark';
 + document.documentElement.dataset.mode = saved || 'light';
 ```
 
 Find the script that sets `dataset.theme` and change its fallback:
-```diff  
+
+```diff
 - document.documentElement.dataset.theme = saved || 'violet';
 + document.documentElement.dataset.theme = saved || 'blue';
 ```
@@ -155,6 +163,7 @@ Find the script that sets `dataset.theme` and change its fallback:
 ### PHASE 1c — Inter Font (`src/app/layout.tsx`)
 
 Import Inter via `next/font/google` and assign it to `--font-sans`. Keep the existing Geist Mono for code:
+
 ```tsx
 import { Inter } from 'next/font/google';
 
@@ -174,6 +183,7 @@ Do NOT remove the existing GeistMono import if it's used elsewhere. Only add Int
 ### PHASE 2 — Announcement Banner
 
 Create `src/components/layout/announcement-banner.tsx`:
+
 - Dismissible gradient blue→purple strip
 - Reads/writes `localStorage` key `'wacrm-banner-v1-dismissed'`
 - Shows: emoji + text + "Start free →" button + X close button
@@ -188,12 +198,14 @@ Wire into `src/app/(dashboard)/layout.tsx` as first child before `<DashboardShel
 ### PHASE 3 — Sidebar Redesign (`src/components/layout/sidebar.tsx`)
 
 **What to change:**
+
 1. Logo area — replace with white panel, square icon + wordmark
 2. Nav item rendering — add `emoji` field to navItems array, update active state classes to `bg-primary/10 text-primary` (active) vs `text-muted-foreground hover:bg-muted` (inactive)
 3. Sidebar width — change to `w-44` (176px)
 4. Footer user chip — compact `Avatar + name + role`
 
 **What NOT to change:**
+
 - The `ROLE_CHIP` object — keep it
 - The `useAuth()` hook call and all destructured values
 - The `useTotalUnread()` hook call
@@ -211,11 +223,13 @@ Wire into `src/app/(dashboard)/layout.tsx` as first child before `<DashboardShel
 ### PHASE 4 — Header Redesign (`src/components/layout/header.tsx`)
 
 **What to change:**
+
 1. Add a global search input in the center of the header (desktop only, `hidden md:flex`)
 2. Restyle the right-side user controls: compact `Avatar + firstName + ChevronDown` chip
 3. Add a notification dot on the bell icon when there are unread notifications
 
 **What NOT to change:**
+
 - The `useAuth()` hook and all its destructured values
 - The availability toggle `Switch` and its `handleAvailabilityChange` function (keep it in the dropdown)
 - The `signOut()` handler
@@ -224,11 +238,13 @@ Wire into `src/app/(dashboard)/layout.tsx` as first child before `<DashboardShel
 
 **New i18n key needed:**
 Add to `messages/en.json` (and es/ko/pt):
+
 ```json
 "Header": {
   "searchPlaceholder": "Search leads, properties..."
 }
 ```
+
 (Check if `Header` namespace already exists in the file — if yes, add the key to the existing object.)
 
 ---
@@ -236,6 +252,7 @@ Add to `messages/en.json` (and es/ko/pt):
 ### PHASE 5 — PageHeader Component
 
 Create `src/components/layout/page-header.tsx`:
+
 ```tsx
 interface PageHeaderProps {
   title: string;
@@ -257,6 +274,7 @@ Source keys to handle (these are the exact values stored in `lead_details.source
 `'99acres'`, `'magicbricks'`, `'HousingCom'`, `'no_broker'`, `'referral'`, `'walk_in'`, `'whatsapp_inbound'`, `'manual'`, `null`
 
 Display labels:
+
 - `99acres` → "99acres" (red)
 - `magicbricks` → "MagicBricks" (orange)
 - `HousingCom` → "Housing.com" (green)
@@ -284,6 +302,7 @@ Pill style, full rounded, Tailwind classes only.
 ### PHASE 8 — Avatar Color Utility
 
 Create `src/lib/avatar-color.ts`:
+
 - `avatarColorForName(name: string): string` — deterministic color from 8-color palette
 - `initialsForName(name: string): string` — up to 2 initials, uppercase
 
@@ -296,6 +315,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 **File:** `src/app/(dashboard)/dashboard/page.tsx`
 
 **What to keep intact (absolutely):**
+
 - All `useState` declarations and their initial values
 - All `useEffect` blocks and their dependency arrays
 - All calls to: `loadMetrics()`, `loadActivity()`, `loadConversationseries()`, `loadPipelineDonut()`, `loadResponseTime()`, `getFollowupsDueCount()`
@@ -305,6 +325,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 - All `setMetrics`, `setActivity`, `setFollowups`, etc. state setters
 
 **What to change (visual only):**
+
 1. Page header → use `PageHeader` component with greeting ("Good morning, {firstName} 👋") and "+ Add Lead" button
 2. Stat cards layout → 4-column grid, emoji icon above number, trend text below label
 3. Recent Leads section → flat list rows with Avatar, name+HOT badge, location, SourceBadge, StatusBadge, action icons
@@ -312,11 +333,13 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 5. Remove charts/graphs if they're not in the demo layout (but keep the data queries — they may be used elsewhere or re-added later)
 
 **Data to use for the new widgets:**
+
 - Recent Leads: fetch from `contacts` joined with `deals` and `lead_details` — reuse the existing Supabase client already in the file
 - Today's Visits: fetch from `site_visits` where `scheduled_at` is today — use existing client
 - Today's Tasks: use the `tasks` table seeded earlier
 
 **New strings needed in `messages/en.json`** (add to `Dashboard.page`):
+
 ```json
 "greeting": "Good morning",
 "greetingEvening": "Good evening",
@@ -336,6 +359,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 **File:** `src/app/(dashboard)/contacts/page.tsx`
 
 **What to keep intact:**
+
 - All Supabase queries (contacts, tags, conversations, profiles joins)
 - Pagination state (`page`, `totalPages`, `totalCount`)
 - Filter state (`searchQuery`, `selectedTags`, `selected`)
@@ -345,6 +369,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 - The `BulkReassignModal`, `ContactForm`, `ImportContactsModal`, `CustomFieldsModal` component usages
 
 **What to change:**
+
 1. Table columns reordered to: `LEAD | SOURCE | LOCATION | BUDGET | STATUS | LAST CONTACT | ACTIONS`
 2. LEAD cell: Avatar circle (use `avatarColorForName`) + name + phone + HOT badge (if `tag=hot-lead`)
 3. SOURCE cell: `<SourceBadge source={contact.lead_details?.source} />`
@@ -366,6 +391,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 **What to keep intact:** All data fetching, status update handlers, form modals, all state.
 
 **What to change:**
+
 1. Page header → `<PageHeader>` with title, subtitle ("N visits scheduled"), and Schedule Visit button
 2. Visit list rows → date block (TODAY/TOMORROW/date + time in colored rounded box) + contact name + property with 📍 icon + status badge + action icons
 3. Visit status badge colors: confirmed=green, pending=amber, no_show=red, rescheduled=blue, completed=gray
@@ -377,12 +403,14 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 **Files:** `src/app/(dashboard)/pipelines/` directory
 
 **What to keep intact:**
+
 - ALL `@dnd-kit` drag-and-drop logic (`DndContext`, `SortableContext`, `useSortable`, `DragOverlay`)
 - All deal CRUD handlers
 - All Supabase queries
 - Column/stage data shape
 
 **What to change (visual only):**
+
 1. Column header: stage name in stage color + count badge in matching color (not just white text)
 2. Deal cards: Avatar circle + name + location + `<SourceBadge>` + budget range
 3. "+ Add Lead" dashed button at bottom of each column
@@ -397,6 +425,7 @@ Pure functions, no side effects, no imports from the rest of the codebase.
 **What to keep intact:** All portal connection fetch logic, connect/disconnect handlers, all API calls.
 
 **What to change:**
+
 1. Add Universal Email Capture card at the top (blue-bordered info card with copy button)
 2. Portal grid cards: portal icon + connected status + name + Manage/Connect CTA
 3. "Coming Soon" state for WhatsApp Business and Instagram portals
@@ -457,22 +486,23 @@ Then manually verify in browser (at `http://localhost:3000`):
 
 ## COMMON MISTAKES TO AVOID
 
-| Mistake | Prevention |
-|---|---|
-| Importing from `@radix-ui/*` | Check `src/components/ui/` for the actual component — it's `@base-ui/react` |
-| Using `className="text-gray-900"` where a token exists | Use `text-foreground` instead |
-| Hardcoding `#FFFFFF` as inline style | Use `bg-card` or `bg-white` Tailwind class |
-| Forgetting `'use client'` on new interactive components | Any component with hooks or event handlers needs it |
-| Breaking the `data-mode` attribute system | Don't add `className="dark"` to html — the existing system uses `data-mode` attribute |
-| Removing the `ModeToggle` component | Keep it accessible somewhere (Settings or header dropdown) |
-| Using `router.push()` for external links | Use `<a href>` or `<Link>` appropriately |
-| Adding `@apply` in CSS | Tailwind v4 in this repo does NOT use `@apply` in the same way — check existing CSS patterns first |
+| Mistake                                                 | Prevention                                                                                         |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Importing from `@radix-ui/*`                            | Check `src/components/ui/` for the actual component — it's `@base-ui/react`                        |
+| Using `className="text-gray-900"` where a token exists  | Use `text-foreground` instead                                                                      |
+| Hardcoding `#FFFFFF` as inline style                    | Use `bg-card` or `bg-white` Tailwind class                                                         |
+| Forgetting `'use client'` on new interactive components | Any component with hooks or event handlers needs it                                                |
+| Breaking the `data-mode` attribute system               | Don't add `className="dark"` to html — the existing system uses `data-mode` attribute              |
+| Removing the `ModeToggle` component                     | Keep it accessible somewhere (Settings or header dropdown)                                         |
+| Using `router.push()` for external links                | Use `<a href>` or `<Link>` appropriately                                                           |
+| Adding `@apply` in CSS                                  | Tailwind v4 in this repo does NOT use `@apply` in the same way — check existing CSS patterns first |
 
 ---
 
 ## DEFINITION OF DONE
 
 A phase is complete only when:
+
 1. The dev server compiles without errors after the change
 2. The affected page renders correctly in the browser
 3. No existing functionality is broken on that page

@@ -104,20 +104,36 @@ export function DealCard({
       <div className="mt-2 flex flex-col gap-1.5">
         <div className="flex items-center gap-2">
           <Avatar className="h-5 w-5 shrink-0">
-            <AvatarFallback className="text-[10px] font-semibold text-white" style={{ background: avatarColorForName(contactLabel) }}>
+            <AvatarFallback
+              className="text-[10px] font-semibold text-white"
+              style={{ background: avatarColorForName(contactLabel) }}
+            >
               {initialsForName(contactLabel)}
             </AvatarFallback>
           </Avatar>
-          <span className="text-foreground font-medium truncate text-xs">
+          <span className="text-foreground truncate text-xs font-medium">
             {contactLabel}
           </span>
         </div>
-        
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {(deal.contact as ExtendedContact)?.lead_details?.[0]?.location_preference && (
-            <span className="truncate">📍 {(deal.contact as ExtendedContact).lead_details?.[0].location_preference}</span>
+
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          {(deal.contact as ExtendedContact)?.lead_details?.[0]
+            ?.location_preference && (
+            <span className="truncate">
+              📍{' '}
+              {
+                (deal.contact as ExtendedContact).lead_details?.[0]
+                  .location_preference
+              }
+            </span>
           )}
-          <SourceBadge source={(deal.contact as ExtendedContact)?.lead_details?.[0]?.source || 'manual'} className="scale-75 origin-left" />
+          <SourceBadge
+            source={
+              (deal.contact as ExtendedContact)?.lead_details?.[0]?.source ||
+              'manual'
+            }
+            className="origin-left scale-75"
+          />
         </div>
       </div>
 

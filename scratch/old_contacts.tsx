@@ -45,7 +45,6 @@ import {
   Upload,
   Download,
   MoreHorizontal,
-  MoreVertical,
   Pencil,
   Trash2,
   Loader2,
@@ -65,58 +64,20 @@ import { useCan } from '@/hooks/use-can';
 import { GatedButton } from '@/components/ui/gated-button';
 import { SlaBadge } from '@/components/ui/sla-badge';
 import { useTranslations } from 'next-intl';
-import { PageHeader } from '@/components/layout/page-header';
-import { SourceBadge } from '@/components/ui/source-badge';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
-import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageCircle, Phone } from 'lucide-react';
-import Link from 'next/link';
 
 const PAGE_SIZE = 25;
-
-function formatRelativeDate(isoString: string | null | undefined): string {
-  if (!isoString) return '-';
-  const date = new Date(isoString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 86400 && now.getDate() === date.getDate()) {
-    return 'Today';
-  }
-
-  const diffInDays = Math.floor(diffInSeconds / 86400);
-  if (diffInDays === 1) return '1d ago';
-  if (diffInDays < 30) return `${diffInDays}d ago`;
-
-  const diffInMonths = Math.floor(diffInDays / 30);
-  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
-
-  return `${Math.floor(diffInDays / 365)}y ago`;
-}
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
   first_unanswered_at?: string | null;
   assignee?: { id: string; full_name: string } | null;
-  lead_details?: {
-    source?: string;
-    location_preference?: string;
-    budget_max?: number;
-  }[];
-  deals?: {
-    pipeline_stages?: {
-      name?: string;
-    };
-  }[];
 }
 
 export default function ContactsPage() {
   const t = useTranslations('Contacts.page');
   const router = useRouter();
   const supabase = createClient();
-  const { accountRole, user, defaultCurrency } = useAuth();
+  const { accountRole, user } = useAuth();
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
 
@@ -208,8 +169,8 @@ export default function ContactsPage() {
         .from('contacts')
         .select(
           accountRole === 'agent'
-            ? '*, conversations!inner(assigned_agent_id), lead_details(*), deals(status, pipeline_stages(name))'
-            : '*, lead_details(*), deals(status, pipeline_stages(name))',
+            ? '*, conversations!inner(assigned_agent_id)'
+            : '*',
           { count: 'exact' }
         )
         .order('created_at', { ascending: false })
@@ -447,104 +408,73 @@ export default function ContactsPage() {
     <PullToRefresh>
       <div className="space-y-6">
         {/* Header */}
-        <PageHeader
-          title="Leads"
-          subtitle={`${totalCount} total leads in your pipeline`}
-          action={
-            <div className="flex items-center gap-2">
-              {/* Desktop Actions */}
-              {canEditSettings && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    window.location.href = '/api/contacts/export';
-                  }}
-                  className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
-                >
-                  <Download className="mr-1 size-4" />
-                  {t('exportBtn') || 'Export'}
-                </Button>
-              )}
-              {canEditSettings && (
-                <Button
-                  variant="outline"
-                  onClick={() => setCustomFieldsOpen(true)}
-                  className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
-                >
-                  <SlidersHorizontal className="mr-1 size-4" />
-                  {t('customFieldsBtn')}
-                </Button>
-              )}
-              <GatedButton
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {totalCount > 0
+                ? t('subtitle', { count: totalCount })
+                : t('subtitleZero')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {canEditSettings && (
+              <Button
                 variant="outline"
-                canAct={canEditSettings}
-                gateReason="add or import contacts"
-                onClick={() => router.push('/contacts/import')}
-                className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
+                onClick={() => {
+                  window.location.href = '/api/contacts/export';
+                }}
+                className="border-border text-muted-foreground hover:bg-muted"
               >
-                <Upload className="mr-1 size-4" />
-                {t('importBtn')}
-              </GatedButton>
-
-              {/* Mobile Actions Dropdown */}
-              {canEditSettings && (
-                <div className="flex sm:hidden">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="border-border text-muted-foreground hover:bg-muted focus-visible:ring-ring flex h-9 w-9 items-center justify-center rounded-full border bg-transparent shadow-sm focus-visible:ring-1 focus-visible:outline-none">
-                      <MoreVertical className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem
-                        onClick={() => {
-                          window.location.href = '/api/contacts/export';
-                        }}
-                      >
-                        <Download className="mr-2 size-4" />
-                        {t('exportBtn') || 'Export'}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setCustomFieldsOpen(true)}
-                      >
-                        <SlidersHorizontal className="mr-2 size-4" />
-                        {t('customFieldsBtn')}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.push('/contacts/import')}
-                      >
-                        <Upload className="mr-2 size-4" />
-                        {t('importBtn')}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-
-              <GatedButton
-                canAct={canEdit}
-                gateReason="add or import contacts"
-                onClick={openAddForm}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-2 text-sm font-medium shadow-sm"
+                <Download className="size-4" />
+                {t('exportBtn') || 'Export CSV'}
+              </Button>
+            )}
+            {canEditSettings && (
+              <Button
+                variant="outline"
+                onClick={() => setCustomFieldsOpen(true)}
+                className="border-border text-muted-foreground hover:bg-muted"
               >
-                <Plus className="size-4 sm:mr-1" />
-                <span className="hidden sm:inline">{t('addContactBtn')}</span>
-              </GatedButton>
-            </div>
-          }
-        />
+                <SlidersHorizontal className="size-4" />
+                {t('customFieldsBtn')}
+              </Button>
+            )}
+            <GatedButton
+              variant="outline"
+              canAct={canEditSettings}
+              gateReason="add or import contacts"
+              onClick={() => router.push('/contacts/import')}
+              className="border-border text-muted-foreground hover:bg-muted"
+            >
+              <Upload className="size-4" />
+              {t('importBtn')}
+            </GatedButton>
+            <GatedButton
+              canAct={canEdit}
+              gateReason="add or import contacts"
+              onClick={openAddForm}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <Plus className="size-4" />
+              {t('addContactBtn')}
+            </GatedButton>
+          </div>
+        </div>
 
         {/* Search + tag filter */}
         <div className="bg-background/95 sticky top-0 z-10 -mx-4 space-y-2 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="relative max-w-sm flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="relative w-full max-w-sm">
+              <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
               <Input
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                placeholder="Search leads..."
-                className="border-border bg-card placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+                placeholder={t('searchPlaceholder')}
+                className="bg-card border-border text-foreground placeholder:text-muted-foreground pl-8"
               />
             </div>
 
@@ -832,39 +762,31 @@ export default function ContactsPage() {
                     aria-label={t('selectAllOnPage')}
                   />
                 </TableHead>
-                <TableHead className="text-muted-foreground font-medium">
-                  LEAD
+                <TableHead className="text-muted-foreground">
+                  {t('tableColumns.name')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  SOURCE
+                <TableHead className="text-muted-foreground">
+                  {t('tableColumns.phone')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  LOCATION
+                <TableHead className="text-muted-foreground hidden md:table-cell">
+                  {t('tableColumns.email')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  BUDGET
+                <TableHead className="text-muted-foreground hidden lg:table-cell">
+                  {t('tableColumns.company')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  STATUS
-                </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
+                <TableHead className="text-muted-foreground hidden md:table-cell">
                   SLA
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  ASSIGNEE
+                <TableHead className="text-muted-foreground hidden md:table-cell">
+                  Assigned To
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  TAGS
+                <TableHead className="text-muted-foreground hidden md:table-cell">
+                  {t('tableColumns.tags')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  LAST CONTACT
+                <TableHead className="text-muted-foreground hidden lg:table-cell">
+                  {t('tableColumns.createdAt')}
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  CREATED
-                </TableHead>
-                <TableHead className="text-muted-foreground w-[100px] font-medium">
-                  ACTIONS
-                </TableHead>
+                <TableHead className="text-muted-foreground w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -883,33 +805,24 @@ export default function ContactsPage() {
                     <TableCell className="hidden xl:table-cell">
                       <Skeleton className="h-5 w-[100px]" />
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <Skeleton className="h-5 w-[100px]" />
+                    <TableCell className="hidden 2xl:table-cell">
+                      <Skeleton className="h-5 w-[180px]" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
+                    <TableCell className="hidden xl:table-cell">
                       <Skeleton className="h-5 w-16" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-20" />
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-[120px]" />
-                    </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <Skeleton className="h-4 w-[100px]" />
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-[100px]" />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-[100px]" />
+                      <Skeleton className="h-4 w-[120px]" />
                     </TableCell>
                     <TableCell />
                   </TableRow>
                 ))
               ) : contacts.length === 0 ? (
                 <TableRow className="border-border">
-                  <TableCell colSpan={12} className="py-12 text-center">
+                  <TableCell colSpan={10} className="py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="text-muted-foreground size-8" />
                       <p className="text-muted-foreground text-sm">
@@ -947,73 +860,31 @@ export default function ContactsPage() {
                         aria-label={`Select ${contact.name || contact.phone}`}
                       />
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 shrink-0">
-                          <AvatarFallback
-                            className="text-sm font-medium text-white"
-                            style={{
-                              background: avatarColorForName(contact.name),
-                            }}
-                          >
-                            {initialsForName(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-foreground truncate text-sm font-medium">
-                              {contact.name || 'Unknown'}
-                            </span>
-                            {contact.tags?.some(
-                              (t) => t.name === 'hot-lead'
-                            ) && (
-                              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 uppercase">
-                                HOT
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {contact.phone}
-                          </p>
-                        </div>
-                      </div>
+                    <TableCell className="text-foreground font-medium">
+                      {contact.name || (
+                        <span className="text-muted-foreground italic">
+                          {t('unnamed')}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground font-mono text-xs">
+                      {contact.phone}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden text-sm md:table-cell">
+                      {contact.email || (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
+                      {contact.company || (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <SourceBadge
-                        source={contact.lead_details?.[0]?.source || 'manual'}
-                      />
-                    </TableCell>
-                    <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {contact.lead_details?.[0]?.location_preference || '-'}
-                    </TableCell>
-                    <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {contact.lead_details?.[0]?.budget_max
-                        ? defaultCurrency === 'INR'
-                          ? formatINR(contact.lead_details[0].budget_max)
-                          : formatCurrency(
-                              contact.lead_details[0].budget_max,
-                              defaultCurrency
-                            )
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <StatusBadge
-                        status={
-                          contact.deals?.[0]?.pipeline_stages?.name || 'New'
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
-                      {/* Using updated_at for time ago fallback */}
-                      {formatRelativeDate(contact.updated_at)}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {contact.first_unanswered_at ? (
+                      {contact.first_unanswered_at && (
                         <SlaBadge
                           firstUnansweredAt={contact.first_unanswered_at}
                         />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
@@ -1022,7 +893,7 @@ export default function ContactsPage() {
                           {contact.assignee.full_name}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
+                        <span className="text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
@@ -1063,39 +934,46 @@ export default function ContactsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1.5">
-                        <Link
-                          href={`/inbox?contact=${contact.id}`}
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          onClick={(e) => e.stopPropagation()}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              className="text-muted-foreground hover:text-foreground"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          }
                         >
-                          <MessageCircle className="size-4" />
-                        </Link>
-                        <button
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          onClick={(e) => e.stopPropagation()}
+                          <MoreHorizontal className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="bg-popover border-border"
                         >
-                          <Phone className="size-4" />
-                        </button>
-                        <button
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditForm(contact);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          className="hover:bg-muted/50 text-destructive/70 hover:text-destructive rounded-lg p-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmDelete(contact);
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </div>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditForm(contact);
+                            }}
+                            className="text-popover-foreground focus:bg-muted focus:text-foreground"
+                          >
+                            <Pencil className="size-4" />
+                            {t('editAction')}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="bg-border" />
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmDelete(contact);
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                            {t('deleteAction')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))

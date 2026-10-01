@@ -60,7 +60,7 @@ export function QuickActions() {
   const hasCostSheet = !!account?.cost_sheet_template_id;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
       {ACTIONS.map((a) => {
         const Icon = a.icon;
         return (
@@ -89,7 +89,7 @@ export function QuickActions() {
               if (hasCostSheet) setCostSheetOpen(true);
             }}
             disabled={!hasCostSheet}
-            className={`group border-border flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
+            className={`group border-border col-span-2 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors sm:col-span-1 ${
               hasCostSheet
                 ? 'bg-card hover:border-border hover:bg-muted/60'
                 : 'bg-muted/30 cursor-not-allowed opacity-50'

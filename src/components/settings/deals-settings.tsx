@@ -40,7 +40,9 @@ export function DealsSettings() {
 
   const [selected, setSelected] = useState(defaultCurrency);
   const [brokeragePct, setBrokeragePct] = useState<number | ''>('');
-  const [initialBrokeragePct, setInitialBrokeragePct] = useState<number | ''>('');
+  const [initialBrokeragePct, setInitialBrokeragePct] = useState<number | ''>(
+    ''
+  );
   const [saving, setSaving] = useState(false);
   const t = useTranslations('Settings.deals');
 
@@ -58,7 +60,8 @@ export function DealsSettings() {
         .select('settings')
         .eq('id', accountId)
         .single();
-      const pct = (data?.settings as Record<string, unknown> | null)?.brokerage_pct;
+      const pct = (data?.settings as Record<string, unknown> | null)
+        ?.brokerage_pct;
       const val = typeof pct === 'number' ? pct : '';
       setBrokeragePct(val);
       setInitialBrokeragePct(val);
@@ -66,19 +69,20 @@ export function DealsSettings() {
     fetchBrokerage();
   }, [accountId, supabase]);
 
-  const dirty = selected !== defaultCurrency || brokeragePct !== initialBrokeragePct;
+  const dirty =
+    selected !== defaultCurrency || brokeragePct !== initialBrokeragePct;
 
   async function handleSave() {
     if (!accountId || !dirty) return;
     setSaving(true);
-    
+
     // Fetch existing settings to merge safely
     const { data: acc } = await supabase
       .from('accounts')
       .select('settings')
       .eq('id', accountId)
       .single();
-    
+
     const settings = {
       ...(acc?.settings as Record<string, unknown>),
       brokerage_pct: brokeragePct === '' ? null : Number(brokeragePct),
@@ -86,9 +90,9 @@ export function DealsSettings() {
 
     const { error } = await supabase
       .from('accounts')
-      .update({ 
+      .update({
         default_currency: selected,
-        settings 
+        settings,
       })
       .eq('id', accountId);
     if (error) {
@@ -151,7 +155,11 @@ export function DealsSettings() {
               max={100}
               step={0.1}
               value={brokeragePct}
-              onChange={(e) => setBrokeragePct(e.target.value === '' ? '' : Number(e.target.value))}
+              onChange={(e) =>
+                setBrokeragePct(
+                  e.target.value === '' ? '' : Number(e.target.value)
+                )
+              }
               disabled={!canEditSettings || profileLoading}
               placeholder="e.g. 2"
               className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60"

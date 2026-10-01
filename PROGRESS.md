@@ -49,6 +49,7 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [x] Section D6 — Lead source column (105_lead_source.sql)
 
 ## Second Audit Fixes (FIX_PLAN_2.md)
+
 - [x] FIX 1: P0: Billing Webhook subscription removed
 - [x] FIX 2: P1: CRON_SECRET Missing
 - [x] FIX 3: P1: Inbound Email Parser Does Not Write lead_details.source

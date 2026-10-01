@@ -73,7 +73,10 @@ export async function POST(request: Request) {
         await supabase.from('assignment_history').insert(historyPayload);
       }
 
-      return NextResponse.json({ success: true, updated: historyPayload.length });
+      return NextResponse.json({
+        success: true,
+        updated: historyPayload.length,
+      });
     }
 
     // ----------------------------------------------------------------

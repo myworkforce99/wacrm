@@ -1,4 +1,5 @@
 # FIX_PLAN_2.md — Second Audit Remediation
+
 **Applies to:** `wacrm` real estate CRM
 **Audit source:** `second_audit_report.md` (2026-10-01)
 **Prerequisite:** `FIX_PLAN.md` (6 prior fixes) must already be applied.
@@ -25,6 +26,7 @@
 **Runtime impact:** Without this fix, subscription renewals never update `current_period_end`, and payment failures never set `subscription_status` to `past_due`.
 
 ### Reconnaissance
+
 ```bash
 npm run typecheck 2>&1 | grep "billing/webhook"
 # Expected: 4 errors on lines 114, 115, 146, 147
@@ -35,31 +37,31 @@ npm run typecheck 2>&1 | grep "billing/webhook"
 Find and replace inside `case 'invoice.payment_succeeded':` — only the `const invoice` + `const subscriptionId` block:
 
 REPLACE:
+
 ```typescript
-        const invoice = event.data.object as Stripe.Invoice;
-        // In Stripe webhook payloads, invoice.subscription is always a
-        // string ID or null — the expanded object form only appears in
-        // API responses when explicitly requested with expand=[]. Cast
-        // to string directly; the @ts-ignore was masking correct types.
-        const subscriptionId =
-          typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : null;
+const invoice = event.data.object as Stripe.Invoice;
+// In Stripe webhook payloads, invoice.subscription is always a
+// string ID or null — the expanded object form only appears in
+// API responses when explicitly requested with expand=[]. Cast
+// to string directly; the @ts-ignore was masking correct types.
+const subscriptionId =
+  typeof invoice.subscription === 'string' ? invoice.subscription : null;
 ```
 
 WITH:
+
 ```typescript
-        const invoice = event.data.object as Stripe.Invoice;
-        // In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
-        // The subscription reference now lives at:
-        //   invoice.parent.subscription_details.subscription
-        // This is the same change applied to checkout.session.completed in
-        // FIX_PLAN Fix 3, now extended to the invoice event cases.
-        const subRef = invoice.parent?.subscription_details?.subscription;
-        const subscriptionId =
-          typeof subRef === 'string'
-            ? subRef
-            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
+const invoice = event.data.object as Stripe.Invoice;
+// In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
+// The subscription reference now lives at:
+//   invoice.parent.subscription_details.subscription
+// This is the same change applied to checkout.session.completed in
+// FIX_PLAN Fix 3, now extended to the invoice event cases.
+const subRef = invoice.parent?.subscription_details?.subscription;
+const subscriptionId =
+  typeof subRef === 'string'
+    ? subRef
+    : ((subRef as Stripe.Subscription | undefined)?.id ?? null);
 ```
 
 ### Fix — `invoice.payment_failed` case
@@ -67,29 +69,30 @@ WITH:
 Find and replace inside `case 'invoice.payment_failed':` — only the `const invoice` + `const subscriptionId` block:
 
 REPLACE:
+
 ```typescript
-        const invoice = event.data.object as Stripe.Invoice;
-        // Same as payment_succeeded: subscription is a string ID in webhook
-        // payloads, never an expanded object.
-        const subscriptionId =
-          typeof invoice.subscription === 'string'
-            ? invoice.subscription
-            : null;
+const invoice = event.data.object as Stripe.Invoice;
+// Same as payment_succeeded: subscription is a string ID in webhook
+// payloads, never an expanded object.
+const subscriptionId =
+  typeof invoice.subscription === 'string' ? invoice.subscription : null;
 ```
 
 WITH:
+
 ```typescript
-        const invoice = event.data.object as Stripe.Invoice;
-        // In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
-        // Use parent.subscription_details.subscription instead.
-        const subRef = invoice.parent?.subscription_details?.subscription;
-        const subscriptionId =
-          typeof subRef === 'string'
-            ? subRef
-            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
+const invoice = event.data.object as Stripe.Invoice;
+// In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
+// Use parent.subscription_details.subscription instead.
+const subRef = invoice.parent?.subscription_details?.subscription;
+const subscriptionId =
+  typeof subRef === 'string'
+    ? subRef
+    : ((subRef as Stripe.Subscription | undefined)?.id ?? null);
 ```
 
 ### Verify
+
 ```bash
 npm run typecheck 2>&1 | grep "billing/webhook"
 # Expected: NO output (zero errors)
@@ -106,6 +109,7 @@ npm run typecheck
 **Why:** `/api/cron/stale-leads` and `/api/cron/weekly-report` both gate on `process.env.CRON_SECRET`. The env template only has `AUTOMATION_CRON_SECRET` (commented out). `CRON_SECRET` is entirely absent, so both crons will always return 401 in production if Vercel dashboard is not set up with prior knowledge.
 
 ### Reconnaissance
+
 ```bash
 grep "CRON_SECRET" .env.local.example
 # Expected: NO output (confirming it's missing)
@@ -126,6 +130,7 @@ CRON_SECRET=generate-a-long-random-string
 ```
 
 ### Verify
+
 ```bash
 grep "CRON_SECRET" .env.local.example
 # Expected: CRON_SECRET=generate-a-long-random-string
@@ -140,6 +145,7 @@ grep "CRON_SECRET" .env.local.example
 **Why:** The email webhook correctly parses `lead.source` (portal name), tags the contact, and marks `portal_connections.test_lead_received`. But it never upserts `lead_details.source`. Portal-imported contacts have `source = null` in `lead_details`, breaking source badges (C2, C4), routing rules on `source` (S3), and broadcast segmenting (J4).
 
 ### Reconnaissance
+
 ```bash
 grep -n "lead_details" src/app/api/webhooks/inbound-email/route.ts
 # Expected: NO output (confirming the upsert is absent)
@@ -150,27 +156,28 @@ grep -n "lead_details" src/app/api/webhooks/inbound-email/route.ts
 Find the `if (lead.source) {` block. Inside it, BEFORE the `if (created) { ... } else { ... }` tag-setting branch, insert:
 
 ```typescript
-          // Section D6: Persist source into lead_details so routing rules,
-          // source badges, and broadcast lead-segment targeting all work.
-          // upsert with ignoreDuplicates=false ensures existing contacts
-          // also get their source updated if re-imported from a portal.
-          const { error: ldErr } = await db
-            .from('lead_details')
-            .upsert(
-              { contact_id: id, source: lead.source },
-              { onConflict: 'contact_id', ignoreDuplicates: false }
-            );
-          if (ldErr) {
-            console.warn(
-              '[inbound-email] Could not write lead_details.source:',
-              ldErr.message
-            );
-          }
+// Section D6: Persist source into lead_details so routing rules,
+// source badges, and broadcast lead-segment targeting all work.
+// upsert with ignoreDuplicates=false ensures existing contacts
+// also get their source updated if re-imported from a portal.
+const { error: ldErr } = await db
+  .from('lead_details')
+  .upsert(
+    { contact_id: id, source: lead.source },
+    { onConflict: 'contact_id', ignoreDuplicates: false }
+  );
+if (ldErr) {
+  console.warn(
+    '[inbound-email] Could not write lead_details.source:',
+    ldErr.message
+  );
+}
 ```
 
 The insertion point is immediately after the `findOrCreateContact()` call resolves (after the closing `}` of that `await`) and immediately before the `if (created) {` tag block.
 
 ### Verify
+
 ```bash
 grep -n "lead_details\|ldErr" src/app/api/webhooks/inbound-email/route.ts
 # Expected: shows the new upsert block
@@ -189,6 +196,7 @@ npm run typecheck
 **Note:** Notification `type: 'conversation_assigned'` is the ONLY valid value in the CHECK constraint (`027_notifications.sql`), so the notification type is NOT changed.
 
 ### Reconnaissance
+
 ```bash
 grep -n "stage.name\|in.*stage" src/app/api/cron/stale-leads/route.ts
 # Expected: shows the broken .in('stage.name', ...) filter
@@ -201,123 +209,127 @@ grep -n "CHECK.*type\|type.*CHECK" supabase/migrations/027_notifications.sql
 Replace everything from `const db = supabaseAdmin();` to the end of the function with:
 
 ```typescript
-  const db = supabaseAdmin();
-  let processed = 0;
-  let stale = 0;
+const db = supabaseAdmin();
+let processed = 0;
+let stale = 0;
 
-  try {
-    const fortyEightHoursAgo = new Date(
-      Date.now() - 48 * 60 * 60 * 1000
-    ).toISOString();
+try {
+  const fortyEightHoursAgo = new Date(
+    Date.now() - 48 * 60 * 60 * 1000
+  ).toISOString();
 
-    // Step 1: Resolve stage IDs for 'New' and 'Contacted'.
-    // Cannot use .in('stage.name', ...) on a joined column — PostgREST
-    // ignores that filter silently (audit QUALITY-01). Filter on the
-    // scalar stage_id FK instead.
-    const { data: earlyStages, error: stageErr } = await db
-      .from('pipeline_stages')
-      .select('id')
-      .in('name', ['New', 'Contacted']);
+  // Step 1: Resolve stage IDs for 'New' and 'Contacted'.
+  // Cannot use .in('stage.name', ...) on a joined column — PostgREST
+  // ignores that filter silently (audit QUALITY-01). Filter on the
+  // scalar stage_id FK instead.
+  const { data: earlyStages, error: stageErr } = await db
+    .from('pipeline_stages')
+    .select('id')
+    .in('name', ['New', 'Contacted']);
 
-    if (stageErr) {
-      console.error('[cron/stale-leads] Failed to fetch stage ids', stageErr);
-      return NextResponse.json({ error: stageErr.message }, { status: 500 });
-    }
+  if (stageErr) {
+    console.error('[cron/stale-leads] Failed to fetch stage ids', stageErr);
+    return NextResponse.json({ error: stageErr.message }, { status: 500 });
+  }
 
-    const earlyStageIds = (earlyStages || []).map((s: { id: string }) => s.id);
-    if (earlyStageIds.length === 0) {
-      return NextResponse.json({ processed: 0, stale: 0 });
-    }
+  const earlyStageIds = (earlyStages || []).map((s: { id: string }) => s.id);
+  if (earlyStageIds.length === 0) {
+    return NextResponse.json({ processed: 0, stale: 0 });
+  }
 
-    // Step 2: Fetch deals in early stages not updated in 48h.
-    const { data: staleDeals, error: dealsErr } = await db
-      .from('deals')
-      .select(
-        'id, title, account_id, contact_id, stage_id, contact:contacts(id, name, conversations!inner(assigned_agent_id))'
-      )
-      .lt('updated_at', fortyEightHoursAgo)
-      .in('stage_id', earlyStageIds);
+  // Step 2: Fetch deals in early stages not updated in 48h.
+  const { data: staleDeals, error: dealsErr } = await db
+    .from('deals')
+    .select(
+      'id, title, account_id, contact_id, stage_id, contact:contacts(id, name, conversations!inner(assigned_agent_id))'
+    )
+    .lt('updated_at', fortyEightHoursAgo)
+    .in('stage_id', earlyStageIds);
 
-    if (dealsErr) {
-      console.error('[cron/stale-leads] Failed to fetch deals', dealsErr);
-      return NextResponse.json({ error: dealsErr.message }, { status: 500 });
-    }
+  if (dealsErr) {
+    console.error('[cron/stale-leads] Failed to fetch deals', dealsErr);
+    return NextResponse.json({ error: dealsErr.message }, { status: 500 });
+  }
 
-    if (!staleDeals || staleDeals.length === 0) {
-      return NextResponse.json({ processed: 0, stale: 0 });
-    }
+  if (!staleDeals || staleDeals.length === 0) {
+    return NextResponse.json({ processed: 0, stale: 0 });
+  }
 
-    processed = staleDeals.length;
+  processed = staleDeals.length;
 
-    for (const deal of staleDeals) {
-      const conversations = Array.isArray(deal.contact?.conversations)
-        ? deal.contact?.conversations
-        : [deal.contact?.conversations];
-      const conversation = conversations.find(
-        (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
-      );
+  for (const deal of staleDeals) {
+    const conversations = Array.isArray(deal.contact?.conversations)
+      ? deal.contact?.conversations
+      : [deal.contact?.conversations];
+    const conversation = conversations.find(
+      (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
+    );
 
-      if (conversation?.assigned_agent_id) {
-        stale++;
-        const agentId = conversation.assigned_agent_id;
-        const contactName = deal.contact?.name || 'Unknown Contact';
+    if (conversation?.assigned_agent_id) {
+      stale++;
+      const agentId = conversation.assigned_agent_id;
+      const contactName = deal.contact?.name || 'Unknown Contact';
 
-        // (a) Create a follow-up task.
-        const { error: taskErr } = await db.from('tasks').insert({
-          account_id: deal.account_id,
-          contact_id: deal.contact_id,
-          title: `Follow up: ${contactName} — no activity for 2+ days`,
-          due_at: new Date().toISOString(),
-          assigned_to: agentId,
-          created_by: agentId,
-        });
-        if (taskErr) {
-          console.error('[cron/stale-leads] task insert failed:', taskErr.message);
-        }
+      // (a) Create a follow-up task.
+      const { error: taskErr } = await db.from('tasks').insert({
+        account_id: deal.account_id,
+        contact_id: deal.contact_id,
+        title: `Follow up: ${contactName} — no activity for 2+ days`,
+        due_at: new Date().toISOString(),
+        assigned_to: agentId,
+        created_by: agentId,
+      });
+      if (taskErr) {
+        console.error(
+          '[cron/stale-leads] task insert failed:',
+          taskErr.message
+        );
+      }
 
-        // (b) Notify the assigned agent.
-        await db.from('notifications').insert({
-          account_id: deal.account_id,
-          user_id: agentId,
-          type: 'conversation_assigned',
-          contact_id: deal.contact_id,
-          title: `Follow up: ${contactName} — no activity for 2+ days`,
-          body: `Deal: ${deal.title}`,
-        });
+      // (b) Notify the assigned agent.
+      await db.from('notifications').insert({
+        account_id: deal.account_id,
+        user_id: agentId,
+        type: 'conversation_assigned',
+        contact_id: deal.contact_id,
+        title: `Follow up: ${contactName} — no activity for 2+ days`,
+        body: `Deal: ${deal.title}`,
+      });
 
-        // (c) Notify admins (deduplicated — skip if admin is the agent).
-        const { data: admins } = await db
-          .from('profiles')
-          .select('user_id')
-          .eq('account_id', deal.account_id)
-          .eq('account_role', 'admin');
+      // (c) Notify admins (deduplicated — skip if admin is the agent).
+      const { data: admins } = await db
+        .from('profiles')
+        .select('user_id')
+        .eq('account_id', deal.account_id)
+        .eq('account_role', 'admin');
 
-        if (admins) {
-          const adminNotifs = admins
-            .filter((a: { user_id: string }) => a.user_id !== agentId)
-            .map((a: { user_id: string }) => ({
-              account_id: deal.account_id,
-              user_id: a.user_id,
-              type: 'conversation_assigned' as const,
-              contact_id: deal.contact_id,
-              title: `Stale Lead Alert: ${contactName}`,
-              body: `No activity for 2+ days. Deal: ${deal.title}`,
-            }));
-          if (adminNotifs.length > 0) {
-            await db.from('notifications').insert(adminNotifs);
-          }
+      if (admins) {
+        const adminNotifs = admins
+          .filter((a: { user_id: string }) => a.user_id !== agentId)
+          .map((a: { user_id: string }) => ({
+            account_id: deal.account_id,
+            user_id: a.user_id,
+            type: 'conversation_assigned' as const,
+            contact_id: deal.contact_id,
+            title: `Stale Lead Alert: ${contactName}`,
+            body: `No activity for 2+ days. Deal: ${deal.title}`,
+          }));
+        if (adminNotifs.length > 0) {
+          await db.from('notifications').insert(adminNotifs);
         }
       }
     }
-
-    return NextResponse.json({ processed, stale });
-  } catch (error) {
-    console.error('[cron/stale-leads] Error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
+
+  return NextResponse.json({ processed, stale });
+} catch (error) {
+  console.error('[cron/stale-leads] Error:', error);
+  return NextResponse.json({ error: String(error) }, { status: 500 });
+}
 ```
 
 ### Verify
+
 ```bash
 grep -n "stage.name\|in.*stage\.name" src/app/api/cron/stale-leads/route.ts
 # Expected: NO output (broken filter gone)
@@ -415,7 +427,10 @@ export async function POST(request: Request) {
         await supabase.from('assignment_history').insert(historyPayload);
       }
 
-      return NextResponse.json({ success: true, updated: historyPayload.length });
+      return NextResponse.json({
+        success: true,
+        updated: historyPayload.length,
+      });
     }
 
     // ----------------------------------------------------------------
@@ -489,6 +504,7 @@ export async function POST(request: Request) {
 ```
 
 ### Verify
+
 ```bash
 npm run typecheck
 # Must exit 0
@@ -505,6 +521,7 @@ grep -n "close\|tag_ids\|validActions" src/app/api/contacts/bulk/route.ts
 **Why:** `accounts.preferred_language` column exists. Hinglish templates are seeded. But the engine never reads the account's language preference. All automations always fire in English. Section R6 requires the engine to prefer `[HI] <template_name>` when `preferred_language` is `'hi'` or `'hi-en'`.
 
 ### Reconnaissance
+
 ```bash
 grep -n "send_template\|cfg\.template_name\|engineSendTemplate" src/lib/automations/engine.ts | head -20
 # Note the line numbers of the send_template case (~line 425)
@@ -566,36 +583,39 @@ async function resolveLocalizedTemplateName(
 ### Fix — Step B: Patch the `send_template` case
 
 Inside the `send_template` case, find:
+
 ```typescript
-      if (!cfg.template_name)
-        throw new Error('send_template needs template_name');
-      const conversationId = await resolveConversationId(args);
+if (!cfg.template_name) throw new Error('send_template needs template_name');
+const conversationId = await resolveConversationId(args);
 ```
 
 Replace with:
+
 ```typescript
-      if (!cfg.template_name)
-        throw new Error('send_template needs template_name');
-      // Section R6: swap to [HI] sibling if account prefers Hindi/Hinglish.
-      const resolvedTemplateName = await resolveLocalizedTemplateName(
-        db,
-        args.automation.account_id,
-        cfg.template_name
-      );
-      const conversationId = await resolveConversationId(args);
+if (!cfg.template_name) throw new Error('send_template needs template_name');
+// Section R6: swap to [HI] sibling if account prefers Hindi/Hinglish.
+const resolvedTemplateName = await resolveLocalizedTemplateName(
+  db,
+  args.automation.account_id,
+  cfg.template_name
+);
+const conversationId = await resolveConversationId(args);
 ```
 
 Then find the `engineSendTemplate` call:
+
 ```typescript
         templateName: cfg.template_name,
 ```
 
 Replace with:
+
 ```typescript
         templateName: resolvedTemplateName,
 ```
 
 ### Verify
+
 ```bash
 grep -n "resolveLocalizedTemplateName\|preferred_language\|\[HI\]" src/lib/automations/engine.ts
 # Expected: shows helper definition and two call-site lines
@@ -610,6 +630,7 @@ npm run test
 ## FIX 7 — MISSING-01: EMI Calculator Component
 
 **Files:**
+
 - `src/components/properties/emi-calculator.tsx` — CREATE
 - `src/app/(dashboard)/properties/[id]/page.tsx` — MODIFY
 
@@ -759,19 +780,24 @@ export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) 
 Read `src/app/(dashboard)/properties/[id]/page.tsx` in full first. Then:
 
 1. Add import at top of file:
+
 ```typescript
 import { EmiCalculator } from '@/components/properties/emi-calculator';
 ```
 
 2. Find the main property detail grid/section and append the EMI calculator after the last detail card:
+
 ```tsx
-        {/* Section R7: EMI Calculator */}
-        <div className="mt-6">
-          <EmiCalculator propertyPrice={property.price ?? null} />
-        </div>
+{
+  /* Section R7: EMI Calculator */
+}
+<div className="mt-6">
+  <EmiCalculator propertyPrice={property.price ?? null} />
+</div>;
 ```
 
 ### Verify
+
 ```bash
 ls src/components/properties/emi-calculator.tsx
 # Must exist
@@ -786,6 +812,7 @@ npm run typecheck
 ## FIX 8 — MISSING-02: Brokerage Badge on Deal Cards
 
 **Files:**
+
 - `src/components/pipelines/brokerage-badge.tsx` — CREATE
 - `src/components/pipelines/deal-card.tsx` — MODIFY
 - `src/components/pipelines/pipeline-board.tsx` — MODIFY (pass prop down)
@@ -832,6 +859,7 @@ export function BrokerageBadge({
 **Read the file in full first.** Then:
 
 1. Add import:
+
 ```typescript
 import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
 ```
@@ -839,6 +867,7 @@ import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
 2. Add `brokeragePct?: number | null` to the component's props interface.
 
 3. In the JSX section where `deal.value` is displayed (find the `formatINR(deal.value)` block), add the badge immediately below:
+
 ```tsx
 <BrokerageBadge dealValue={deal.value} brokeragePct={brokeragePct} />
 ```
@@ -848,6 +877,7 @@ import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
 **Read the file in full first.** Then:
 
 1. Fetch `settings` from the account (check if there is an existing account query; if not, add):
+
 ```typescript
 const { data: accountRow } = await supabase
   .from('accounts')
@@ -857,8 +887,7 @@ const { data: accountRow } = await supabase
 
 const brokeragePct =
   ((accountRow?.settings as Record<string, unknown> | null)?.brokerage_pct as
-    | number
-    | null) ?? null;
+    number | null) ?? null;
 ```
 
 2. Pass `brokeragePct={brokeragePct}` into each `<DealCard>` render call.
@@ -884,6 +913,7 @@ await fetch('/api/account', {
 ```
 
 JSX input:
+
 ```tsx
 <div className="space-y-2">
   <label className="text-sm font-medium" htmlFor="brokerage-pct">
@@ -911,6 +941,7 @@ JSX input:
 > **Agent note on PATCH /api/account:** Verify that `src/app/api/account/route.ts` handles a `settings` field in the PATCH body. If not, add it following the same pattern as `cost_sheet_template_id` (JSONB merge, not overwrite).
 
 ### Verify
+
 ```bash
 ls src/components/pipelines/brokerage-badge.tsx
 # Must exist
@@ -925,10 +956,12 @@ npm run typecheck
 ## FIX 9 — MISSING-04: Print Report on Team Dashboard
 
 **Files:**
+
 - `src/app/(dashboard)/team/page.tsx` — MODIFY
 - `src/app/(dashboard)/team/team-client.tsx` — MODIFY
 
 ### Reconnaissance
+
 ```bash
 cat "src/app/(dashboard)/team/page.tsx"
 cat "src/app/(dashboard)/team/team-client.tsx"
@@ -939,6 +972,7 @@ cat "src/app/(dashboard)/team/team-client.tsx"
 ### Fix — `page.tsx` — Read `?print` param and add Print button
 
 1. Update the page function signature to accept `searchParams`:
+
 ```typescript
 export default async function TeamPage({
   searchParams,
@@ -953,6 +987,7 @@ export default async function TeamPage({
 ```
 
 2. Add a "Print Report" button in the page header (find the existing header/action area):
+
 ```tsx
 import { Printer } from 'lucide-react';
 
@@ -961,12 +996,12 @@ import { Printer } from 'lucide-react';
   href="?print=true"
   target="_blank"
   rel="noopener noreferrer"
-  className="inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium hover:bg-muted transition-colors"
+  className="hover:bg-muted inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors"
   aria-label="Open printable team report"
 >
   <Printer className="size-4" />
   Print Report
-</a>
+</a>;
 ```
 
 ### Fix — `team-client.tsx` — Accept `isPrint` prop, add CSS and auto-trigger
@@ -974,6 +1009,7 @@ import { Printer } from 'lucide-react';
 1. Add `isPrint?: boolean` to the component props interface.
 
 2. Add `useEffect` import if not already present. Add the auto-print trigger:
+
 ```typescript
 useEffect(() => {
   if (!isPrint) return;
@@ -983,9 +1019,11 @@ useEffect(() => {
 ```
 
 3. Add a `<style>` element for `@media print` when `isPrint` is true:
+
 ```tsx
-{isPrint && (
-  <style>{`
+{
+  isPrint && (
+    <style>{`
     @media print {
       @page { size: A4 portrait; margin: 15mm; }
       body { background: white !important; color: black !important; }
@@ -993,10 +1031,12 @@ useEffect(() => {
       .print\\:break-inside-avoid { break-inside: avoid; }
     }
   `}</style>
-)}
+  );
+}
 ```
 
 ### Verify
+
 ```bash
 grep -n "isPrint\|print=true\|@media print\|Printer" \
   "src/app/(dashboard)/team/page.tsx" \
@@ -1011,10 +1051,12 @@ npm run typecheck
 ## FIX 10 — QUALITY-03: Replace `window.location.href` with `router.push()` for Internal Routes
 
 **Files:**
+
 - `src/components/settings/billing-tab.tsx`
 - `src/components/contacts/cost-sheet-modal.tsx`
 
 ### Reconnaissance
+
 ```bash
 grep -n "window.location.href" \
   src/components/settings/billing-tab.tsx \
@@ -1029,6 +1071,7 @@ grep -n "window.location.href" \
 For each file:
 
 1. Add `useRouter` import if not present:
+
 ```typescript
 import { useRouter } from 'next/navigation';
 ```
@@ -1036,15 +1079,19 @@ import { useRouter } from 'next/navigation';
 2. Add `const router = useRouter();` inside the component function.
 
 3. Replace:
+
 ```typescript
 window.location.href = '/internal/path';
 ```
+
 With:
+
 ```typescript
 router.push('/internal/path');
 ```
 
 ### Verify
+
 ```bash
 npm run lint 2>&1 | grep "no-location-assign-relative-destination"
 # Expected: NO output for these two files
@@ -1059,6 +1106,7 @@ npm run typecheck
 **File:** `src/components/onboarding/team-setup-checklist.tsx`
 
 ### Reconnaissance
+
 ```bash
 cat src/components/onboarding/team-setup-checklist.tsx
 # Read in full before editing
@@ -1072,31 +1120,33 @@ grep -n "settings\|PATCH" src/app/api/account/route.ts | head -20
 ### Fix — Replace dismiss handler
 
 Replace:
+
 ```typescript
-  const handleDismiss = () => {
-    localStorage.setItem('wacrm_hide_team_checklist', 'true');
-    setVisible(false);
-  };
+const handleDismiss = () => {
+  localStorage.setItem('wacrm_hide_team_checklist', 'true');
+  setVisible(false);
+};
 ```
 
 With:
+
 ```typescript
-  const handleDismiss = async () => {
-    setVisible(false); // Optimistic hide — instant UX
-    try {
-      await fetch('/api/account', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          settings: { onboarding_dismissed: true },
-        }),
-      });
-    } catch {
-      // Non-critical — fall back to localStorage so the banner
-      // stays hidden for this session at minimum.
-      localStorage.setItem('wacrm_hide_team_checklist', 'true');
-    }
-  };
+const handleDismiss = async () => {
+  setVisible(false); // Optimistic hide — instant UX
+  try {
+    await fetch('/api/account', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        settings: { onboarding_dismissed: true },
+      }),
+    });
+  } catch {
+    // Non-critical — fall back to localStorage so the banner
+    // stays hidden for this session at minimum.
+    localStorage.setItem('wacrm_hide_team_checklist', 'true');
+  }
+};
 ```
 
 ### Fix — Check DB dismiss state on mount
@@ -1104,22 +1154,23 @@ With:
 In the `checkMembers` async function (inside `useEffect`), add a DB dismiss check BEFORE the localStorage check:
 
 ```typescript
-      // Check DB-persisted dismiss state first (works across devices/browsers).
-      const supabase = createClient();
-      const { data: acc } = await supabase
-        .from('accounts')
-        .select('settings')
-        .eq('id', accountId)
-        .single();
+// Check DB-persisted dismiss state first (works across devices/browsers).
+const supabase = createClient();
+const { data: acc } = await supabase
+  .from('accounts')
+  .select('settings')
+  .eq('id', accountId)
+  .single();
 
-      const settings = (acc?.settings as Record<string, unknown> | null) ?? {};
-      if (settings.onboarding_dismissed === true) {
-        setLoading(false);
-        return;
-      }
+const settings = (acc?.settings as Record<string, unknown> | null) ?? {};
+if (settings.onboarding_dismissed === true) {
+  setLoading(false);
+  return;
+}
 ```
 
 ### Verify
+
 ```bash
 grep -n "onboarding_dismissed\|PATCH\|settings" src/components/onboarding/team-setup-checklist.tsx
 # Expected: shows DB persist pattern
@@ -1136,6 +1187,7 @@ npm run typecheck
 **Why:** The plan references migrations 106–111 that don't exist as files, misleading future agents.
 
 ### Reconnaissance
+
 ```bash
 ls supabase/migrations/ | sort
 # Capture the authoritative list of actual filenames
@@ -1147,12 +1199,12 @@ grep -n "106_\|107_\|108_\|110_\|111_" IMPLEMENTATION_PLAN.md
 
 1. Replace all stale references found in the grep above with the correct filenames:
 
-| Old (in plan) | Correct (actual file) |
-|---|---|
-| `106_billing.sql` | `119_billing.sql` |
-| `107_portal_connections.sql` | `120_portal_connections.sql` |
-| `108_tasks.sql` | `121_tasks.sql` |
-| `110_india_defaults.sql` | `115_india_localization.sql` |
+| Old (in plan)                | Correct (actual file)                                       |
+| ---------------------------- | ----------------------------------------------------------- |
+| `106_billing.sql`            | `119_billing.sql`                                           |
+| `107_portal_connections.sql` | `120_portal_connections.sql`                                |
+| `108_tasks.sql`              | `121_tasks.sql`                                             |
+| `110_india_defaults.sql`     | `115_india_localization.sql`                                |
 | `111_hinglish_templates.sql` | (verify with `ls supabase/migrations/ \| grep -i hinglish`) |
 
 2. Add the following note to the **top of the "Migrations" section** in `IMPLEMENTATION_PLAN.md`:
@@ -1167,6 +1219,7 @@ grep -n "106_\|107_\|108_\|110_\|111_" IMPLEMENTATION_PLAN.md
 3. Also update `docs/agent/SCHEMA_REFERENCE.md` if it references the same stale numbers.
 
 ### Verify
+
 ```bash
 grep "106_\|107_billing\|107_portal\|108_tasks\|110_india\|111_hinglish" IMPLEMENTATION_PLAN.md
 # Expected: NO output (all stale references replaced)

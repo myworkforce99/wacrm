@@ -38,7 +38,7 @@ export default async function IntegrationsPage() {
     {
       name: '99acres',
       slug: '99acres',
-      icon: Home,
+      icon: 'Home',
       status: (portalConnections['99acres']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
@@ -47,7 +47,7 @@ export default async function IntegrationsPage() {
     {
       name: 'MagicBricks',
       slug: 'MagicBricks',
-      icon: Home,
+      icon: 'Home',
       status: (portalConnections['MagicBricks']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
@@ -56,7 +56,7 @@ export default async function IntegrationsPage() {
     {
       name: 'Housing.com',
       slug: 'HousingCom',
-      icon: Home,
+      icon: 'Home',
       status: (portalConnections['HousingCom']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
@@ -65,7 +65,7 @@ export default async function IntegrationsPage() {
     {
       name: 'Gmail',
       slug: 'Gmail',
-      icon: Mail,
+      icon: 'Mail',
       status: (portalConnections['Gmail']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
@@ -74,7 +74,7 @@ export default async function IntegrationsPage() {
     {
       name: 'NoBroker',
       slug: 'NoBroker',
-      icon: Home,
+      icon: 'Home',
       status: (portalConnections['NoBroker']?.connected
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
@@ -83,22 +83,25 @@ export default async function IntegrationsPage() {
     {
       name: 'WhatsApp Business',
       slug: 'WhatsApp Business',
-      icon: MessageCircle,
-      status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
+      icon: 'MessageCircle',
+      status: (whatsappConfig?.phone_number_id &&
+      whatsappConfig?.status === 'connected'
+        ? 'connected'
+        : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: false,
       isNative: true,
     },
     {
       name: 'JustDial',
       slug: 'JustDial',
-      icon: Home,
+      icon: 'Home',
       status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: false,
     },
     {
       name: 'Instagram',
       slug: 'Instagram',
-      icon: MessageCircle,
+      icon: 'MessageCircle',
       status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: false,
     },

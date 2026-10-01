@@ -92,18 +92,46 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard',   labelKey: 'dashboard',   icon: LayoutDashboard, emoji: '📊' },
-  { href: '/contacts',    labelKey: 'contacts',    icon: Users,            emoji: '👥' },
-  { href: '/site-visits', labelKey: 'visits',      icon: CalendarCheck,    emoji: '🏠' },
-  { href: '/pipelines',   labelKey: 'pipelines',   icon: GitBranch,        emoji: '📈' },
-  { href: '/inbox',       labelKey: 'inbox',       icon: MessageSquare,    emoji: '💬' },
-  { href: '/broadcasts',  labelKey: 'broadcasts',  icon: Radio,            emoji: '📣' },
-  { href: '/integrations',labelKey: 'integrations',icon: Plug,             emoji: '🔌', adminOnly: true },
-  { href: '/automations', labelKey: 'automations', icon: Zap,              emoji: '⚡' },
-  { href: '/flows',       labelKey: 'flows',       icon: Workflow,         emoji: '🔀', beta: true },
-  { href: '/agents',      labelKey: 'aiAgents',    icon: Bot,              emoji: '🤖' },
-  { href: '/properties',  labelKey: 'properties',  icon: Building,         emoji: '🏢' },
-  { href: '/team',        labelKey: 'team',        icon: UsersRound,       emoji: '👤', adminOnly: true },
+  {
+    href: '/dashboard',
+    labelKey: 'dashboard',
+    icon: LayoutDashboard,
+    emoji: '📊',
+  },
+  { href: '/contacts', labelKey: 'contacts', icon: Users, emoji: '👥' },
+  {
+    href: '/site-visits',
+    labelKey: 'visits',
+    icon: CalendarCheck,
+    emoji: '🏠',
+  },
+  { href: '/pipelines', labelKey: 'pipelines', icon: GitBranch, emoji: '📈' },
+  { href: '/inbox', labelKey: 'inbox', icon: MessageSquare, emoji: '💬' },
+  { href: '/broadcasts', labelKey: 'broadcasts', icon: Radio, emoji: '📣' },
+  {
+    href: '/integrations',
+    labelKey: 'integrations',
+    icon: Plug,
+    emoji: '🔌',
+    adminOnly: true,
+  },
+  { href: '/automations', labelKey: 'automations', icon: Zap, emoji: '⚡' },
+  {
+    href: '/flows',
+    labelKey: 'flows',
+    icon: Workflow,
+    emoji: '🔀',
+    beta: true,
+  },
+  { href: '/agents', labelKey: 'aiAgents', icon: Bot, emoji: '🤖' },
+  { href: '/properties', labelKey: 'properties', icon: Building, emoji: '🏢' },
+  {
+    href: '/team',
+    labelKey: 'team',
+    icon: UsersRound,
+    emoji: '👤',
+    adminOnly: true,
+  },
 ];
 
 const bottomNavItems = [
@@ -212,17 +240,19 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:w-44 lg:translate-x-0 lg:transition-none',
+          'border-border bg-sidebar fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:translate-x-0 lg:transition-none',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label={t('primaryNav')}
       >
-        <div className="flex items-center justify-between gap-2 px-4 py-5 border-b border-border shrink-0">
+        <div className="border-border flex shrink-0 items-center justify-between gap-2 border-b px-4 py-5">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white font-bold text-sm">
+            <div className="bg-primary flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white">
               W
             </div>
-            <span className="font-semibold text-base text-foreground">WaCRM</span>
+            <span className="text-foreground text-base font-semibold">
+              WaCRM
+            </span>
           </Link>
           <button
             type="button"
@@ -261,18 +291,20 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
-                    <span className="text-base leading-none">{item.emoji ?? <item.icon className="h-4 w-4" />}</span>
+                    <span className="text-base leading-none">
+                      {item.emoji ?? <item.icon className="h-4 w-4" />}
+                    </span>
                     <span>{t(item.labelKey as string)}</span>
                     {item.beta && (
                       <span
                         aria-label={t('beta')}
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase ml-1"
+                        className="ml-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase"
                       >
                         {t('beta')}
                       </span>
                     )}
                     {item.href === '/inbox' && totalUnread > 0 && (
-                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                      <span className="bg-primary ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
                         {totalUnread > 99 ? '99+' : totalUnread}
                       </span>
                     )}
@@ -352,7 +384,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             </div>
           ) : null}
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
+            <DropdownMenuTrigger className="hover:bg-muted flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition-colors focus:outline-none">
               <Avatar className="h-7 w-7">
                 {profile?.avatar_url ? (
                   <AvatarImage
@@ -360,18 +392,20 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                     alt={profile.full_name ?? t('defaultAvatar')}
                   />
                 ) : null}
-                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {profile?.full_name?.charAt(0)?.toUpperCase() ??
                     profile?.email?.charAt(0)?.toUpperCase() ??
                     'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1 text-left">
-                <p className="truncate text-xs font-medium text-foreground">
+                <p className="text-foreground truncate text-xs font-medium">
                   {profile?.full_name ?? t('defaultUser')}
                 </p>
-                <p className="truncate text-[10px] text-muted-foreground">
-                  {accountRole ? t(ROLE_CHIP[accountRole].labelKey as string) : ''}
+                <p className="text-muted-foreground truncate text-[10px]">
+                  {accountRole
+                    ? t(ROLE_CHIP[accountRole].labelKey as string)
+                    : ''}
                 </p>
               </div>
             </DropdownMenuTrigger>

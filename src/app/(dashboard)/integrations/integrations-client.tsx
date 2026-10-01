@@ -3,14 +3,21 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
-import { Copy, Check, ExternalLink } from 'lucide-react';
+import {
+  Copy,
+  Check,
+  ExternalLink,
+  Home,
+  Mail,
+  MessageCircle,
+} from 'lucide-react';
 import { PortalConnectModal } from '@/components/integrations/portal-connect-modal';
 import Link from 'next/link';
 
 interface Portal {
   name: string;
   slug: string;
-  icon: React.ElementType;
+  icon: string;
   status: 'connected' | 'not_connected' | 'coming_soon';
   test_lead: boolean;
   isNative?: boolean;
@@ -50,7 +57,9 @@ export function IntegrationsClient({
       </div>
 
       <div className="bg-primary/5 border-primary/20 rounded-xl border-2 p-5 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold text-primary">Universal Capture Email</h2>
+        <h2 className="text-primary mb-1 text-lg font-semibold">
+          Universal Capture Email
+        </h2>
         <p className="text-muted-foreground mb-4 text-sm">
           {t('capture_email.subtitle')}
         </p>
@@ -82,7 +91,11 @@ export function IntegrationsClient({
           >
             <div className="mb-4 flex items-start justify-between">
               <div className="bg-primary/10 text-primary flex h-12 w-12 items-center justify-center rounded-lg">
-                <portal.icon className="size-6" />
+                {portal.icon === 'Home' && <Home className="size-6" />}
+                {portal.icon === 'Mail' && <Mail className="size-6" />}
+                {portal.icon === 'MessageCircle' && (
+                  <MessageCircle className="size-6" />
+                )}
               </div>
               <div>
                 {portal.status === 'connected' && (

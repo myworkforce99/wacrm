@@ -64,7 +64,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="bg-background flex h-screen items-center justify-center">
+      <div className="bg-background flex h-full w-full flex-1 items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="border-primary h-8 w-8 animate-spin rounded-full border-2 border-t-transparent" />
           <p className="text-muted-foreground text-sm">{t('loading')}</p>
@@ -76,7 +76,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="bg-background flex h-screen overflow-hidden print:h-auto print:overflow-visible">
+    <div className="bg-background flex h-full w-full flex-1 overflow-hidden print:h-auto print:overflow-visible">
       {/* Reports this tab's online/away presence once we know a user is
           signed in. Headless — renders nothing. */}
       <PresenceHeartbeat />

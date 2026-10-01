@@ -49,6 +49,8 @@ export function PipelineBoard({
   const [moveDealId, setMoveDealId] = useState<string | null>(null);
   const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
 
+  const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
+
   useEffect(() => {
     if (!accountId) return;
     const fetchBrokerage = async () => {
@@ -60,9 +62,8 @@ export function PipelineBoard({
         .single();
 
       const pct =
-        ((accountRow?.settings as Record<string, unknown> | null)?.brokerage_pct as
-          | number
-          | null) ?? null;
+        ((accountRow?.settings as Record<string, unknown> | null)
+          ?.brokerage_pct as number | null) ?? null;
       setBrokeragePct(pct);
     };
     fetchBrokerage();
@@ -72,6 +73,9 @@ export function PipelineBoard({
     () => [...stages].sort((a, b) => a.position - b.position),
     [stages]
   );
+
+  const currentTab =
+    activeTab !== undefined ? activeTab : sortedStages[0]?.id || '';
 
   const dealsByStage = useMemo(() => {
     const map = new Map<string, Deal[]>();
@@ -151,7 +155,7 @@ export function PipelineBoard({
 
         {/* Mobile Tabs View */}
         <div className="lg:hidden">
-          <Tabs defaultValue={sortedStages[0]?.id}>
+          <Tabs value={currentTab} onValueChange={setActiveTab}>
             <TabsList
               className="border-border flex h-auto w-full snap-x snap-mandatory overflow-x-auto rounded-none border-b bg-transparent p-0 [&::-webkit-scrollbar]:hidden"
               style={{ scrollbarWidth: 'none' }}
@@ -373,10 +377,16 @@ function StageColumn({
         style={{ backgroundColor: stage.color }}
       />
       <div className="flex items-center justify-between pt-3">
-        <h3 className="truncate text-sm font-semibold" style={{ color: stage.color }}>
+        <h3
+          className="truncate text-sm font-semibold"
+          style={{ color: stage.color }}
+        >
           {stage.name}
         </h3>
-        <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: stage.color + '20', color: stage.color }}>
+        <span
+          className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium"
+          style={{ backgroundColor: stage.color + '20', color: stage.color }}
+        >
           {deals.length}
         </span>
       </div>
@@ -418,8 +428,7 @@ function StageColumn({
         onClick={() => onAddDeal(stage.id)}
         className="border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground mt-3 w-full justify-start border border-dashed bg-transparent"
       >
-        <Plus className="mr-1 h-3 w-3" />
-        + Add Lead
+        <Plus className="mr-1 h-3 w-3" />+ Add Lead
       </Button>
     </div>
   );
@@ -449,7 +458,13 @@ function DraggableDealCard({
       {...attributes}
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none' }}
     >
-      <DealCard deal={deal} stage={stage} onEdit={onEdit} onMove={onMove} brokeragePct={brokeragePct} />
+      <DealCard
+        deal={deal}
+        stage={stage}
+        onEdit={onEdit}
+        onMove={onMove}
+        brokeragePct={brokeragePct}
+      />
     </div>
   );
 }

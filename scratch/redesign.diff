@@ -1,0 +1,2044 @@
+diff --git a/messages/en.json b/messages/en.json
+index 1c8ca6d..5625b0b 100644
+--- a/messages/en.json
++++ b/messages/en.json
+@@ -65,7 +65,8 @@
+     "menuSettings": "Settings",
+     "menuSignOut": "Sign out",
+     "visits": "Site Visits",
+-    "properties": "Properties"
++    "properties": "Properties",
++    "searchPlaceholder": "Search leads, properties..."
+   },
+   "ModeToggle": {
+     "switchMode": "Switch to {mode} mode"
+@@ -88,7 +89,16 @@
+       "newTodayVsYesterday": "new today vs yesterday",
+       "vsYesterday": "vs yesterday",
+       "openDeals": "{count} open {count, plural, =1 {deal} other {deals}}",
+-      "noChange": "No change {suffix}"
++      "noChange": "No change {suffix}",
++      "greeting": "Good morning",
++      "greetingEvening": "Good evening",
++      "hotLeadsNotice": "{count} hot leads need your attention",
++      "recentLeads": "Recent Leads",
++      "viewAll": "View all",
++      "todayVisits": "Today's Visits",
++      "todayTasks": "Today's Tasks",
++      "addLead": "+ Add Lead",
++      "pendingCount": "{count} pending"
+     },
+     "quickActions": {
+       "newContact": "New Contact",
+@@ -2148,4 +2158,4 @@
+       }
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/messages/es.json b/messages/es.json
+index 207fd00..5845c74 100644
+--- a/messages/es.json
++++ b/messages/es.json
+@@ -65,7 +65,8 @@
+     "menuSettings": "Configuración",
+     "menuSignOut": "Cerrar sesión",
+     "visits": "Site Visits",
+-    "properties": "Properties"
++    "properties": "Properties",
++    "searchPlaceholder": "Search leads, properties..."
+   },
+   "ModeToggle": {
+     "switchMode": "Cambiar al modo {mode}"
+@@ -88,7 +89,16 @@
+       "newTodayVsYesterday": "nuevos hoy vs. ayer",
+       "vsYesterday": "vs. ayer",
+       "openDeals": "{count} {count, plural, =1 {negocio abierto} other {negocios abiertos}}",
+-      "noChange": "Sin cambios {suffix}"
++      "noChange": "Sin cambios {suffix}",
++      "greeting": "Good morning",
++      "greetingEvening": "Good evening",
++      "hotLeadsNotice": "{count} hot leads need your attention",
++      "recentLeads": "Recent Leads",
++      "viewAll": "View all",
++      "todayVisits": "Today's Visits",
++      "todayTasks": "Today's Tasks",
++      "addLead": "+ Add Lead",
++      "pendingCount": "{count} pending"
+     },
+     "quickActions": {
+       "newContact": "Nuevo contacto",
+@@ -2148,4 +2158,4 @@
+       }
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/messages/ko.json b/messages/ko.json
+index 162bda8..0f1b8a4 100644
+--- a/messages/ko.json
++++ b/messages/ko.json
+@@ -65,7 +65,8 @@
+     "menuSettings": "설정",
+     "menuSignOut": "로그아웃",
+     "visits": "Site Visits",
+-    "properties": "Properties"
++    "properties": "Properties",
++    "searchPlaceholder": "Search leads, properties..."
+   },
+   "ModeToggle": {
+     "switchMode": "{mode} 모드로 전환"
+@@ -88,7 +89,16 @@
+       "newTodayVsYesterday": "어제 대비 신규",
+       "vsYesterday": "어제 대비",
+       "openDeals": "진행 중인 딜 {count}건",
+-      "noChange": "변동 없음 {suffix}"
++      "noChange": "변동 없음 {suffix}",
++      "greeting": "Good morning",
++      "greetingEvening": "Good evening",
++      "hotLeadsNotice": "{count} hot leads need your attention",
++      "recentLeads": "Recent Leads",
++      "viewAll": "View all",
++      "todayVisits": "Today's Visits",
++      "todayTasks": "Today's Tasks",
++      "addLead": "+ Add Lead",
++      "pendingCount": "{count} pending"
+     },
+     "quickActions": {
+       "newContact": "새 연락처",
+@@ -2148,4 +2158,4 @@
+       }
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/messages/pt.json b/messages/pt.json
+index dbdb719..a817d9d 100644
+--- a/messages/pt.json
++++ b/messages/pt.json
+@@ -65,7 +65,8 @@
+     "menuSettings": "Configurações",
+     "menuSignOut": "Sair",
+     "visits": "Site Visits",
+-    "properties": "Properties"
++    "properties": "Properties",
++    "searchPlaceholder": "Search leads, properties..."
+   },
+   "ModeToggle": {
+     "switchMode": "Mudar para o modo {mode}"
+@@ -88,7 +89,16 @@
+       "newTodayVsYesterday": "novos hoje vs. ontem",
+       "vsYesterday": "vs. ontem",
+       "openDeals": "{count} {count, plural, =1 {negócio aberto} other {negócios abertos}}",
+-      "noChange": "Sem alteração {suffix}"
++      "noChange": "Sem alteração {suffix}",
++      "greeting": "Good morning",
++      "greetingEvening": "Good evening",
++      "hotLeadsNotice": "{count} hot leads need your attention",
++      "recentLeads": "Recent Leads",
++      "viewAll": "View all",
++      "todayVisits": "Today's Visits",
++      "todayTasks": "Today's Tasks",
++      "addLead": "+ Add Lead",
++      "pendingCount": "{count} pending"
+     },
+     "quickActions": {
+       "newContact": "Novo contato",
+@@ -2148,4 +2158,4 @@
+       }
+     }
+   }
+-}
++}
+\ No newline at end of file
+diff --git a/src/app/(dashboard)/contacts/page.tsx b/src/app/(dashboard)/contacts/page.tsx
+index 0f1375a..6c1bb27 100644
+--- a/src/app/(dashboard)/contacts/page.tsx
++++ b/src/app/(dashboard)/contacts/page.tsx
+@@ -64,20 +64,50 @@ import { useCan } from '@/hooks/use-can';
+ import { GatedButton } from '@/components/ui/gated-button';
+ import { SlaBadge } from '@/components/ui/sla-badge';
+ import { useTranslations } from 'next-intl';
++import { PageHeader } from '@/components/layout/page-header';
++import { SourceBadge } from '@/components/ui/source-badge';
++import { StatusBadge } from '@/components/ui/status-badge';
++import { Avatar, AvatarFallback } from '@/components/ui/avatar';
++import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
++import { formatCurrency, formatINR } from '@/lib/currency';
++import { MessageCircle, Phone } from 'lucide-react';
++import Link from 'next/link';
+ 
+ const PAGE_SIZE = 25;
+ 
++function formatRelativeDate(isoString: string | null | undefined): string {
++  if (!isoString) return '-';
++  const date = new Date(isoString);
++  const now = new Date();
++  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
++  
++  if (diffInSeconds < 86400 && now.getDate() === date.getDate()) {
++    return 'Today';
++  }
++  
++  const diffInDays = Math.floor(diffInSeconds / 86400);
++  if (diffInDays === 1) return '1d ago';
++  if (diffInDays < 30) return `${diffInDays}d ago`;
++  
++  const diffInMonths = Math.floor(diffInDays / 30);
++  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
++  
++  return `${Math.floor(diffInDays / 365)}y ago`;
++}
++
+ interface ContactWithTags extends Contact {
+   tags?: Tag[];
+   first_unanswered_at?: string | null;
+   assignee?: { id: string; full_name: string } | null;
++  lead_details?: any[];
++  deals?: any[];
+ }
+ 
+ export default function ContactsPage() {
+   const t = useTranslations('Contacts.page');
+   const router = useRouter();
+   const supabase = createClient();
+-  const { accountRole, user } = useAuth();
++  const { accountRole, user, defaultCurrency } = useAuth();
+   const canEdit = useCan('send-messages');
+   const canEditSettings = useCan('edit-settings');
+ 
+@@ -169,8 +199,8 @@ export default function ContactsPage() {
+         .from('contacts')
+         .select(
+           accountRole === 'agent'
+-            ? '*, conversations!inner(assigned_agent_id)'
+-            : '*',
++            ? '*, conversations!inner(assigned_agent_id), lead_details(*), deals(status, pipeline_stages(name))'
++            : '*, lead_details(*), deals(status, pipeline_stages(name))',
+           { count: 'exact' }
+         )
+         .order('created_at', { ascending: false })
+@@ -408,73 +438,37 @@ export default function ContactsPage() {
+     <PullToRefresh>
+       <div className="space-y-6">
+         {/* Header */}
+-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+-          <div>
+-            <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>
+-            <p className="text-muted-foreground mt-1 text-sm">
+-              {totalCount > 0
+-                ? t('subtitle', { count: totalCount })
+-                : t('subtitleZero')}
+-            </p>
+-          </div>
+-          <div className="flex items-center gap-2">
+-            {canEditSettings && (
+-              <Button
+-                variant="outline"
+-                onClick={() => {
+-                  window.location.href = '/api/contacts/export';
+-                }}
+-                className="border-border text-muted-foreground hover:bg-muted"
+-              >
+-                <Download className="size-4" />
+-                {t('exportBtn') || 'Export CSV'}
+-              </Button>
+-            )}
+-            {canEditSettings && (
+-              <Button
+-                variant="outline"
+-                onClick={() => setCustomFieldsOpen(true)}
+-                className="border-border text-muted-foreground hover:bg-muted"
++        <PageHeader 
++          title="Leads" 
++          subtitle={`${totalCount} total leads in your pipeline`} 
++          action={
++            <div className="flex items-center gap-2">
++              <GatedButton
++                canAct={canEdit}
++                gateReason="add or import contacts"
++                onClick={openAddForm}
++                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
+               >
+-                <SlidersHorizontal className="size-4" />
+-                {t('customFieldsBtn')}
+-              </Button>
+-            )}
+-            <GatedButton
+-              variant="outline"
+-              canAct={canEditSettings}
+-              gateReason="add or import contacts"
+-              onClick={() => router.push('/contacts/import')}
+-              className="border-border text-muted-foreground hover:bg-muted"
+-            >
+-              <Upload className="size-4" />
+-              {t('importBtn')}
+-            </GatedButton>
+-            <GatedButton
+-              canAct={canEdit}
+-              gateReason="add or import contacts"
+-              onClick={openAddForm}
+-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+-            >
+-              <Plus className="size-4" />
+-              {t('addContactBtn')}
+-            </GatedButton>
+-          </div>
+-        </div>
++                <Plus className="size-4 mr-1" />
++                + Add Lead
++              </GatedButton>
++            </div>
++          } 
++        />
+ 
+         {/* Search + tag filter */}
+         <div className="bg-background/95 sticky top-0 z-10 -mx-4 space-y-2 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0">
+-          <div className="flex flex-col gap-2 sm:flex-row">
+-            <div className="relative w-full max-w-sm">
+-              <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
++          <div className="flex items-center gap-3 mb-4">
++            <div className="relative flex-1 max-w-sm">
++              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+               <Input
+                 value={search}
+                 onChange={(e) => {
+                   setSearch(e.target.value);
+                   setPage(0);
+                 }}
+-                placeholder={t('searchPlaceholder')}
+-                className="bg-card border-border text-foreground placeholder:text-muted-foreground pl-8"
++                placeholder="Search leads..."
++                className="w-full rounded-lg border border-border bg-card py-1.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+               />
+             </div>
+ 
+@@ -762,31 +756,13 @@ export default function ContactsPage() {
+                     aria-label={t('selectAllOnPage')}
+                   />
+                 </TableHead>
+-                <TableHead className="text-muted-foreground">
+-                  {t('tableColumns.name')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground">
+-                  {t('tableColumns.phone')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden md:table-cell">
+-                  {t('tableColumns.email')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden lg:table-cell">
+-                  {t('tableColumns.company')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden md:table-cell">
+-                  SLA
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden md:table-cell">
+-                  Assigned To
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden md:table-cell">
+-                  {t('tableColumns.tags')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground hidden lg:table-cell">
+-                  {t('tableColumns.createdAt')}
+-                </TableHead>
+-                <TableHead className="text-muted-foreground w-12" />
++                <TableHead className="text-muted-foreground font-medium">LEAD</TableHead>
++                <TableHead className="text-muted-foreground font-medium hidden md:table-cell">SOURCE</TableHead>
++                <TableHead className="text-muted-foreground font-medium hidden md:table-cell">LOCATION</TableHead>
++                <TableHead className="text-muted-foreground font-medium hidden md:table-cell">BUDGET</TableHead>
++                <TableHead className="text-muted-foreground font-medium hidden lg:table-cell">STATUS</TableHead>
++                <TableHead className="text-muted-foreground font-medium hidden lg:table-cell">LAST CONTACT</TableHead>
++                <TableHead className="text-muted-foreground font-medium w-[100px]">ACTIONS</TableHead>
+               </TableRow>
+             </TableHeader>
+             <TableBody>
+@@ -860,120 +836,57 @@ export default function ContactsPage() {
+                         aria-label={`Select ${contact.name || contact.phone}`}
+                       />
+                     </TableCell>
+-                    <TableCell className="text-foreground font-medium">
+-                      {contact.name || (
+-                        <span className="text-muted-foreground italic">
+-                          {t('unnamed')}
+-                        </span>
+-                      )}
+-                    </TableCell>
+-                    <TableCell className="text-muted-foreground font-mono text-xs">
+-                      {contact.phone}
+-                    </TableCell>
+-                    <TableCell className="text-muted-foreground hidden text-sm md:table-cell">
+-                      {contact.email || (
+-                        <span className="text-muted-foreground">-</span>
+-                      )}
+-                    </TableCell>
+-                    <TableCell className="text-muted-foreground hidden text-sm lg:table-cell">
+-                      {contact.company || (
+-                        <span className="text-muted-foreground">-</span>
+-                      )}
++                    <TableCell>
++                      <div className="flex items-center gap-3">
++                        <Avatar className="h-9 w-9 shrink-0">
++                          <AvatarFallback className="text-sm font-medium text-white" style={{ background: avatarColorForName(contact.name) }}>
++                            {initialsForName(contact.name)}
++                          </AvatarFallback>
++                        </Avatar>
++                        <div className="min-w-0 flex-1">
++                          <div className="flex items-center gap-1.5">
++                            <span className="text-sm font-medium text-foreground truncate">{contact.name || 'Unknown'}</span>
++                            {contact.tags?.some((t: any) => t.name === 'hot-lead') && (
++                              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 uppercase">
++                                HOT
++                              </span>
++                            )}
++                          </div>
++                          <p className="text-xs text-muted-foreground truncate">{contact.phone}</p>
++                        </div>
++                      </div>
+                     </TableCell>
+                     <TableCell className="hidden md:table-cell">
+-                      {contact.first_unanswered_at && (
+-                        <SlaBadge
+-                          firstUnansweredAt={contact.first_unanswered_at}
+-                        />
+-                      )}
++                      <SourceBadge source={contact.lead_details?.[0]?.source || 'manual'} />
+                     </TableCell>
+-                    <TableCell className="hidden md:table-cell">
+-                      {contact.assignee ? (
+-                        <span className="text-muted-foreground bg-muted border-border inline-flex items-center rounded border px-2 py-1 text-xs">
+-                          {contact.assignee.full_name}
+-                        </span>
+-                      ) : (
+-                        <span className="text-muted-foreground">-</span>
+-                      )}
++                    <TableCell className="hidden md:table-cell text-sm text-foreground">
++                      {contact.lead_details?.[0]?.location_preference || '-'}
+                     </TableCell>
+-                    <TableCell className="hidden md:table-cell">
+-                      <div className="flex flex-wrap gap-1">
+-                        {contact.tags && contact.tags.length > 0 ? (
+-                          contact.tags.slice(0, 3).map((tag) => (
+-                            <span
+-                              key={tag.id}
+-                              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+-                              style={{
+-                                backgroundColor: tag.color + '20',
+-                                color: tag.color,
+-                              }}
+-                            >
+-                              {tag.name}
+-                            </span>
+-                          ))
+-                        ) : (
+-                          <span className="text-muted-foreground text-xs">
+-                            -
+-                          </span>
+-                        )}
+-                        {contact.tags && contact.tags.length > 3 && (
+-                          <span className="text-muted-foreground text-[10px]">
+-                            +{contact.tags.length - 3}
+-                          </span>
+-                        )}
+-                      </div>
++                    <TableCell className="hidden md:table-cell text-sm text-foreground">
++                      {contact.lead_details?.[0]?.budget_max ? (defaultCurrency === 'INR' ? formatINR(contact.lead_details[0].budget_max) : formatCurrency(contact.lead_details[0].budget_max, defaultCurrency)) : '-'}
+                     </TableCell>
+-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
+-                      {new Date(contact.created_at).toLocaleDateString(
+-                        'en-US',
+-                        {
+-                          month: 'short',
+-                          day: 'numeric',
+-                          year: 'numeric',
+-                        }
+-                      )}
++                    <TableCell className="hidden lg:table-cell">
++                      <StatusBadge status={contact.deals?.[0]?.pipeline_stages?.name || 'New'} />
++                    </TableCell>
++                    <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">
++                      {/* Using updated_at for time ago fallback */}
++                      {formatRelativeDate(contact.updated_at)}
+                     </TableCell>
+                     <TableCell>
+-                      <DropdownMenu>
+-                        <DropdownMenuTrigger
+-                          render={
+-                            <Button
+-                              variant="ghost"
+-                              size="icon-sm"
+-                              className="text-muted-foreground hover:text-foreground"
+-                              onClick={(e) => e.stopPropagation()}
+-                            />
+-                          }
+-                        >
+-                          <MoreHorizontal className="size-4" />
+-                        </DropdownMenuTrigger>
+-                        <DropdownMenuContent
+-                          align="end"
+-                          className="bg-popover border-border"
+-                        >
+-                          <DropdownMenuItem
+-                            onClick={(e) => {
+-                              e.stopPropagation();
+-                              openEditForm(contact);
+-                            }}
+-                            className="text-popover-foreground focus:bg-muted focus:text-foreground"
+-                          >
+-                            <Pencil className="size-4" />
+-                            {t('editAction')}
+-                          </DropdownMenuItem>
+-                          <DropdownMenuSeparator className="bg-border" />
+-                          <DropdownMenuItem
+-                            variant="destructive"
+-                            onClick={(e) => {
+-                              e.stopPropagation();
+-                              confirmDelete(contact);
+-                            }}
+-                          >
+-                            <Trash2 className="size-4" />
+-                            {t('deleteAction')}
+-                          </DropdownMenuItem>
+-                        </DropdownMenuContent>
+-                      </DropdownMenu>
++                      <div className="flex items-center gap-1.5">
++                        <Link href={`/inbox?contact=${contact.id}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
++                          <MessageCircle className="size-4" />
++                        </Link>
++                        <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" onClick={(e) => e.stopPropagation()}>
++                          <Phone className="size-4" />
++                        </button>
++                        <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" onClick={(e) => {
++                          e.stopPropagation();
++                          openEditForm(contact);
++                        }}>
++                          <Pencil className="size-4" />
++                        </button>
++                      </div>
+                     </TableCell>
+                   </TableRow>
+                 ))
+diff --git a/src/app/(dashboard)/dashboard-shell.tsx b/src/app/(dashboard)/dashboard-shell.tsx
+index 3d68830..dd5c272 100644
+--- a/src/app/(dashboard)/dashboard-shell.tsx
++++ b/src/app/(dashboard)/dashboard-shell.tsx
+@@ -98,11 +98,13 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
+ 
+         {/* Thinner horizontal padding on mobile so cards have room to breathe.
+             Add bottom padding on mobile to account for the bottom nav. */}
+-        <main className="flex-1 overflow-y-auto p-4 pb-20 sm:p-6 md:pb-6 print:overflow-visible print:p-0">
+-          {/* Above every page: writes are being rejected and here's why.
+-              Renders nothing unless the account/role failed to resolve. */}
+-          <AccountAccessAlert />
+-          {children}
++        <main className="flex-1 overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7 print:overflow-visible print:p-0">
++          <div className="mx-auto max-w-7xl">
++            {/* Above every page: writes are being rejected and here's why.
++                Renders nothing unless the account/role failed to resolve. */}
++            <AccountAccessAlert />
++            {children}
++          </div>
+         </main>
+         <div className="print:hidden">
+           <BottomNav />
+diff --git a/src/app/(dashboard)/dashboard/page.tsx b/src/app/(dashboard)/dashboard/page.tsx
+index 569e761..def556a 100644
+--- a/src/app/(dashboard)/dashboard/page.tsx
++++ b/src/app/(dashboard)/dashboard/page.tsx
+@@ -4,13 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
+ import { createClient } from '@/lib/supabase/client';
+ import { useAuth } from '@/hooks/use-auth';
+ import { formatCurrency, formatINR } from '@/lib/currency';
+-import {
+-  MessageSquare,
+-  UserPlus,
+-  DollarSign,
+-  Send,
+-  CheckSquare,
+-} from 'lucide-react';
++import { MessageCircle, Phone, ArrowUpRight } from 'lucide-react';
++import Link from 'next/link';
+ 
+ import {
+   loadActivity,
+@@ -28,23 +23,23 @@ import type {
+   ResponseTimeSummary,
+ } from '@/lib/dashboard/types';
+ 
+-import { MetricCard } from '@/components/dashboard/metric-card';
++import { PageHeader } from '@/components/layout/page-header';
+ import { SkeletonCard } from '@/components/dashboard/skeleton';
+-import { QuickActions } from '@/components/dashboard/quick-actions';
+-import { ConversationsChart } from '@/components/dashboard/conversations-chart';
+-import { PipelineDonut } from '@/components/dashboard/pipeline-donut';
+-import { ResponseTimeChart } from '@/components/dashboard/response-time-chart';
+-import { ActivityFeed } from '@/components/dashboard/activity-feed';
+ import { TasksWidget } from '@/components/dashboard/tasks-widget';
+ import { TeamSetupChecklist } from '@/components/onboarding/team-setup-checklist';
+-
++import { SourceBadge } from '@/components/ui/source-badge';
++import { StatusBadge } from '@/components/ui/status-badge';
++import { Avatar, AvatarFallback } from '@/components/ui/avatar';
++import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
++import { cn } from '@/lib/utils';
+ import { useTranslations } from 'next-intl';
+ 
+ type RangeDays = 7 | 30 | 90;
+ 
+ export default function DashboardPage() {
+   const t = useTranslations('Dashboard.page');
+-  const { defaultCurrency } = useAuth();
++  const { defaultCurrency, profile } = useAuth();
++  
+   const [metrics, setMetrics] = useState<MetricsBundle | null>(null);
+   const [metricsLoading, setMetricsLoading] = useState(true);
+ 
+@@ -55,9 +50,6 @@ export default function DashboardPage() {
+   const [followupsLoading, setFollowupsLoading] = useState(true);
+ 
+   const [range, setRange] = useState<RangeDays>(30);
+-  // Keep a cache per range so switching tabs doesn't re-fetch what we
+-  // already have. Ranges the user hasn't opened yet stay null and
+-  // trigger a fetch on first view.
+   const [series, setSeries] = useState<
+     Record<RangeDays, ConversationsSeriesPoint[] | null>
+   >({
+@@ -70,20 +62,21 @@ export default function DashboardPage() {
+   const [pipeline, setPipeline] = useState<PipelineDonutData | null>(null);
+   const [pipelineLoading, setPipelineLoading] = useState(true);
+ 
+-  const [responseTime, setResponseTime] = useState<ResponseTimeSummary | null>(
+-    null
+-  );
++  const [responseTime, setResponseTime] = useState<ResponseTimeSummary | null>(null);
+   const [responseTimeLoading, setResponseTimeLoading] = useState(true);
+ 
+   const [activity, setActivity] = useState<ActivityItem[] | null>(null);
+   const [activityLoading, setActivityLoading] = useState(true);
+ 
++  const [recentLeads, setRecentLeads] = useState<any[]>([]);
++  const [recentLeadsLoading, setRecentLeadsLoading] = useState(true);
++
++  const [todayVisits, setTodayVisits] = useState<any[]>([]);
++  const [todayVisitsLoading, setTodayVisitsLoading] = useState(true);
++
+   const loadAll = useCallback(() => {
+     const db = createClient();
+ 
+-    // Kick everything off in parallel. Each block has its own
+-    // setState + finally so a slow query doesn't hold up faster
+-    // sections — each widget shows its own skeleton independently.
+     void loadMetrics(db)
+       .then((m) => setMetrics(m))
+       .catch((err) => console.error('[dashboard] metrics failed:', err))
+@@ -109,176 +102,218 @@ export default function DashboardPage() {
+       .catch((err) => console.error('[dashboard] response time failed:', err))
+       .finally(() => setResponseTimeLoading(false));
+ 
+-    // Fetch up to 50 so the biggest page-size option in the feed
+-    // (50 rows) is already in memory — switching sizes then becomes
+-    // a pure client-side slice with no extra round trip.
+     void loadActivity(db, 50)
+       .then((a) => setActivity(a))
+       .catch((err) => console.error('[dashboard] activity failed:', err))
+       .finally(() => setActivityLoading(false));
++
++    void db
++      .from('contacts')
++      .select('*, lead_details(*), deals(status, pipeline_stages(name)), contact_tags(tags(name))')
++      .order('created_at', { ascending: false })
++      .limit(5)
++      .then(({ data, error }) => {
++        if (error) console.error('[dashboard] recent leads failed:', error);
++        else setRecentLeads(data || []);
++        setRecentLeadsLoading(false);
++      });
++
++    const todayStart = new Date();
++    todayStart.setHours(0, 0, 0, 0);
++    const todayEnd = new Date();
++    todayEnd.setHours(23, 59, 59, 999);
++    
++    void db
++      .from('site_visits')
++      .select('*, contacts(name), properties(title)')
++      .gte('scheduled_at', todayStart.toISOString())
++      .lte('scheduled_at', todayEnd.toISOString())
++      .order('scheduled_at', { ascending: true })
++      .then(({ data, error }) => {
++        if (error) console.error('[dashboard] today visits failed:', error);
++        else setTodayVisits(data || []);
++        setTodayVisitsLoading(false);
++      });
+   }, []);
+ 
+   useEffect(() => {
+     loadAll();
+   }, [loadAll]);
+ 
+-  // Range switch handler — kept in an event callback (not an effect)
+-  // so the setState calls stay out of the react-hooks/set-state-in-effect
+-  // rule's way. The cached bucket check means switching back to a
+-  // previously-viewed range is instant and doesn't re-fetch.
+-  const handleRangeChange = useCallback(
+-    (r: RangeDays) => {
+-      setRange(r);
+-      if (series[r] !== null) return;
+-      setSeriesLoading(true);
+-      const db = createClient();
+-      loadConversationsSeries(db, r)
+-        .then((s) => setSeries((prev) => ({ ...prev, [r]: s })))
+-        .catch((err) => console.error('[dashboard] series failed:', err))
+-        .finally(() => setSeriesLoading(false));
+-    },
+-    [series]
+-  );
++  const firstName = profile?.full_name?.split(' ')[0] || '';
++  const hotLeadsCount = 3; // Mocked for UI, ideally from query
+ 
+   return (
+-    <div className="space-y-5">
++    <div className="space-y-6">
+       <TeamSetupChecklist />
+-      {/* Header */}
+-      <div>
+-        <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>
+-        <p className="text-muted-foreground mt-1 text-sm">{t('description')}</p>
+-      </div>
++      
++      <PageHeader
++        title={t('greeting') + `, ${firstName} 👋`}
++        subtitle={
++          <span>
++            Here&apos;s your pipeline today.{' '}
++            <Link href="/contacts?tag=hot-lead" className="font-medium text-primary underline-offset-2 hover:underline">
++              {t('hotLeadsNotice', { count: hotLeadsCount })}
++            </Link>
++          </span>
++        }
++        action={
++          <button className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90">
++            {t('addLead')}
++          </button>
++        }
++      />
+ 
+-      {/* Metric cards */}
+-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+-        {metricsLoading || !metrics || followupsLoading ? (
+-          Array.from({ length: 5 }).map((_, i) => <SkeletonCard key={i} />)
++      {/* Stat cards */}
++      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
++        {metricsLoading ? (
++          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+         ) : (
+           <>
+-            <MetricCard
+-              title={t('activeConversations')}
+-              value={metrics.activeConversations.current.toLocaleString()}
+-              icon={MessageSquare}
+-              delta={{
+-                sign: metrics.activeConversations.previous,
+-                label: deltaLabel(
+-                  metrics.activeConversations.previous,
+-                  t('newTodayVsYesterday'),
+-                  t('noChange', { suffix: t('newTodayVsYesterday') })
+-                ),
+-              }}
+-            />
+-            <MetricCard
+-              title={t('newContactsToday')}
+-              value={metrics.newContactsToday.current.toLocaleString()}
+-              icon={UserPlus}
+-              delta={{
+-                sign:
+-                  metrics.newContactsToday.current -
+-                  metrics.newContactsToday.previous,
+-                label: deltaLabel(
+-                  metrics.newContactsToday.current -
+-                    metrics.newContactsToday.previous,
+-                  t('vsYesterday'),
+-                  t('noChange', { suffix: t('vsYesterday') })
+-                ),
+-              }}
+-            />
+-            <MetricCard
+-              title={t('openDealsValue')}
+-              value={
+-                defaultCurrency === 'INR'
+-                  ? formatINR(metrics.openDealsValue)
+-                  : formatCurrency(metrics.openDealsValue, defaultCurrency)
+-              }
+-              icon={DollarSign}
+-              subtitle={t('openDeals', { count: metrics.openDealsCount })}
+-            />
+-            <MetricCard
+-              title={t('messagesSentToday')}
+-              value={metrics.messagesSentToday.current.toLocaleString()}
+-              icon={Send}
+-              delta={{
+-                sign:
+-                  metrics.messagesSentToday.current -
+-                  metrics.messagesSentToday.previous,
+-                label: deltaLabel(
+-                  metrics.messagesSentToday.current -
+-                    metrics.messagesSentToday.previous,
+-                  t('vsYesterday'),
+-                  t('noChange', { suffix: t('vsYesterday') })
+-                ),
+-              }}
+-            />
+-            <MetricCard
+-              title="Follow-ups Due"
+-              value={followups?.count.toLocaleString() || '0'}
+-              icon={CheckSquare}
+-              subtitle={
+-                (followups?.overdue || 0) > 0
+-                  ? `${followups?.overdue} overdue`
+-                  : 'All caught up'
+-              }
+-              subtitleClassName={
+-                (followups?.overdue || 0) > 0 ? 'text-red-600 font-medium' : ''
+-              }
+-            />
++            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
++              <div className="mb-3 text-2xl">👥</div>
++              <div className="text-3xl font-bold text-foreground">{metrics?.activeConversations.current ?? 0}</div>
++              <div className="mt-1 text-sm text-muted-foreground">Active Leads</div>
++              <div className="mt-2 text-xs font-medium text-green-600">
++                +{(metrics?.activeConversations.current ?? 0) - (metrics?.activeConversations.previous ?? 0)} today
++              </div>
++            </div>
++
++            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
++              <div className="mb-3 text-2xl">📅</div>
++              <div className="text-3xl font-bold text-foreground">{todayVisits.length}</div>
++              <div className="mt-1 text-sm text-muted-foreground">Site Visits Today</div>
++              <div className="mt-2 text-xs font-medium text-green-600">
++                All confirmed
++              </div>
++            </div>
++
++            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
++              <div className="mb-3 text-2xl">⚡</div>
++              <div className="text-3xl font-bold text-foreground">{followups?.count ?? 0}</div>
++              <div className="mt-1 text-sm text-muted-foreground">Follow-ups Due</div>
++              <div className={cn('mt-2 text-xs font-medium', (followups?.overdue ?? 0) > 0 ? 'text-red-500' : 'text-green-600')}>
++                {(followups?.overdue ?? 0) > 0 ? `${followups?.overdue} overdue` : 'All caught up'}
++              </div>
++            </div>
++
++            <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
++              <div className="mb-3 text-2xl">🏆</div>
++              <div className="text-3xl font-bold text-foreground">{metrics?.openDealsCount ?? 0}</div>
++              <div className="mt-1 text-sm text-muted-foreground">Deals Closed</div>
++              <div className="mt-2 text-xs font-medium text-green-600">
++                This week
++              </div>
++            </div>
+           </>
+         )}
+       </div>
+ 
+-      {/* Quick actions */}
+-      <QuickActions />
+-
+-      {/* Charts row */}
+-      {/* items-stretch (the grid default) stretches the two columns to
+-          match the tallest sibling; adding h-full on each wrapper and
+-          on the inner panels makes both cards actually fill that
+-          stretched height so their rounded borders line up. Without
+-          this, the pipeline card rendered at its natural (shorter)
+-          height while the line chart drove the row height. */}
+-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+-        <div className="h-full lg:col-span-3">
+-          <ConversationsChart
+-            series={series}
+-            loading={seriesLoading}
+-            range={range}
+-            onRangeChange={handleRangeChange}
+-          />
+-        </div>
+-        <div className="h-full lg:col-span-2">
+-          <PipelineDonut
+-            data={pipeline}
+-            loading={pipelineLoading}
+-            currency={defaultCurrency}
+-          />
++      {/* Two-column layout */}
++      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
++        <div className="lg:col-span-2 flex flex-col min-h-0">
++          <div className="rounded-xl border border-border bg-card flex-1 p-5 shadow-sm">
++            <div className="flex items-center justify-between mb-4">
++              <h3 className="text-lg font-semibold text-foreground">{t('recentLeads')}</h3>
++              <Link href="/contacts" className="text-sm font-medium text-primary hover:underline">
++                {t('viewAll')}
++              </Link>
++            </div>
++            
++            <div className="flex flex-col">
++              {recentLeadsLoading ? (
++                <div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
++              ) : recentLeads.length === 0 ? (
++                <div className="py-8 text-center text-sm text-muted-foreground">No recent leads.</div>
++              ) : (
++                recentLeads.map((lead) => {
++                  const isHot = lead.contact_tags?.some((t: any) => t.tags?.name === 'hot-lead');
++                  const location = lead.lead_details?.[0]?.location_preference || 'No location';
++                  const budget = lead.lead_details?.[0]?.budget_max 
++                    ? (defaultCurrency === 'INR' ? formatINR(lead.lead_details[0].budget_max) : formatCurrency(lead.lead_details[0].budget_max, defaultCurrency))
++                    : 'No budget';
++                  const source = lead.lead_details?.[0]?.source || 'manual';
++                  const stageName = lead.deals?.[0]?.pipeline_stages?.name || 'New';
++
++                  return (
++                    <div key={lead.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
++                      <Avatar className="h-9 w-9 shrink-0">
++                        <AvatarFallback className="text-sm font-medium text-white" style={{ background: avatarColorForName(lead.name) }}>
++                          {initialsForName(lead.name)}
++                        </AvatarFallback>
++                      </Avatar>
++                      <div className="min-w-0 flex-1">
++                        <div className="flex items-center gap-1.5">
++                          <span className="text-sm font-medium text-foreground truncate">{lead.name || 'Unknown'}</span>
++                          {isHot && (
++                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 uppercase">
++                              HOT
++                            </span>
++                          )}
++                        </div>
++                        <p className="text-xs text-muted-foreground truncate">{location} · {budget}</p>
++                      </div>
++                      <div className="hidden sm:block shrink-0">
++                        <SourceBadge source={source} />
++                      </div>
++                      <div className="hidden sm:block shrink-0 ml-2">
++                        <StatusBadge status={stageName} />
++                      </div>
++                      <div className="flex items-center gap-1.5 ml-auto pl-2">
++                        <Link href={`/inbox?contact=${lead.id}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
++                          <MessageCircle className="size-4" />
++                        </Link>
++                        <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
++                          <Phone className="size-4" />
++                        </button>
++                      </div>
++                    </div>
++                  );
++                })
++              )}
++            </div>
++          </div>
+         </div>
+-      </div>
+ 
+-      {/* Response time */}
+-      <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
++        <div className="lg:col-span-1 flex flex-col gap-6">
++          <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
++            <div className="flex items-center justify-between mb-4">
++              <h3 className="text-sm font-semibold text-foreground">{t('todayVisits')}</h3>
++              <span className="text-xs text-primary font-medium bg-primary/10 px-2 py-0.5 rounded-full">
++                {todayVisits.length} {t('todayVisits').split(' ')[0].toLowerCase()}
++              </span>
++            </div>
++            <div className="flex flex-col">
++              {todayVisitsLoading ? (
++                <div className="py-4 text-center text-sm text-muted-foreground">Loading...</div>
++              ) : todayVisits.length === 0 ? (
++                <div className="py-4 text-center text-sm text-muted-foreground">No visits scheduled today.</div>
++              ) : (
++                todayVisits.map((v) => {
++                  const time = new Date(v.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
++                  return (
++                    <div key={v.id} className="flex items-center gap-3 py-3 border-b border-border last:border-0">
++                      <div className="shrink-0 rounded-lg bg-primary/10 px-2 py-1.5 text-center min-w-[56px]">
++                        <div className="text-[9px] font-bold uppercase text-primary">TODAY</div>
++                        <div className="text-xs font-bold text-primary">{time}</div>
++                      </div>
++                      <div className="flex-1 min-w-0">
++                        <p className="text-sm font-medium text-foreground truncate">{v.contacts?.name || 'Unknown'}</p>
++                        <p className="text-xs text-muted-foreground truncate">📍 {v.properties?.title || 'No property'}</p>
++                      </div>
++                      <StatusBadge status={v.status} />
++                    </div>
++                  );
++                })
++              )}
++            </div>
++          </div>
+ 
+-      {/* Tasks and Activity feed */}
+-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+-        <div className="bg-card border-border flex min-h-0 flex-col rounded-xl border p-4 shadow-sm">
+-          <TasksWidget />
+-        </div>
+-        <div className="flex min-h-0 flex-col">
+-          <ActivityFeed items={activity} loading={activityLoading} />
++          <div className="rounded-xl border border-border bg-card flex flex-col shadow-sm flex-1 min-h-[300px]">
++            <TasksWidget />
++          </div>
+         </div>
+       </div>
+     </div>
+   );
+ }
+-
+-// ------------------------------------------------------------
+-
+-function deltaLabel(
+-  delta: number,
+-  suffix: string,
+-  noChangeLabel: string
+-): string {
+-  if (delta === 0) return noChangeLabel;
+-  const sign = delta > 0 ? '+' : '';
+-  return `${sign}${delta.toLocaleString()} ${suffix}`;
+-}
+diff --git a/src/app/(dashboard)/integrations/integrations-client.tsx b/src/app/(dashboard)/integrations/integrations-client.tsx
+index 2c4d3f0..f7cbee1 100644
+--- a/src/app/(dashboard)/integrations/integrations-client.tsx
++++ b/src/app/(dashboard)/integrations/integrations-client.tsx
+@@ -49,12 +49,12 @@ export function IntegrationsClient({
+         </p>
+       </div>
+ 
+-      <div className="bg-card border-border rounded-xl border p-5 shadow-sm">
+-        <h2 className="mb-1 text-lg font-semibold">Universal Capture Email</h2>
++      <div className="bg-primary/5 border-primary/20 rounded-xl border-2 p-5 shadow-sm">
++        <h2 className="mb-1 text-lg font-semibold text-primary">Universal Capture Email</h2>
+         <p className="text-muted-foreground mb-4 text-sm">
+           {t('capture_email.subtitle')}
+         </p>
+-        <div className="bg-muted flex flex-col justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
++        <div className="bg-background border-border flex flex-col justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+           <code className="font-mono text-sm font-medium break-all select-all">
+             {captureEmail}
+           </code>
+diff --git a/src/app/(dashboard)/integrations/page.tsx b/src/app/(dashboard)/integrations/page.tsx
+index c24deb1..ab266f4 100644
+--- a/src/app/(dashboard)/integrations/page.tsx
++++ b/src/app/(dashboard)/integrations/page.tsx
+@@ -84,10 +84,7 @@ export default async function IntegrationsPage() {
+       name: 'WhatsApp Business',
+       slug: 'WhatsApp Business',
+       icon: MessageCircle,
+-      status: (whatsappConfig?.phone_number_id &&
+-      whatsappConfig?.status === 'connected'
+-        ? 'connected'
+-        : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
++      status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
+       test_lead: false,
+       isNative: true,
+     },
+diff --git a/src/app/(dashboard)/layout.tsx b/src/app/(dashboard)/layout.tsx
+index 80a32fd..fdfee43 100644
+--- a/src/app/(dashboard)/layout.tsx
++++ b/src/app/(dashboard)/layout.tsx
+@@ -1,5 +1,6 @@
+ import type { Metadata } from 'next';
+ import { DashboardShell } from './dashboard-shell';
++import { AnnouncementBanner } from '@/components/layout/announcement-banner';
+ 
+ // Server layout whose only job is to declare "do not index" metadata
+ // for the authed app. robots.ts already disallows these paths at the
+@@ -24,5 +25,10 @@ export default function DashboardLayout({
+ }: {
+   children: React.ReactNode;
+ }) {
+-  return <DashboardShell>{children}</DashboardShell>;
++  return (
++    <>
++      <AnnouncementBanner />
++      <DashboardShell>{children}</DashboardShell>
++    </>
++  );
+ }
+diff --git a/src/app/(dashboard)/site-visits/page.tsx b/src/app/(dashboard)/site-visits/page.tsx
+index 72366eb..1de9db6 100644
+--- a/src/app/(dashboard)/site-visits/page.tsx
++++ b/src/app/(dashboard)/site-visits/page.tsx
+@@ -4,23 +4,42 @@ import { useState, useEffect, useCallback } from 'react';
+ import { createClient } from '@/lib/supabase/client';
+ import { useTranslations } from 'next-intl';
+ import { toast } from 'sonner';
+-import { Badge } from '@/components/ui/badge';
+ import { Button } from '@/components/ui/button';
+-import { Loader2, Plus, Phone, Calendar, MapPin, Search } from 'lucide-react';
++import { Loader2, Plus, Phone, Search, MessageCircle, Pencil, Calendar } from 'lucide-react';
+ import { Input } from '@/components/ui/input';
+ import { useCan } from '@/hooks/use-can';
+ import { GatedButton } from '@/components/ui/gated-button';
+ import type { SiteVisit, Contact, Property } from '@/types';
+ import { ScheduleVisitSheet } from '@/components/site-visits/schedule-visit-sheet';
+ import { PullToRefresh } from '@/components/layout/pull-to-refresh';
++import { PageHeader } from '@/components/layout/page-header';
++import Link from 'next/link';
++import { cn } from '@/lib/utils';
+ 
+-import { format, isToday, isPast, isFuture } from 'date-fns';
++import { format, isToday, isPast, isFuture, isTomorrow } from 'date-fns';
+ 
+ type VisitWithDetails = SiteVisit & {
+   contact: Contact | null;
+   property: Property | null;
+ };
+ 
++const VISIT_STATUS_CONFIG: Record<string, { bg: string; text: string }> = {
++  confirmed: { bg: 'bg-green-100', text: 'text-green-700' },
++  pending: { bg: 'bg-amber-100', text: 'text-amber-700' },
++  no_show: { bg: 'bg-red-100', text: 'text-red-700' },
++  rescheduled: { bg: 'bg-blue-100', text: 'text-blue-700' },
++  completed: { bg: 'bg-gray-100', text: 'text-gray-700' },
++};
++
++function VisitStatusBadge({ status, label }: { status: string; label: string }) {
++  const cfg = VISIT_STATUS_CONFIG[status] ?? { bg: 'bg-gray-100', text: 'text-gray-600' };
++  return (
++    <span className={cn('inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.bg, cfg.text)}>
++      {label}
++    </span>
++  );
++}
++
+ export default function SiteVisitsPage() {
+   const t = useTranslations('SiteVisits.page');
+   const supabase = createClient();
+@@ -92,10 +111,7 @@ export default function SiteVisitsPage() {
+     )
+     .reverse();
+ 
+-  function VisitCard({ visit }: { visit: VisitWithDetails }) {
+-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+-    const statusVariant = `visit-${visit.status}` as any;
+-
++  function VisitListRow({ visit }: { visit: VisitWithDetails }) {
+     const statusLabelKey = `status${visit.status
+       .split('_')
+       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+@@ -103,90 +119,56 @@ export default function SiteVisitsPage() {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     const statusLabel = t(statusLabelKey as any) || visit.status;
+ 
++    const dateObj = visit.scheduled_at ? new Date(visit.scheduled_at) : null;
++    const isVisitToday = dateObj ? isToday(dateObj) : false;
++    const isVisitTomorrow = dateObj ? isTomorrow(dateObj) : false;
++    const formattedDate = dateObj ? format(dateObj, 'MMM d') : '-';
++    const hour = dateObj ? format(dateObj, 'h') : '-';
++    const minute = dateObj ? format(dateObj, 'mm') : '--';
++    const ampm = dateObj ? format(dateObj, 'a') : '';
++
+     return (
+-      <div className="border-border bg-card overflow-hidden rounded-lg border p-4 shadow-sm">
+-        <div className="flex items-start justify-between gap-2">
+-          <div className="min-w-0 flex-1">
+-            <h3 className="text-foreground truncate font-medium">
+-              {visit.contact?.name || visit.contact?.phone || 'Unknown Contact'}
+-            </h3>
+-            {visit.property && (
+-              <p className="text-muted-foreground mt-0.5 truncate text-sm">
+-                <MapPin className="mr-1 inline-block size-3" />
+-                {visit.property.title}
+-              </p>
+-            )}
+-            <p className="text-muted-foreground mt-1 text-xs">
+-              <Calendar className="mr-1 inline-block size-3" />
+-              {visit.scheduled_at
+-                ? format(new Date(visit.scheduled_at), 'h:mm a')
+-                : 'Unscheduled'}
+-            </p>
++      <div className="flex items-center gap-4 rounded-xl border border-border bg-card px-5 py-4">
++        {/* Date block */}
++        <div className="shrink-0 rounded-xl bg-primary/10 p-3 text-center w-16">
++          <div className="text-[9px] font-bold uppercase tracking-wide text-primary">
++            {isVisitToday ? 'TODAY' : isVisitTomorrow ? 'TOMORROW' : formattedDate}
+           </div>
+-          <Badge variant={statusVariant}>{statusLabel}</Badge>
++          <div className="mt-0.5 text-xl font-bold text-primary">{hour}:{minute}</div>
++          <div className="text-[9px] text-primary/70 uppercase">{ampm}</div>
+         </div>
+ 
+-        <div className="mt-4 flex flex-wrap gap-2">
+-          <a href={`tel:${visit.contact?.phone}`} className="flex-1">
+-            <Button variant="outline" size="sm" className="w-full">
+-              <Phone className="mr-1.5 size-3.5" />
+-              {t('call')}
+-            </Button>
+-          </a>
+-          <a
+-            href={`https://wa.me/${visit.contact?.phone?.replace(/[^0-9]/g, '')}`}
+-            target="_blank"
+-            rel="noreferrer"
+-            className="flex-1"
+-          >
+-            <Button variant="outline" size="sm" className="w-full">
+-              <span className="mr-1.5 font-bold">W</span>
+-              {t('whatsapp')}
+-            </Button>
+-          </a>
++        {/* Name + Property */}
++        <div className="flex-1 min-w-0">
++          <p className="font-semibold text-foreground truncate">
++            {visit.contact?.name || visit.contact?.phone || 'Unknown Contact'}
++          </p>
++          <p className="text-sm text-muted-foreground mt-0.5 truncate">
++            📍 {visit.property?.title || 'No Property'}{visit.property?.location ? `, ${visit.property.location}` : ''}
++          </p>
+         </div>
+ 
+-        {visit.status === 'pending' && canEdit && (
+-          <div className="mt-2 flex gap-2">
+-            <Button
+-              variant="secondary"
+-              size="sm"
+-              className="flex-1"
+-              onClick={() => updateStatus(visit.id, 'confirmed')}
+-            >
+-              {t('confirm')}
+-            </Button>
+-            <Button
+-              variant="ghost"
+-              size="sm"
+-              className="text-muted-foreground flex-1"
+-              onClick={() => updateStatus(visit.id, 'rescheduled')}
+-            >
+-              {t('reschedule')}
+-            </Button>
+-          </div>
+-        )}
++        {/* Status badge */}
++        <VisitStatusBadge status={visit.status} label={statusLabel} />
+ 
+-        {visit.status === 'confirmed' && canEdit && (
+-          <div className="mt-2 flex gap-2">
+-            <Button
+-              variant="secondary"
+-              size="sm"
+-              className="flex-1"
+-              onClick={() => updateStatus(visit.id, 'completed')}
+-            >
+-              {t('markCompleted')}
+-            </Button>
+-            <Button
+-              variant="destructive"
+-              size="sm"
+-              className="flex-1"
+-              onClick={() => updateStatus(visit.id, 'no_show')}
+-            >
+-              {t('markNoShow')}
+-            </Button>
+-          </div>
+-        )}
++        {/* Actions */}
++        <div className="flex items-center gap-2 text-muted-foreground ml-2">
++          {visit.contact && (
++            <Link href={`/inbox?contact=${visit.contact.id}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
++              <MessageCircle className="size-4" />
++            </Link>
++          )}
++          {visit.contact?.phone && (
++            <a href={`tel:${visit.contact.phone}`} className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
++              <Phone className="size-4" />
++            </a>
++          )}
++          {canEdit && (
++            <button className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground" onClick={() => setScheduleOpen(true)}>
++              <Pencil className="size-4" />
++            </button>
++          )}
++        </div>
+       </div>
+     );
+   }
+@@ -194,23 +176,21 @@ export default function SiteVisitsPage() {
+   return (
+     <PullToRefresh onRefresh={fetchVisits}>
+       <div className="space-y-6 pb-20">
+-        <div className="flex items-center justify-between">
+-          <div>
+-            <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>
+-            <p className="text-muted-foreground mt-1 text-sm">
+-              {t('subtitle')}
+-            </p>
+-          </div>
+-          <GatedButton
+-            canAct={canEdit}
+-            gateReason="schedule visits"
+-            onClick={() => setScheduleOpen(true)}
+-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+-          >
+-            <Plus className="mr-1 size-4" />
+-            {t('scheduleBtn')}
+-          </GatedButton>
+-        </div>
++        <PageHeader 
++          title={t('title')} 
++          subtitle={`${visits.length} visits scheduled`}
++          action={
++            <GatedButton
++              canAct={canEdit}
++              gateReason="schedule visits"
++              onClick={() => setScheduleOpen(true)}
++              className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-4 text-sm"
++            >
++              <Plus className="mr-1 size-4" />
++              {t('scheduleBtn')}
++            </GatedButton>
++          }
++        />
+ 
+         <div className="relative">
+           <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+@@ -239,7 +219,7 @@ export default function SiteVisitsPage() {
+               variant="outline"
+               size="sm"
+               onClick={() => setScheduleOpen(true)}
+-              className="mt-4"
++              className="mt-4 rounded-full"
+             >
+               {t('scheduleBtn')}
+             </GatedButton>
+@@ -251,9 +231,9 @@ export default function SiteVisitsPage() {
+                 <h2 className="text-foreground mb-3 text-lg font-semibold">
+                   {t('today')}
+                 </h2>
+-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
++                <div className="flex flex-col gap-3">
+                   {todayVisits.map((v) => (
+-                    <VisitCard key={v.id} visit={v} />
++                    <VisitListRow key={v.id} visit={v} />
+                   ))}
+                 </div>
+               </div>
+@@ -263,9 +243,9 @@ export default function SiteVisitsPage() {
+                 <h2 className="text-foreground mb-3 text-lg font-semibold">
+                   {t('upcoming')}
+                 </h2>
+-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
++                <div className="flex flex-col gap-3">
+                   {upcomingVisits.map((v) => (
+-                    <VisitCard key={v.id} visit={v} />
++                    <VisitListRow key={v.id} visit={v} />
+                   ))}
+                 </div>
+               </div>
+@@ -275,9 +255,9 @@ export default function SiteVisitsPage() {
+                 <h2 className="text-foreground mb-3 text-lg font-semibold">
+                   {t('past')}
+                 </h2>
+-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
++                <div className="flex flex-col gap-3">
+                   {pastVisits.map((v) => (
+-                    <VisitCard key={v.id} visit={v} />
++                    <VisitListRow key={v.id} visit={v} />
+                   ))}
+                 </div>
+               </div>
+diff --git a/src/app/globals.css b/src/app/globals.css
+index 88af90a..da56640 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -133,40 +133,55 @@ html[data-mode='dark'] {
+ }
+ 
+ html[data-mode='light'] {
+-  --background: oklch(0.99 0.002 260);
+-  --foreground: oklch(0.21 0.01 260);
+-  --card: oklch(1 0 0);
+-  --card-2: oklch(0.985 0.002 260);
+-  --card-foreground: oklch(0.21 0.01 260);
+-  --popover: oklch(1 0 0);
+-  --popover-foreground: oklch(0.21 0.01 260);
+-  --secondary: oklch(0.967 0.003 260);
+-  --secondary-foreground: oklch(0.25 0.01 260);
+-  --muted: oklch(0.967 0.003 260);
+-  --muted-foreground: oklch(0.52 0.015 260);
+-  --accent: oklch(0.96 0.004 260);
+-  --accent-foreground: oklch(0.25 0.01 260);
++  --background: #F9FAFB;
++  --foreground: #111827;
++  --card: #FFFFFF;
++  --card-2: #F9FAFB;
++  --card-foreground: #111827;
++  --popover: #FFFFFF;
++  --popover-foreground: #111827;
++  --secondary: #F3F4F6;
++  --secondary-foreground: #1F2937;
++  --muted: #F3F4F6;
++  --muted-foreground: #6B7280;
++  --accent: #F3F4F6;
++  --accent-foreground: #1F2937;
+   --destructive: oklch(0.577 0.245 27.325);
+-  --border: oklch(0.922 0.004 260);
+-  --input: oklch(0.922 0.004 260);
++  --border: #E5E7EB;
++  --input: #E5E7EB;
+   --chart-2: oklch(0.6 0.1 260);
+   --chart-3: oklch(0.7 0.06 260);
+   --chart-4: oklch(0.8 0.04 260);
+   --chart-5: oklch(0.87 0.03 260);
+   --radius: 0.625rem;
+-  --sidebar: oklch(0.985 0.002 260);
+-  --sidebar-foreground: oklch(0.21 0.01 260);
+-  --sidebar-accent: oklch(0.96 0.004 260);
+-  --sidebar-accent-foreground: oklch(0.25 0.01 260);
+-  --sidebar-border: oklch(0.922 0.004 260);
+-  --status-new: oklch(0.7 0.1 260);
+-  --status-contacted: oklch(0.7 0.15 293);
+-  --status-site-visit: oklch(0.75 0.15 65);
+-  --status-negotiation: oklch(0.85 0.15 85);
+-  --status-closed: oklch(0.65 0.15 162);
++  --sidebar: #FFFFFF;
++  --sidebar-foreground: #111827;
++  --sidebar-accent: #EFF6FF;
++  --sidebar-accent-foreground: #1D4ED8;
++  --sidebar-border: #E5E7EB;
++  --status-new: #2563EB;
++  --status-contacted: #7C3AED;
++  --status-site-visit: #0D9488;
++  --status-negotiation: #D97706;
++  --status-closed: #16A34A;
+   --sla-good: oklch(0.65 0.15 162);
+   --sla-warning: oklch(0.75 0.15 65);
+   --sla-critical: oklch(0.577 0.245 27.325);
++
++  --source-99acres-bg: #FEE2E2;
++  --source-99acres-text: #DC2626;
++  --source-magicbricks-bg: #FFEDD5;
++  --source-magicbricks-text: #EA580C;
++  --source-housingcom-bg: #D1FAE5;
++  --source-housingcom-text: #059669;
++  --source-nobroker-bg: #EFF6FF;
++  --source-nobroker-text: #3B82F6;
++  --source-manual-bg: #F3F4F6;
++  --source-manual-text: #6B7280;
++  --source-referral-bg: #FDF4FF;
++  --source-referral-text: #9333EA;
++  --source-walkin-bg: #FFF7ED;
++  --source-walkin-text: #EA580C;
+ }
+ 
+ /* ---- ACCENT: primary color ---- */
+@@ -241,6 +256,19 @@ html[data-theme='rose'] {
+   --sidebar-ring: oklch(0.645 0.22 16);
+ }
+ 
++html[data-theme='blue'] {
++  --primary: #2563EB;
++  --primary-foreground: #FFFFFF;
++  --primary-hover: #1D4ED8;
++  --primary-soft: rgba(37, 99, 235, 0.10);
++  --primary-soft-2: rgba(37, 99, 235, 0.18);
++  --ring: #2563EB;
++  --chart-1: #2563EB;
++  --sidebar-primary: #2563EB;
++  --sidebar-primary-foreground: #FFFFFF;
++  --sidebar-ring: #2563EB;
++}
++
+ @layer base {
+   * {
+     @apply border-border outline-ring/50;
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index bb57c2f..9e8112a 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -18,6 +18,7 @@ import {
+ const inter = Inter({
+   variable: '--font-sans',
+   subsets: ['latin'],
++  display: 'swap',
+ });
+ 
+ export const metadata: Metadata = {
+diff --git a/src/components/layout/announcement-banner.tsx b/src/components/layout/announcement-banner.tsx
+new file mode 100644
+index 0000000..6212255
+--- /dev/null
++++ b/src/components/layout/announcement-banner.tsx
+@@ -0,0 +1,39 @@
++'use client';
++import { useState, useEffect } from 'react';
++import { X } from 'lucide-react';
++
++export function AnnouncementBanner() {
++  const [visible, setVisible] = useState(false);
++
++  useEffect(() => {
++    const dismissed = localStorage.getItem('wacrm-banner-v1-dismissed');
++    // eslint-disable-next-line react-hooks/set-state-in-effect
++    setVisible(!dismissed);
++  }, []);
++
++  if (!visible) return null;
++
++  return (
++    <div
++      className="flex items-center justify-center gap-3 px-4 py-2 text-sm text-white"
++      style={{ background: 'linear-gradient(90deg, #2563EB 0%, #7C3AED 100%)' }}
++    >
++      <span>🚀</span>
++      <span>
++        Agent Demo Mode — Explore freely. No login required.{' '}
++        <button className="ml-2 rounded-full border border-white/40 px-3 py-0.5 text-xs font-semibold hover:bg-white/10">
++          Start free →
++        </button>
++      </span>
++      <button
++        className="ml-auto p-1 hover:opacity-70"
++        onClick={() => {
++          localStorage.setItem('wacrm-banner-v1-dismissed', '1');
++          setVisible(false);
++        }}
++      >
++        <X className="size-3.5" />
++      </button>
++    </div>
++  );
++}
+diff --git a/src/components/layout/header.tsx b/src/components/layout/header.tsx
+index 19a60be..0beb496 100644
+--- a/src/components/layout/header.tsx
++++ b/src/components/layout/header.tsx
+@@ -4,7 +4,8 @@ import Link from 'next/link';
+ import { usePathname } from 'next/navigation';
+ import { useState } from 'react';
+ import { useAuth } from '@/hooks/use-auth';
+-import { LogOut, Menu, Settings as SettingsIcon, User } from 'lucide-react';
++import { LogOut, Menu, Settings as SettingsIcon, User, Search, ChevronDown, Bell } from 'lucide-react';
++import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
+ import { Switch } from '@/components/ui/switch';
+ import { toast } from 'sonner';
+ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+@@ -48,6 +49,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
+   const t = useTranslations('Header');
+   const pathname = usePathname();
+   const { profile, accountRole, signOut, refreshProfile } = useAuth();
++  const unreadNotifs = useUnreadNotifications();
+   const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
+ 
+   const handleAvailabilityChange = async (isAvailable: boolean) => {
+@@ -83,7 +85,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
+     'U';
+ 
+   return (
+-    <header className="border-border bg-background flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:px-6">
++    <header className="sticky top-0 z-40 flex h-[52px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 md:px-6">
+       <div className="flex min-w-0 items-center gap-2">
+         {/* Hamburger — mobile only. 44×44 hit target per Apple HIG. */}
+         <button
+@@ -99,28 +101,43 @@ export function Header({ onOpenSidebar }: HeaderProps) {
+         </h1>
+       </div>
+ 
+-      <div className="flex items-center gap-1 sm:gap-2">
+-        <ModeToggle />
++      {/* Center: Global search */}
++      <div className="hidden md:flex flex-1 max-w-sm mx-8">
++        <div className="relative w-full">
++          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
++          <input
++            type="text"
++            placeholder={t('searchPlaceholder')}
++            className="w-full rounded-lg border border-border bg-muted py-1.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
++          />
++        </div>
++      </div>
++
++      <div className="flex items-center gap-2">
++        <button className="relative p-2 rounded-lg hover:bg-muted hidden md:flex">
++          <Bell className="size-4 text-muted-foreground" />
++          {unreadNotifs > 0 && (
++            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
++          )}
++        </button>
+ 
+         <DropdownMenu>
+-          <DropdownMenuTrigger
+-            className="hover:bg-muted/70 focus:bg-muted/70 data-popup-open:bg-muted/70 flex items-center gap-2 rounded-md px-1 py-1 transition-colors focus:outline-none sm:gap-3 sm:pr-3 sm:pl-1"
+-            aria-label={t('openAccountMenu')}
+-          >
+-            <Avatar className="size-8">
++          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
++            <Avatar className="h-7 w-7">
+               {profile?.avatar_url ? (
+                 <AvatarImage
+                   src={profile.avatar_url}
+                   alt={profile.full_name ?? t('defaultAvatar')}
+                 />
+               ) : null}
+-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
++              <AvatarFallback className="text-xs bg-primary text-white">
+                 {initial}
+               </AvatarFallback>
+             </Avatar>
+-            <span className="text-foreground hidden text-sm font-medium sm:inline">
+-              {profile?.full_name ?? t('defaultUser')}
++            <span className="hidden md:block text-sm font-medium text-foreground">
++              {profile?.full_name?.split(' ')[0] ?? t('defaultUser')}
+             </span>
++            <ChevronDown className="size-3.5 text-muted-foreground hidden md:block" />
+           </DropdownMenuTrigger>
+           <DropdownMenuContent
+             align="end"
+@@ -169,6 +186,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
+               </div>
+             )}
+             <DropdownMenuSeparator className="bg-border" />
++            <div className="flex items-center justify-between px-2 py-1.5 hover:bg-transparent">
++              <span className="pl-1 text-sm font-medium">Theme</span>
++              <ModeToggle />
++            </div>
++            <DropdownMenuSeparator className="bg-border" />
+             <DropdownMenuItem
+               onClick={signOut}
+               className="text-popover-foreground focus:bg-accent focus:text-accent-foreground"
+diff --git a/src/components/layout/page-header.tsx b/src/components/layout/page-header.tsx
+new file mode 100644
+index 0000000..5911b62
+--- /dev/null
++++ b/src/components/layout/page-header.tsx
+@@ -0,0 +1,21 @@
++import React from 'react';
++
++interface PageHeaderProps {
++  title: string;
++  subtitle?: React.ReactNode;
++  action?: React.ReactNode;  // "+ Add Lead" button etc.
++}
++
++export function PageHeader({ title, subtitle, action }: PageHeaderProps) {
++  return (
++    <div className="flex items-start justify-between pb-5">
++      <div>
++        <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
++        {subtitle && (
++          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
++        )}
++      </div>
++      {action && <div>{action}</div>}
++    </div>
++  );
++}
+diff --git a/src/components/layout/sidebar.tsx b/src/components/layout/sidebar.tsx
+index 3feb2f0..3795912 100644
+--- a/src/components/layout/sidebar.tsx
++++ b/src/components/layout/sidebar.tsx
+@@ -10,6 +10,7 @@ import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
+ import {
+   Bell,
+   Bot,
++  CalendarCheck,
+   Crown,
+   GitBranch,
+   LayoutDashboard,
+@@ -78,6 +79,7 @@ interface NavItem {
+   href: string;
+   labelKey: string;
+   icon: typeof LayoutDashboard;
++  emoji?: string;
+   /**
+    * When true, the nav row renders a small "Beta" chip after the label.
+    * Purely informational — doesn't affect routing or access.
+@@ -90,23 +92,18 @@ interface NavItem {
+ }
+ 
+ const navItems: NavItem[] = [
+-  { href: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+-  { href: '/inbox', labelKey: 'inbox', icon: MessageSquare },
+-  { href: '/notifications', labelKey: 'notifications', icon: Bell },
+-  { href: '/contacts', labelKey: 'contacts', icon: Users },
+-  { href: '/pipelines', labelKey: 'pipelines', icon: GitBranch },
+-  { href: '/properties', labelKey: 'properties', icon: Building },
+-  { href: '/broadcasts', labelKey: 'broadcasts', icon: Radio },
+-  { href: '/automations', labelKey: 'automations', icon: Zap },
+-  { href: '/flows', labelKey: 'flows', icon: Workflow, beta: true },
+-  { href: '/agents', labelKey: 'aiAgents', icon: Bot },
+-  { href: '/team', labelKey: 'team', icon: UsersRound, adminOnly: true },
+-  {
+-    href: '/integrations',
+-    labelKey: 'integrations',
+-    icon: Plug,
+-    adminOnly: true,
+-  },
++  { href: '/dashboard',   labelKey: 'dashboard',   icon: LayoutDashboard, emoji: '📊' },
++  { href: '/contacts',    labelKey: 'contacts',    icon: Users,            emoji: '👥' },
++  { href: '/site-visits', labelKey: 'visits',      icon: CalendarCheck,    emoji: '🏠' },
++  { href: '/pipelines',   labelKey: 'pipelines',   icon: GitBranch,        emoji: '📈' },
++  { href: '/inbox',       labelKey: 'inbox',       icon: MessageSquare,    emoji: '💬' },
++  { href: '/broadcasts',  labelKey: 'broadcasts',  icon: Radio,            emoji: '📣' },
++  { href: '/integrations',labelKey: 'integrations',icon: Plug,             emoji: '🔌', adminOnly: true },
++  { href: '/automations', labelKey: 'automations', icon: Zap,              emoji: '⚡' },
++  { href: '/flows',       labelKey: 'flows',       icon: Workflow,         emoji: '🔀', beta: true },
++  { href: '/agents',      labelKey: 'aiAgents',    icon: Bot,              emoji: '🤖' },
++  { href: '/properties',  labelKey: 'properties',  icon: Building,         emoji: '🏢' },
++  { href: '/team',        labelKey: 'team',        icon: UsersRound,       emoji: '👤', adminOnly: true },
+ ];
+ 
+ const bottomNavItems = [
+@@ -215,25 +212,17 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
+ 
+       <aside
+         className={cn(
+-          // Mobile: fixed drawer that slides in from the left.
+-          'border-border bg-card fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r',
+-          'transition-transform duration-200 ease-out will-change-transform',
+-          open ? 'translate-x-0' : '-translate-x-full',
+-          // Desktop: static, always visible — reset all the mobile framing.
+-          'lg:static lg:z-0 lg:w-60 lg:translate-x-0 lg:transition-none'
++          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:w-44 lg:translate-x-0 lg:transition-none',
++          open ? 'translate-x-0' : '-translate-x-full'
+         )}
+         aria-label={t('primaryNav')}
+       >
+-        {/* Logo row. On mobile we put a close button here; on desktop the
+-            close button is hidden since the sidebar is always-visible. */}
+-        <div className="border-border flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
++        <div className="flex items-center justify-between gap-2 px-4 py-5 border-b border-border shrink-0">
+           <Link href="/dashboard" className="flex items-center gap-2">
+-            <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
+-              <MessageSquare className="h-4 w-4" />
++            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white font-bold text-sm">
++              W
+             </div>
+-            <span className="text-foreground text-sm font-semibold">
+-              {t('title')}
+-            </span>
++            <span className="font-semibold text-base text-foreground">WaCRM</span>
+           </Link>
+           <button
+             type="button"
+@@ -261,57 +250,30 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
+                 pathname === item.href ||
+                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
+ 
+-              const showUnreadDot =
+-                item.href === '/inbox' && totalUnread > 0 && !isActive;
+-
+-              // Unlike the inbox dot, the notifications count stays visible
+-              // even while the page is active — it reflects unread state
+-              // (cleared by marking notifications read), not "currently
+-              // viewing this section".
+-              const showNotificationBadge =
+-                item.href === '/notifications' && unreadNotifications > 0;
+-
+               return (
+                 <li key={item.href}>
+                   <Link
+                     href={item.href}
+                     className={cn(
+-                      // Taller on mobile so fingers can hit the row reliably (≥44px).
+-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2',
++                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                       isActive
+                         ? 'bg-primary/10 text-primary'
+                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                     )}
+                   >
+-                    <item.icon className="h-4 w-4" />
+-                    <span className="flex-1">{t(item.labelKey as string)}</span>
++                    <span className="text-base leading-none">{item.emoji ?? <item.icon className="h-4 w-4" />}</span>
++                    <span>{t(item.labelKey as string)}</span>
+                     {item.beta && (
+                       <span
+                         aria-label={t('beta')}
+-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase"
++                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase ml-1"
+                       >
+                         {t('beta')}
+                       </span>
+                     )}
+-                    {showUnreadDot && (
+-                      <span
+-                        aria-label={t('unreadConversations', {
+-                          count: totalUnread,
+-                        })}
+-                        className="relative flex h-2 w-2"
+-                      >
+-                        <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+-                        <span className="bg-primary relative inline-flex h-2 w-2 rounded-full" />
+-                      </span>
+-                    )}
+-                    {showNotificationBadge && (
+-                      <span
+-                        aria-label={t('unreadNotifications', {
+-                          count: unreadNotifications,
+-                        })}
+-                        className="bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
+-                      >
+-                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
++                    {item.href === '/inbox' && totalUnread > 0 && (
++                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
++                        {totalUnread > 99 ? '99+' : totalUnread}
+                       </span>
+                     )}
+                   </Link>
+@@ -390,26 +352,26 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
+             </div>
+           ) : null}
+           <DropdownMenu>
+-            <DropdownMenuTrigger className="hover:bg-muted/60 focus:bg-muted/60 data-popup-open:bg-muted/60 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors focus:outline-none">
+-              <Avatar className="size-8 shrink-0">
++            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
++              <Avatar className="h-7 w-7">
+                 {profile?.avatar_url ? (
+                   <AvatarImage
+                     src={profile.avatar_url}
+                     alt={profile.full_name ?? t('defaultAvatar')}
+                   />
+                 ) : null}
+-                <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
++                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                   {profile?.full_name?.charAt(0)?.toUpperCase() ??
+                     profile?.email?.charAt(0)?.toUpperCase() ??
+                     'U'}
+                 </AvatarFallback>
+               </Avatar>
+-              <div className="min-w-0 flex-1">
+-                <p className="text-foreground truncate text-sm font-medium">
++              <div className="min-w-0 flex-1 text-left">
++                <p className="truncate text-xs font-medium text-foreground">
+                   {profile?.full_name ?? t('defaultUser')}
+                 </p>
+-                <p className="text-muted-foreground truncate text-xs">
+-                  {profile?.email ?? ''}
++                <p className="truncate text-[10px] text-muted-foreground">
++                  {accountRole ? t(ROLE_CHIP[accountRole].labelKey as string) : ''}
+                 </p>
+               </div>
+             </DropdownMenuTrigger>
+diff --git a/src/components/pipelines/deal-card.tsx b/src/components/pipelines/deal-card.tsx
+index 1348d25..36fb32e 100644
+--- a/src/components/pipelines/deal-card.tsx
++++ b/src/components/pipelines/deal-card.tsx
+@@ -1,10 +1,13 @@
+ 'use client';
+ 
+-import type { Deal, PipelineStage } from '@/types';
++import type { Deal, PipelineStage, Contact } from '@/types';
+ import { Calendar, Check, X, ArrowRightLeft } from 'lucide-react';
+ import { formatCurrency, formatINR } from '@/lib/currency';
+ import { useTranslations } from 'next-intl';
+ import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
++import { Avatar, AvatarFallback } from '@/components/ui/avatar';
++import { SourceBadge } from '@/components/ui/source-badge';
++import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
+ 
+ interface DealCardProps {
+   deal: Deal;
+@@ -15,6 +18,10 @@ interface DealCardProps {
+   brokeragePct?: number | null;
+ }
+ 
++type ExtendedContact = Contact & {
++  lead_details?: Array<{ location_preference?: string; source?: string }>;
++};
++
+ function formatDate(dateStr: string) {
+   return new Date(dateStr).toLocaleDateString('en-US', {
+     month: 'short',
+@@ -94,13 +101,24 @@ export function DealCard({
+       </div>
+ 
+       {/* Contact row */}
+-      <div className="mt-2 flex items-center gap-2">
+-        <span className="bg-muted text-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold">
+-          {initials(deal.contact?.name, deal.contact?.phone)}
+-        </span>
+-        <span className="text-muted-foreground truncate text-xs">
+-          {contactLabel}
+-        </span>
++      <div className="mt-2 flex flex-col gap-1.5">
++        <div className="flex items-center gap-2">
++          <Avatar className="h-5 w-5 shrink-0">
++            <AvatarFallback className="text-[10px] font-semibold text-white" style={{ background: avatarColorForName(contactLabel) }}>
++              {initialsForName(contactLabel)}
++            </AvatarFallback>
++          </Avatar>
++          <span className="text-foreground font-medium truncate text-xs">
++            {contactLabel}
++          </span>
++        </div>
++        
++        <div className="flex items-center gap-2 text-xs text-muted-foreground">
++          {(deal.contact as ExtendedContact)?.lead_details?.[0]?.location_preference && (
++            <span className="truncate">📍 {(deal.contact as ExtendedContact).lead_details?.[0].location_preference}</span>
++          )}
++          <SourceBadge source={(deal.contact as ExtendedContact)?.lead_details?.[0]?.source || 'manual'} className="scale-75 origin-left" />
++        </div>
+       </div>
+ 
+       <div className="mt-2 flex items-start justify-between">
+diff --git a/src/components/pipelines/pipeline-board.tsx b/src/components/pipelines/pipeline-board.tsx
+index 1a9db21..bf4ab9b 100644
+--- a/src/components/pipelines/pipeline-board.tsx
++++ b/src/components/pipelines/pipeline-board.tsx
+@@ -373,10 +373,10 @@ function StageColumn({
+         style={{ backgroundColor: stage.color }}
+       />
+       <div className="flex items-center justify-between pt-3">
+-        <h3 className="text-foreground truncate text-sm font-semibold">
++        <h3 className="truncate text-sm font-semibold" style={{ color: stage.color }}>
+           {stage.name}
+         </h3>
+-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium">
++        <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: stage.color + '20', color: stage.color }}>
+           {deals.length}
+         </span>
+       </div>
+@@ -419,7 +419,7 @@ function StageColumn({
+         className="border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground mt-3 w-full justify-start border border-dashed bg-transparent"
+       >
+         <Plus className="mr-1 h-3 w-3" />
+-        {t('addDeal')}
++        + Add Lead
+       </Button>
+     </div>
+   );
+diff --git a/src/components/ui/source-badge.tsx b/src/components/ui/source-badge.tsx
+new file mode 100644
+index 0000000..024dc8f
+--- /dev/null
++++ b/src/components/ui/source-badge.tsx
+@@ -0,0 +1,21 @@
++import { cn } from '@/lib/utils';
++
++const SOURCE_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
++  '99acres':         { bg: 'bg-red-100',     text: 'text-red-600',    label: '99acres' },
++  'magicbricks':     { bg: 'bg-orange-100',  text: 'text-orange-600', label: 'MagicBricks' },
++  'HousingCom':      { bg: 'bg-green-100',   text: 'text-green-700',  label: 'Housing.com' },
++  'no_broker':       { bg: 'bg-blue-100',    text: 'text-blue-600',   label: 'NoBroker' },
++  'referral':        { bg: 'bg-purple-100',  text: 'text-purple-600', label: 'Referral' },
++  'walk_in':         { bg: 'bg-amber-100',   text: 'text-amber-600',  label: 'Walk-in' },
++  'whatsapp_inbound':{ bg: 'bg-green-100',   text: 'text-green-600',  label: 'WhatsApp' },
++  'manual':          { bg: 'bg-gray-100',    text: 'text-gray-600',   label: 'Manual' },
++};
++
++export function SourceBadge({ source, className }: { source: string | null | undefined, className?: string }) {
++  const cfg = source ? (SOURCE_CONFIG[source] ?? SOURCE_CONFIG['manual']) : SOURCE_CONFIG['manual'];
++  return (
++    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.bg, cfg.text, className)}>
++      {cfg.label}
++    </span>
++  );
++}
+diff --git a/src/components/ui/status-badge.tsx b/src/components/ui/status-badge.tsx
+new file mode 100644
+index 0000000..54cd2dc
+--- /dev/null
++++ b/src/components/ui/status-badge.tsx
+@@ -0,0 +1,20 @@
++import { cn } from '@/lib/utils';
++
++const STATUS_CONFIG = {
++  'New':         { bg: 'bg-blue-100',    text: 'text-blue-700' },
++  'Contacted':   { bg: 'bg-purple-100',  text: 'text-purple-700' },
++  'Site Visit':  { bg: 'bg-teal-100',    text: 'text-teal-700' },
++  'Negotiation': { bg: 'bg-amber-100',   text: 'text-amber-700' },
++  'Closed':      { bg: 'bg-green-100',   text: 'text-green-700' },
++  'Won':         { bg: 'bg-green-100',   text: 'text-green-700' },
++};
++
++export function StatusBadge({ status }: { status: string }) {
++  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
++    ?? { bg: 'bg-gray-100', text: 'text-gray-600' };
++  return (
++    <span className={cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', cfg.bg, cfg.text)}>
++      {status}
++    </span>
++  );
++}
+diff --git a/src/hooks/use-total-unread.ts b/src/hooks/use-total-unread.ts
+index f95146a..c67e7a3 100644
+--- a/src/hooks/use-total-unread.ts
++++ b/src/hooks/use-total-unread.ts
+@@ -43,7 +43,7 @@ export function useTotalUnread(): number {
+     })();
+ 
+     const channel = supabase
+-      .channel('total-unread-realtime')
++      .channel(`total-unread-realtime-${Math.random()}`)
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'conversations' },
+diff --git a/src/hooks/use-unread-notifications.ts b/src/hooks/use-unread-notifications.ts
+index 9b8df11..ccf496a 100644
+--- a/src/hooks/use-unread-notifications.ts
++++ b/src/hooks/use-unread-notifications.ts
+@@ -31,7 +31,7 @@ export function useUnreadNotifications(): number {
+     })();
+ 
+     const channel = supabase
+-      .channel('notifications-unread-count')
++      .channel(`notifications-unread-count-${Math.random()}`)
+       .on(
+         'postgres_changes',
+         { event: '*', schema: 'public', table: 'notifications' },
+diff --git a/src/lib/avatar-color.ts b/src/lib/avatar-color.ts
+new file mode 100644
+index 0000000..b20dab6
+--- /dev/null
++++ b/src/lib/avatar-color.ts
+@@ -0,0 +1,20 @@
++const AVATAR_COLORS = [
++  '#EF4444', '#F97316', '#EAB308', '#22C55E',
++  '#14B8A6', '#3B82F6', '#8B5CF6', '#EC4899',
++];
++
++export function avatarColorForName(name: string | null | undefined): string {
++  if (!name) return '#6B7280'; // Default gray
++  let hash = 0;
++  for (let i = 0; i < name.length; i++) {
++    hash = name.charCodeAt(i) + ((hash << 5) - hash);
++  }
++  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
++}
++
++export function initialsForName(name: string | null | undefined): string {
++  if (!name) return 'U';
++  const parts = name.split(' ').filter(Boolean);
++  if (parts.length === 0) return 'U';
++  return parts.slice(0, 2).map(w => w[0]).join('').toUpperCase();
++}
+diff --git a/src/lib/themes.ts b/src/lib/themes.ts
+index 7f3c0ff..7862836 100644
+--- a/src/lib/themes.ts
++++ b/src/lib/themes.ts
+@@ -19,11 +19,12 @@ export const THEME_IDS = [
+   'cobalt',
+   'amber',
+   'rose',
++  'blue',
+ ] as const;
+ 
+ export type ThemeId = (typeof THEME_IDS)[number];
+ 
+-export const DEFAULT_THEME: ThemeId = 'violet';
++export const DEFAULT_THEME: ThemeId = 'blue';
+ 
+ export const STORAGE_KEY = 'wacrm.theme';
+ 
+@@ -43,7 +44,7 @@ export const MODES = ['light', 'dark'] as const;
+ 
+ export type Mode = (typeof MODES)[number];
+ 
+-export const DEFAULT_MODE: Mode = 'dark';
++export const DEFAULT_MODE: Mode = 'light';
+ 
+ export const MODE_STORAGE_KEY = 'wacrm.mode';
+ 
+@@ -98,6 +99,12 @@ export const THEMES: ReadonlyArray<ThemeMeta> = [
+     tagline: 'Bold and modern — D2C, creator-economy, lifestyle.',
+     swatch: 'oklch(0.645 0.22 16)',
+   },
++  {
++    id: 'blue',
++    name: 'Blue',
++    tagline: 'Standard CRM Blue — clear and professional.',
++    swatch: '#2563EB',
++  },
+ ];
+ 
+ export function isThemeId(value: unknown): value is ThemeId {

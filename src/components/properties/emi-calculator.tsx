@@ -17,7 +17,10 @@ interface EmiCalculatorProps {
  * Section R7 — EMI calculator embedded in the property detail page.
  * Pure client component: all calculations are local, no network calls.
  */
-export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) {
+export function EmiCalculator({
+  propertyPrice,
+  budgetMax,
+}: EmiCalculatorProps) {
   const [loanAmount, setLoanAmount] = useState(
     propertyPrice ? Math.round(propertyPrice * 0.8) : 5000000
   );
@@ -29,7 +32,9 @@ export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) 
       if (principal <= 0 || annualRate <= 0 || years <= 0) return 0;
       const r = annualRate / 100 / 12;
       const n = years * 12;
-      return Math.round((principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1));
+      return Math.round(
+        (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+      );
     },
     []
   );
@@ -43,7 +48,7 @@ export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) 
     monthlyBudgetProxy && emi > 0 ? emi <= monthlyBudgetProxy * 0.4 : null;
 
   return (
-    <div className="rounded-xl border bg-card p-5 shadow-sm">
+    <div className="bg-card rounded-xl border p-5 shadow-sm">
       <h3 className="mb-4 text-base font-semibold">EMI Calculator</h3>
 
       <div className="space-y-4">
@@ -61,7 +66,9 @@ export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) 
             aria-label="Loan amount in rupees"
           />
           {loanAmount > 0 && (
-            <p className="text-muted-foreground mt-0.5 text-xs">{formatINR(loanAmount)}</p>
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              {formatINR(loanAmount)}
+            </p>
           )}
         </div>
 
@@ -103,7 +110,9 @@ export function EmiCalculator({ propertyPrice, budgetMax }: EmiCalculatorProps) 
         <div className="bg-muted/50 mt-4 rounded-lg p-4">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Monthly EMI</span>
-            <span className="text-primary text-lg font-bold">{formatINR(emi)}</span>
+            <span className="text-primary text-lg font-bold">
+              {formatINR(emi)}
+            </span>
           </div>
           <div className="text-muted-foreground mt-2 space-y-1 text-xs">
             <div className="flex justify-between">

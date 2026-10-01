@@ -4,7 +4,15 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, Menu, Settings as SettingsIcon, User, Search, ChevronDown, Bell } from 'lucide-react';
+import {
+  LogOut,
+  Menu,
+  Settings as SettingsIcon,
+  User,
+  Search,
+  ChevronDown,
+  Bell,
+} from 'lucide-react';
 import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -85,7 +93,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
     'U';
 
   return (
-    <header className="sticky top-0 z-40 flex h-[52px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 md:px-6">
+    <header className="border-border bg-card sticky top-0 z-40 flex h-[52px] shrink-0 items-center justify-between gap-3 border-b px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-2">
         {/* Hamburger — mobile only. 44×44 hit target per Apple HIG. */}
         <button
@@ -102,27 +110,30 @@ export function Header({ onOpenSidebar }: HeaderProps) {
       </div>
 
       {/* Center: Global search */}
-      <div className="hidden md:flex flex-1 max-w-sm mx-8">
+      <div className="mx-8 hidden max-w-sm flex-1 md:flex">
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <input
             type="text"
             placeholder={t('searchPlaceholder')}
-            className="w-full rounded-lg border border-border bg-muted py-1.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="border-border bg-muted placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <button className="relative p-2 rounded-lg hover:bg-muted hidden md:flex">
-          <Bell className="size-4 text-muted-foreground" />
+        <Link
+          href="/notifications"
+          className="hover:bg-muted relative flex rounded-lg p-2"
+        >
+          <Bell className="text-muted-foreground size-4" />
           {unreadNotifs > 0 && (
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+            <span className="bg-primary absolute top-1 right-1 h-2 w-2 rounded-full" />
           )}
-        </button>
+        </Link>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
+          <DropdownMenuTrigger className="hover:bg-muted flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors focus:outline-none">
             <Avatar className="h-7 w-7">
               {profile?.avatar_url ? (
                 <AvatarImage
@@ -130,14 +141,14 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                   alt={profile.full_name ?? t('defaultAvatar')}
                 />
               ) : null}
-              <AvatarFallback className="text-xs bg-primary text-white">
+              <AvatarFallback className="bg-primary text-xs text-white">
                 {initial}
               </AvatarFallback>
             </Avatar>
-            <span className="hidden md:block text-sm font-medium text-foreground">
+            <span className="text-foreground hidden text-sm font-medium md:block">
               {profile?.full_name?.split(' ')[0] ?? t('defaultUser')}
             </span>
-            <ChevronDown className="size-3.5 text-muted-foreground hidden md:block" />
+            <ChevronDown className="text-muted-foreground hidden size-3.5 md:block" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
