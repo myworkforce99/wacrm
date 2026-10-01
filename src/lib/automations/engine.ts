@@ -767,7 +767,7 @@ async function runStep(
       // Match the account's configured default currency rather than
       // the static `deals.currency` DB default — keeps automation-
       // created deals consistent with the one-currency-per-account
-      // rule (issue #218). Fall back to USD if the row is somehow
+      // rule (issue #218). Fall back to INR if the row is somehow
       // missing the value (pre-021 forks).
       const { data: acct } = await db
         .from('accounts')
@@ -783,7 +783,7 @@ async function runStep(
         contact_id: args.contactId,
         title: interpolate(cfg.title, args),
         value: cfg.value ?? 0,
-        currency: acct?.default_currency ?? 'USD',
+        currency: acct?.default_currency ?? 'INR',
         status: 'open',
       });
       return 'deal created';

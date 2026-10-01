@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   MapPin,
   Building,
-  DollarSign,
+  IndianRupee,
   Bed,
   ChevronLeft,
   Loader2,
@@ -31,7 +31,7 @@ export default function PropertyDetailPage() {
   const router = useRouter();
   const supabase = createClient();
   const { account } = useAuth();
-  const defaultCurrency = account?.default_currency || 'USD';
+  const defaultCurrency = account?.default_currency || 'INR';
 
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,7 +129,7 @@ export default function PropertyDetailPage() {
             {property.price && (
               <div className="flex items-center gap-3">
                 <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-full">
-                  <DollarSign className="size-5" />
+                  <IndianRupee className="size-5" />
                 </div>
                 <div>
                   <p className="text-muted-foreground text-sm font-medium">

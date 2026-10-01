@@ -11,7 +11,7 @@ import {
   Search,
   MapPin,
   Building,
-  DollarSign,
+  IndianRupee,
   Loader2,
   Plus,
   Pencil,
@@ -119,7 +119,7 @@ export default function PropertiesPage() {
                           variant="secondary"
                           className="flex shrink-0 items-center gap-1"
                         >
-                          <DollarSign className="size-3" />
+                          <IndianRupee className="size-3" />
                           {property.price.toLocaleString()}
                         </Badge>
                       )}

@@ -198,7 +198,7 @@ const FAQ_BOT: FlowTemplate = {
       node_key: 'answer_pricing',
       node_type: 'send_message',
       config: {
-        text: 'Our pricing starts at $9/mo. Visit https://example.com/pricing for the full breakdown.',
+        text: 'Our pricing starts at ₹999/mo. Visit https://example.com/pricing for the full breakdown.',
         next_node_key: 'end',
       } as SendMessageNodeConfig,
     },

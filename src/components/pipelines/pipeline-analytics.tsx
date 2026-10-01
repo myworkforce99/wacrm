@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import type { Deal, PipelineStage } from '@/types';
 import {
-  DollarSign,
+  IndianRupee,
   TrendingUp,
   Target,
   BarChart3,
@@ -104,7 +104,7 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
           t={t}
         />
         <Metric
-          icon={<DollarSign className="text-primary h-4 w-4" />}
+          icon={<IndianRupee className="text-primary h-4 w-4" />}
           label={t('pipelineValue')}
           value={
             defaultCurrency === 'INR'

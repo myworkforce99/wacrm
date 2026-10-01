@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `043_real_estate_schema.sql`.**
-- **Every new migration in the implementation plan starts at `044` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `122_account_settings.sql`.**
+- **Every new migration in the implementation plan starts at `123` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
@@ -17,7 +17,7 @@ running fork where migrations may have been added since this was written.
 
 | Table                           | Introduced in                 | Notes                                                                             |
 | ------------------------------- | ----------------------------- | --------------------------------------------------------------------------------- |
-| `accounts`                      | 017                           | Multi-tenant root. `owner_user_id` is immutable owner.                            |
+| `accounts`                      | 017, extended 122             | Multi-tenant root. `owner_user_id` is immutable owner. `settings` JSONB (122). |
 | `account_invitations`           | 017, extended 019/020         | Invite-link flow, RPCs added later                                                |
 | `profiles`                      | 001, extended 017/031/034     | `account_role` (017) is the live role column; `role` (001) is dead/legacy         |
 | `contacts`                      | 001, extended 004/022/036/040 | `phone_normalized` generated column (022); `wa_user_id`/`wa_parent_user_id` (040) |

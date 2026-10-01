@@ -77,6 +77,7 @@ export interface Account {
     string,
     { connected: boolean; connected_at?: string; test_lead_received?: boolean }
   >;
+  settings?: Record<string, unknown> | null;
   cost_sheet_template_id?: string | null;
   created_at: string;
   updated_at: string;

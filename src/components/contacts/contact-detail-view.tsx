@@ -53,7 +53,7 @@ import {
   Plus,
   Trash2,
   Save,
-  DollarSign,
+  IndianRupee,
   LayoutTemplate,
   History,
   User,
@@ -824,7 +824,7 @@ export function ContactDetailView({
               </div>
               <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
                 <span className="flex items-center gap-1">
-                  <DollarSign className="size-3" />
+                  <IndianRupee className="size-3" />
                   {deal.currency === 'INR' ||
                   (!deal.currency && defaultCurrency === 'INR')
                     ? formatINR(deal.value ?? 0)

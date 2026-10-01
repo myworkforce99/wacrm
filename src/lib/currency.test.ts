@@ -9,12 +9,12 @@ import {
 describe('formatCurrency', () => {
   it('formats whole amounts with no minor units', () => {
     // Use a non-breaking-space-tolerant check: Intl may insert NBSP.
-    const out = formatCurrency(1234, 'USD');
+    const out = formatCurrency(1234, 'INR');
     expect(out).toContain('1,234');
     expect(out).not.toContain('.00');
   });
 
-  it('defaults to USD when no currency is given', () => {
+  it('defaults to INR when no currency is given', () => {
     expect(formatCurrency(10)).toBe(formatCurrency(10, DEFAULT_CURRENCY));
   });
 
@@ -23,7 +23,7 @@ describe('formatCurrency', () => {
   });
 
   it('coerces non-finite values to 0', () => {
-    expect(formatCurrency(Number.NaN, 'USD')).toContain('0');
+    expect(formatCurrency(Number.NaN, 'INR')).toContain('0');
   });
 
   it('renders a well-formed but unknown ISO code without throwing', () => {
@@ -49,14 +49,14 @@ describe('formatCurrency', () => {
 
 describe('formatCurrencyShort', () => {
   it('abbreviates millions and thousands with the currency symbol', () => {
-    expect(formatCurrencyShort(2_500_000, 'USD')).toBe('$2.5M');
-    expect(formatCurrencyShort(3_400, 'USD')).toBe('$3.4k');
-    expect(formatCurrencyShort(900, 'USD')).toBe('$900');
+    expect(formatCurrencyShort(2_500_000, 'INR')).toBe('₹2.5M');
+    expect(formatCurrencyShort(3_400, 'INR')).toBe('₹3.4k');
+    expect(formatCurrencyShort(900, 'INR')).toBe('₹900');
   });
 
-  it('uses the matching symbol for non-USD currencies', () => {
+  it('uses the matching symbol for non-INR currencies', () => {
     expect(formatCurrencyShort(1_000, 'EUR')).toBe('€1.0k');
-    expect(formatCurrencyShort(1_000, 'INR')).toBe('₹1.0k');
+    expect(formatCurrencyShort(1_000, 'USD')).toBe('$1.0k');
   });
 
   it('falls back to the code prefix for unknown currencies (no throw)', () => {
