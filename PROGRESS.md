@@ -47,3 +47,17 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [x] Section U — Business Team Onboarding (supplements Section I)
 - [x] Section V — Reporting & Exports
 - [x] Section D6 — Lead source column (105_lead_source.sql)
+
+## Second Audit Fixes (FIX_PLAN_2.md)
+- [x] FIX 1: P0: Billing Webhook subscription removed
+- [x] FIX 2: P1: CRON_SECRET Missing
+- [x] FIX 3: P1: Inbound Email Parser Does Not Write lead_details.source
+- [x] FIX 4: QUALITY-01: Stale-leads Cron Deal Stage Filter Silently Fails
+- [x] FIX 5: QUALITY-02: Bulk Contacts Route close and tag Actions Missing
+- [x] FIX 6: MISSING-03: Hinglish Language Selection in Automation Engine (R6)
+- [x] FIX 7: MISSING-01: EMI Calculator Component (R7)
+- [x] FIX 8: MISSING-02: Brokerage Badge on Deal Cards (R7)
+- [x] FIX 9: MISSING-04: Print Report on Team Dashboard (V3)
+- [x] FIX 10: QUALITY-03: Replace window.location.href with router.push() for Internal Routes (Skipped as N/A)
+- [x] FIX 11: QUALITY-04: Onboarding Checklist Persist Dismiss to DB
+- [x] FIX 12: MISSING-05: Update IMPLEMENTATION_PLAN.md Migration References

@@ -64,6 +64,23 @@ export async function POST(request: Request) {
         );
 
         if (lead.source) {
+          // Section D6: Persist source into lead_details so routing rules,
+          // source badges, and broadcast lead-segment targeting all work.
+          // upsert with ignoreDuplicates=false ensures existing contacts
+          // also get their source updated if re-imported from a portal.
+          const { error: ldErr } = await db
+            .from('lead_details')
+            .upsert(
+              { contact_id: id, source: lead.source },
+              { onConflict: 'contact_id', ignoreDuplicates: false }
+            );
+          if (ldErr) {
+            console.warn(
+              '[inbound-email] Could not write lead_details.source:',
+              ldErr.message
+            );
+          }
+
           if (created) {
             await setContactTags(db, accountId, auditUserId, id, [lead.source]);
           } else {

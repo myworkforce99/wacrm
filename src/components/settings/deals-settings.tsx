@@ -39,6 +39,8 @@ export function DealsSettings() {
   } = useAuth();
 
   const [selected, setSelected] = useState(defaultCurrency);
+  const [brokeragePct, setBrokeragePct] = useState<number | ''>('');
+  const [initialBrokeragePct, setInitialBrokeragePct] = useState<number | ''>('');
   const [saving, setSaving] = useState(false);
   const t = useTranslations('Settings.deals');
 
@@ -48,14 +50,46 @@ export function DealsSettings() {
     setSelected(defaultCurrency);
   }, [defaultCurrency]);
 
-  const dirty = selected !== defaultCurrency;
+  useEffect(() => {
+    if (!accountId) return;
+    const fetchBrokerage = async () => {
+      const { data } = await supabase
+        .from('accounts')
+        .select('settings')
+        .eq('id', accountId)
+        .single();
+      const pct = (data?.settings as Record<string, unknown> | null)?.brokerage_pct;
+      const val = typeof pct === 'number' ? pct : '';
+      setBrokeragePct(val);
+      setInitialBrokeragePct(val);
+    };
+    fetchBrokerage();
+  }, [accountId, supabase]);
+
+  const dirty = selected !== defaultCurrency || brokeragePct !== initialBrokeragePct;
 
   async function handleSave() {
     if (!accountId || !dirty) return;
     setSaving(true);
+    
+    // Fetch existing settings to merge safely
+    const { data: acc } = await supabase
+      .from('accounts')
+      .select('settings')
+      .eq('id', accountId)
+      .single();
+    
+    const settings = {
+      ...(acc?.settings as Record<string, unknown>),
+      brokerage_pct: brokeragePct === '' ? null : Number(brokeragePct),
+    };
+
     const { error } = await supabase
       .from('accounts')
-      .update({ default_currency: selected })
+      .update({ 
+        default_currency: selected,
+        settings 
+      })
       .eq('id', accountId);
     if (error) {
       toast.error(t('saveFailed'));
@@ -65,6 +99,7 @@ export function DealsSettings() {
     // Pull the new value back into the auth context so the deal form
     // and every total pick it up without a full reload.
     await refreshProfile();
+    setInitialBrokeragePct(brokeragePct);
     setSaving(false);
     toast.success(t('saveSuccess'));
   }
@@ -82,7 +117,7 @@ export function DealsSettings() {
             {t('defaultCurrencyDesc')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="grid gap-2 sm:max-w-xs">
             <Label className="text-muted-foreground">
               {t('currencyLabel')}
@@ -104,6 +139,26 @@ export function DealsSettings() {
                 {t('adminOnlyHint')}
               </p>
             )}
+          </div>
+
+          <div className="grid gap-2 sm:max-w-xs">
+            <Label className="text-muted-foreground">
+              Default Brokerage (%)
+            </Label>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              step={0.1}
+              value={brokeragePct}
+              onChange={(e) => setBrokeragePct(e.target.value === '' ? '' : Number(e.target.value))}
+              disabled={!canEditSettings || profileLoading}
+              placeholder="e.g. 2"
+              className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <p className="text-muted-foreground text-xs">
+              Used to estimate brokerage earnings on the pipeline board.
+            </p>
           </div>
 
           {canEditSettings && (

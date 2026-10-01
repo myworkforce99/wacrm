@@ -12,43 +12,54 @@ export async function GET(request: Request) {
   let stale = 0;
 
   try {
-    // Logic: for each account, find contacts where the latest deal stage is New or Contacted
-    // and deals.updated_at < now() - interval '48 hours'
-    // and conversations.assigned_agent_id IS NOT NULL.
-
-    // Actually, joining all these is easier in SQL or using supabase JS eq.
-    // Let's do a direct Supabase query. We can query deals that are stale.
     const fortyEightHoursAgo = new Date(
       Date.now() - 48 * 60 * 60 * 1000
     ).toISOString();
 
-    // We need to fetch deals where updated_at < 48 hours ago, stage is New or Contacted.
-    // We also need conversations to check assigned_agent_id.
+    // Step 1: Resolve stage IDs for 'New' and 'Contacted'.
+    // Cannot use .in('stage.name', ...) on a joined column — PostgREST
+    // ignores that filter silently (audit QUALITY-01). Filter on the
+    // scalar stage_id FK instead.
+    const { data: earlyStages, error: stageErr } = await db
+      .from('pipeline_stages')
+      .select('id')
+      .in('name', ['New', 'Contacted']);
+
+    if (stageErr) {
+      console.error('[cron/stale-leads] Failed to fetch stage ids', stageErr);
+      return NextResponse.json({ error: stageErr.message }, { status: 500 });
+    }
+
+    const earlyStageIds = (earlyStages || []).map((s: { id: string }) => s.id);
+    if (earlyStageIds.length === 0) {
+      return NextResponse.json({ processed: 0, stale: 0 });
+    }
+
+    // Step 2: Fetch deals in early stages not updated in 48h.
     const { data: staleDeals, error: dealsErr } = await db
       .from('deals')
       .select(
-        '*, stage:pipeline_stages(name), contact:contacts(id, name, conversations!inner(assigned_agent_id))'
+        'id, title, account_id, contact_id, stage_id, contact:contacts(id, name, conversations!inner(assigned_agent_id))'
       )
       .lt('updated_at', fortyEightHoursAgo)
-      .in('stage.name', ['New', 'Contacted'])
-      .not('contact.conversations', 'is', null);
+      .in('stage_id', earlyStageIds);
 
     if (dealsErr) {
       console.error('[cron/stale-leads] Failed to fetch deals', dealsErr);
       return NextResponse.json({ error: dealsErr.message }, { status: 500 });
     }
 
-    if (!staleDeals) {
+    if (!staleDeals || staleDeals.length === 0) {
       return NextResponse.json({ processed: 0, stale: 0 });
     }
 
     processed = staleDeals.length;
 
     for (const deal of staleDeals) {
-      // Check if conversation assigned
-      const conversations = Array.isArray(deal.contact?.conversations)
-        ? deal.contact?.conversations
-        : [deal.contact?.conversations];
+      const contactObj = Array.isArray(deal.contact) ? deal.contact[0] : deal.contact;
+      const conversations = Array.isArray(contactObj?.conversations)
+        ? contactObj?.conversations
+        : [contactObj?.conversations];
       const conversation = conversations.find(
         (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
       );
@@ -56,10 +67,10 @@ export async function GET(request: Request) {
       if (conversation?.assigned_agent_id) {
         stale++;
         const agentId = conversation.assigned_agent_id;
-        const contactName = deal.contact?.name || 'Unknown Contact';
+        const contactName = contactObj?.name || 'Unknown Contact';
 
-        // (a) create a task
-        await db.from('tasks').insert({
+        // (a) Create a follow-up task.
+        const { error: taskErr } = await db.from('tasks').insert({
           account_id: deal.account_id,
           contact_id: deal.contact_id,
           title: `Follow up: ${contactName} — no activity for 2+ days`,
@@ -67,18 +78,21 @@ export async function GET(request: Request) {
           assigned_to: agentId,
           created_by: agentId,
         });
-        // (b) send a push notification
-        // Just an insert to notifications table for now, since web push might not be fully available to call server-side here.
+        if (taskErr) {
+          console.error('[cron/stale-leads] task insert failed:', taskErr.message);
+        }
+
+        // (b) Notify the assigned agent.
         await db.from('notifications').insert({
           account_id: deal.account_id,
           user_id: agentId,
-          type: 'conversation_assigned', // Reusing existing type as fallback if no stale_lead type
+          type: 'conversation_assigned',
           contact_id: deal.contact_id,
           title: `Follow up: ${contactName} — no activity for 2+ days`,
           body: `Deal: ${deal.title}`,
         });
 
-        // Notify all admins in the account
+        // (c) Notify admins (deduplicated — skip if admin is the agent).
         const { data: admins } = await db
           .from('profiles')
           .select('user_id')
@@ -86,15 +100,18 @@ export async function GET(request: Request) {
           .eq('account_role', 'admin');
 
         if (admins) {
-          for (const admin of admins) {
-            await db.from('notifications').insert({
+          const adminNotifs = admins
+            .filter((a: { user_id: string }) => a.user_id !== agentId)
+            .map((a: { user_id: string }) => ({
               account_id: deal.account_id,
-              user_id: admin.user_id,
-              type: 'conversation_assigned',
+              user_id: a.user_id,
+              type: 'conversation_assigned' as const,
               contact_id: deal.contact_id,
-              title: `Stale Lead Alert: ${contactName} assigned to ${agentId}`,
-              body: `No activity for 2+ days`,
-            });
+              title: `Stale Lead Alert: ${contactName}`,
+              body: `No activity for 2+ days. Deal: ${deal.title}`,
+            }));
+          if (adminNotifs.length > 0) {
+            await db.from('notifications').insert(adminNotifs);
           }
         }
       }

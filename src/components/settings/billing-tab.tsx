@@ -16,7 +16,6 @@ import { toast } from 'sonner';
 
 export function BillingTab() {
   const { isOwner, accountId } = useAuth();
-  const supabase = createClient();
 
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -30,6 +29,11 @@ export function BillingTab() {
 
   useEffect(() => {
     if (!accountId) return;
+
+    // Create the Supabase client inside the effect so it is not a reactive
+    // dependency. createClient() returns a new object reference on every
+    // call — including it in deps causes an infinite re-fetch loop.
+    const supabase = createClient();
 
     async function loadData() {
       setLoading(true);
@@ -64,7 +68,7 @@ export function BillingTab() {
     }
 
     loadData();
-  }, [accountId, supabase]);
+  }, [accountId]);
 
   if (!isOwner) {
     return (

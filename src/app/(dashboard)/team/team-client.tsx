@@ -90,6 +90,17 @@ export function TeamDashboardClient() {
           <PipelineFunnelChart />
         </div>
       )}
+
+      {isPrint && (
+        <style>{`
+          @media print {
+            @page { size: A4 portrait; margin: 15mm; }
+            body { background: white !important; color: black !important; }
+            nav, aside, [data-sidebar], .no-print { display: none !important; }
+            .print\\:break-inside-avoid { break-inside: avoid; }
+          }
+        `}</style>
+      )}
     </div>
   );
 }

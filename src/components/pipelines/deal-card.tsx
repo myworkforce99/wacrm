@@ -4,6 +4,7 @@ import type { Deal, PipelineStage } from '@/types';
 import { Calendar, Check, X, ArrowRightLeft } from 'lucide-react';
 import { formatCurrency, formatINR } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
+import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
 
 interface DealCardProps {
   deal: Deal;
@@ -11,6 +12,7 @@ interface DealCardProps {
   onEdit: (deal: Deal) => void;
   onMove?: (deal: Deal) => void;
   isOverlay?: boolean;
+  brokeragePct?: number | null;
 }
 
 function formatDate(dateStr: string) {
@@ -33,6 +35,7 @@ export function DealCard({
   onEdit,
   onMove,
   isOverlay,
+  brokeragePct,
 }: DealCardProps) {
   const t = useTranslations('Pipelines.card');
   const contactLabel =
@@ -100,12 +103,15 @@ export function DealCard({
         </span>
       </div>
 
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-primary text-sm font-bold">
-          {deal.currency === 'INR'
-            ? formatINR(deal.value)
-            : formatCurrency(deal.value, deal.currency)}
-        </span>
+      <div className="mt-2 flex items-start justify-between">
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-primary text-sm font-bold">
+            {deal.currency === 'INR'
+              ? formatINR(deal.value)
+              : formatCurrency(deal.value, deal.currency)}
+          </span>
+          <BrokerageBadge dealValue={deal.value} brokeragePct={brokeragePct} />
+        </div>
         {deal.expected_close_date && (
           <span className="text-muted-foreground flex items-center gap-1 text-[11px]">
             <Calendar className="h-3 w-3" />

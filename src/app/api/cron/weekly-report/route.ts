@@ -100,9 +100,10 @@ export async function GET(request: Request) {
         if (convs && convs.length > 0) {
           const contactToAgent = new Map<string, string>();
           convs.forEach((c) => {
-            if (c.assigned_agent_id) contactToAgent.set(c.contact_id, c.assigned_agent_id);
+            if (c.assigned_agent_id)
+              contactToAgent.set(c.contact_id, c.assigned_agent_id);
           });
-          
+
           const counts: Record<string, number> = {};
           completedVisitContacts.forEach((cid) => {
             const agentId = contactToAgent.get(cid);
@@ -111,9 +112,11 @@ export async function GET(request: Request) {
             }
           });
 
-          const sortedAgents = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+          const sortedAgents = Object.keys(counts).sort(
+            (a, b) => counts[b] - counts[a]
+          );
           const topAgentId = sortedAgents.length > 0 ? sortedAgents[0] : null;
-          
+
           if (topAgentId) {
             const { data: prof } = await admin
               .from('profiles')

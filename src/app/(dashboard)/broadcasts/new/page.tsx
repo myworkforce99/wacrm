@@ -61,6 +61,7 @@ export default function NewBroadcastPage() {
           customField: audience.customField,
           csvContacts: audience.csvContacts,
           excludeTagIds: audience.excludeTagIds,
+          leadSegment: audience.leadSegment,
         },
         variables,
         headerMediaUrl,

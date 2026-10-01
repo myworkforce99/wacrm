@@ -75,6 +75,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Protected pages - redirect to login if not authenticated
+  // All dashboard routes that require (a) authentication and (b) an active
+  // subscription. Add any new dashboard route here when it is created so it
+  // automatically gets both the auth redirect and the billing gate.
+  // NOTE: /billing itself must be in this list for the auth redirect to fire
+  // on unauthenticated users trying to directly access /billing.
   const protectedPaths = [
     '/dashboard',
     '/inbox',
@@ -84,6 +89,13 @@ export async function middleware(request: NextRequest) {
     '/automations',
     '/settings',
     '/billing',
+    '/integrations',
+    '/site-visits',
+    '/properties',
+    '/flows',
+    '/team',
+    '/agents',
+    '/notifications',
   ];
   if (
     !user &&

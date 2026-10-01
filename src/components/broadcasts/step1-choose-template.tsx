@@ -133,12 +133,14 @@ export function Step1ChooseTemplate({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates
-            .filter(
-              (t: MessageTemplate) =>
-                filterTag === 'all' ||
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ((t as any).tags && (t as any).tags.includes(filterTag))
-            )
+            .filter((t: MessageTemplate) => {
+              if (filterTag === 'all') return true;
+              // broadcast_templates rows are spread into MessageTemplate shape but
+              // carry an extra tags?: string[] field. Use a typed intersection
+              // cast rather than `as any` to keep the compiler's structural checks.
+              const tags = (t as MessageTemplate & { tags?: string[] }).tags;
+              return Array.isArray(tags) && tags.includes(filterTag);
+            })
             .map((template) => {
               const isSelected = selectedTemplate?.id === template.id;
               const catColor =

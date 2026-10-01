@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import {
   DndContext,
   DragOverlay,
@@ -42,10 +43,30 @@ export function PipelineBoard({
   onAddDeal,
   onEditDeal,
 }: PipelineBoardProps) {
-  const { defaultCurrency } = useAuth();
+  const { accountId, defaultCurrency } = useAuth();
   const t = useTranslations('Pipelines.board');
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
   const [moveDealId, setMoveDealId] = useState<string | null>(null);
+  const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!accountId) return;
+    const fetchBrokerage = async () => {
+      const supabase = createClient();
+      const { data: accountRow } = await supabase
+        .from('accounts')
+        .select('settings')
+        .eq('id', accountId)
+        .single();
+
+      const pct =
+        ((accountRow?.settings as Record<string, unknown> | null)?.brokerage_pct as
+          | number
+          | null) ?? null;
+      setBrokeragePct(pct);
+    };
+    fetchBrokerage();
+  }, [accountId]);
 
   const sortedStages = useMemo(
     () => [...stages].sort((a, b) => a.position - b.position),
@@ -119,6 +140,7 @@ export function PipelineBoard({
                 deals={stageDeals}
                 totalValue={totalValue}
                 currency={defaultCurrency}
+                brokeragePct={brokeragePct}
                 onAddDeal={onAddDeal}
                 onEditDeal={onEditDeal}
                 onMoveDeal={(d) => setMoveDealId(d.id)}
@@ -182,6 +204,7 @@ export function PipelineBoard({
                           stage={stage}
                           onEdit={onEditDeal}
                           onMove={() => setMoveDealId(deal.id)}
+                          brokeragePct={brokeragePct}
                         />
                       ))}
                     </div>
@@ -217,6 +240,7 @@ export function PipelineBoard({
                 }
                 onEdit={() => {}}
                 isOverlay
+                brokeragePct={brokeragePct}
               />
             </div>
           ) : null}
@@ -318,6 +342,7 @@ function StageColumn({
   deals,
   totalValue,
   currency,
+  brokeragePct,
   onAddDeal,
   onEditDeal,
   onMoveDeal,
@@ -326,6 +351,7 @@ function StageColumn({
   deals: Deal[];
   totalValue: number;
   currency: string;
+  brokeragePct?: number | null;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
   onMoveDeal: (deal: Deal) => void;
@@ -378,6 +404,7 @@ function StageColumn({
               key={deal.id}
               deal={deal}
               stage={stage}
+              brokeragePct={brokeragePct}
               onEdit={onEditDeal}
               onMove={onMoveDeal}
             />
@@ -401,11 +428,13 @@ function StageColumn({
 function DraggableDealCard({
   deal,
   stage,
+  brokeragePct,
   onEdit,
   onMove,
 }: {
   deal: Deal;
   stage: PipelineStage;
+  brokeragePct?: number | null;
   onEdit: (deal: Deal) => void;
   onMove: (deal: Deal) => void;
 }) {
@@ -420,7 +449,7 @@ function DraggableDealCard({
       {...attributes}
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none' }}
     >
-      <DealCard deal={deal} stage={stage} onEdit={onEdit} onMove={onMove} />
+      <DealCard deal={deal} stage={stage} onEdit={onEdit} onMove={onMove} brokeragePct={brokeragePct} />
     </div>
   );
 }

@@ -19,13 +19,25 @@ export function TeamSetupChecklist() {
         return;
       }
 
+      // Check DB-persisted dismiss state first (works across devices/browsers).
+      const supabase = createClient();
+      const { data: acc } = await supabase
+        .from('accounts')
+        .select('settings')
+        .eq('id', accountId)
+        .single();
+
+      const settings = (acc?.settings as Record<string, unknown> | null) ?? {};
+      if (settings.onboarding_dismissed === true) {
+        setLoading(false);
+        return;
+      }
+
       const dismissed = localStorage.getItem('wacrm_hide_team_checklist');
       if (dismissed === 'true') {
         setLoading(false);
         return;
       }
-
-      const supabase = createClient();
       const { count, error } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -42,9 +54,21 @@ export function TeamSetupChecklist() {
 
   if (loading || !visible) return null;
 
-  const handleDismiss = () => {
-    localStorage.setItem('wacrm_hide_team_checklist', 'true');
-    setVisible(false);
+  const handleDismiss = async () => {
+    setVisible(false); // Optimistic hide — instant UX
+    try {
+      await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: { onboarding_dismissed: true },
+        }),
+      });
+    } catch {
+      // Non-critical — fall back to localStorage so the banner
+      // stays hidden for this session at minimum.
+      localStorage.setItem('wacrm_hide_team_checklist', 'true');
+    }
   };
 
   return (

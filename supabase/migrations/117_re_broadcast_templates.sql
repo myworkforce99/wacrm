@@ -1,5 +1,5 @@
 -- ============================================================
--- 116_re_broadcast_templates.sql
+-- 117_re_broadcast_templates.sql
 --
 -- Seed real estate broadcast message templates as requested in Section J5.
 -- Since quick_replies is account-scoped and restricted by a check constraint,

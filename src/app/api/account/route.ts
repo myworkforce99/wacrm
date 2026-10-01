@@ -55,9 +55,10 @@ export async function PATCH(request: Request) {
     const body = (await request.json().catch(() => null)) as {
       name?: unknown;
       cost_sheet_template_id?: unknown;
+      settings?: unknown;
     } | null;
 
-    const updates: Record<string, string | null> = {};
+    const updates: Record<string, unknown> = {};
 
     if (body?.name !== undefined) {
       if (typeof body.name !== 'string') {
@@ -93,6 +94,24 @@ export async function PATCH(request: Request) {
         );
       }
       updates.cost_sheet_template_id = body.cost_sheet_template_id;
+    }
+
+    if (body?.settings !== undefined) {
+      if (typeof body.settings !== 'object' || body.settings === null || Array.isArray(body.settings)) {
+        return NextResponse.json(
+          { error: "'settings' must be a JSON object" },
+          { status: 400 }
+        );
+      }
+      
+      const { data: currentAcc } = await ctx.supabase
+        .from('accounts')
+        .select('settings')
+        .eq('id', ctx.accountId)
+        .single();
+        
+      const currentSettings = (currentAcc?.settings as Record<string, unknown>) || {};
+      updates.settings = { ...currentSettings, ...body.settings };
     }
 
     if (Object.keys(updates).length === 0) {

@@ -148,7 +148,8 @@ export async function GET(request: Request) {
         ) || convs[0];
 
       const deals = Array.isArray(c.deals) ? c.deals : c.deals ? [c.deals] : [];
-      const openDeal = deals.find((d: AnyRecord) => d.status === 'open') || deals[0];
+      const openDeal =
+        deals.find((d: AnyRecord) => d.status === 'open') || deals[0];
 
       const visits = Array.isArray(c.site_visits)
         ? c.site_visits
@@ -160,7 +161,9 @@ export async function GET(request: Request) {
       );
 
       const reraIds = Array.from(
-        new Set(visits.map((v: AnyRecord) => v.property?.rera_id).filter(Boolean))
+        new Set(
+          visits.map((v: AnyRecord) => v.property?.rera_id).filter(Boolean)
+        )
       );
 
       const name = c.name || '';

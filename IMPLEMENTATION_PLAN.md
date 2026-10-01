@@ -1,5 +1,10 @@
 # Implementation Plan — B2B Real Estate Team CRM on wacrm
 
+> **Note for agents (added 2026-10-01):** Migration filenames in this plan reflect
+> the original numbering intent but were renumbered during execution. Always run
+> `ls supabase/migrations/ | sort` to see actual filenames before referencing or
+> creating migrations. Do not renumber existing migration files.
+
 ### For execution by an AI coding agent (Claude Code / Gemini CLI)
 
 **Product context (updated 2026-09-27):** This is a **B2B SaaS** sold to Indian real estate businesses — teams of 10–30 agents managed by a business owner/broker. The buyer is the **business owner**. The daily users are their **sales agents and managers**. Revenue model: per-seat subscription. This is NOT a consumer product. Every feature decision must be evaluated through the lens of: "does this help a broker manage their 15-agent WhatsApp sales team more effectively?"
@@ -231,9 +236,9 @@ _Goal: this section is what actually earns "feels like a native app," on top of 
 
 _Goal: the one piece genuinely missing from wacrm — required before charging anyone._
 
-> **Codebase state (verified 2026-09-27):** No Stripe/billing dependency in `package.json`. The `Account` interface in `src/types/index.ts` has only `id`, `name`, `owner_user_id`, `created_at`, `updated_at` — no subscription fields. The `accounts` table (migration 017) has no billing columns. Highest existing migration is `104_push_subscriptions.sql`. Start new migrations at `106_billing.sql` (assuming D6 takes `105`).
+> **Codebase state (verified 2026-09-27):** No Stripe/billing dependency in `package.json`. The `Account` interface in `src/types/index.ts` has only `id`, `name`, `owner_user_id`, `created_at`, `updated_at` — no subscription fields. The `accounts` table (migration 017) has no billing columns. Highest existing migration is `104_push_subscriptions.sql`. Start new migrations at `119_billing.sql` (assuming D6 takes `105`).
 
-- **L1.** New migration `106_billing.sql`:
+- **L1.** New migration `119_billing.sql`:
 
   ```sql
   ALTER TABLE accounts
@@ -333,7 +338,7 @@ _Goal: expose the portal connection surface the demo shows — a first-class rou
 
 > **Codebase state:** No `(dashboard)/integrations/` route exists. `whatsapp_config` table holds WhatsApp connection state. Section M added the inbound email capture backend but no UI page. `Account` table has no `portal_connections` column.
 
-- **O1.** New migration `107_portal_connections.sql`:
+- **O1.** New migration `120_portal_connections.sql`:
 
   ```sql
   ALTER TABLE accounts
@@ -381,7 +386,7 @@ _Goal: power the "Today's Tasks" dashboard widget and the "Follow-ups Due" stat 
 
 > **Codebase state:** No `tasks` table, no task API route, no task UI. The SLA query (migration 102, `lib/dashboard/queries.ts`) tracks conversation-level response time but not explicit task items. `quick_replies` exists but must not be repurposed for tasks — different data shape and UX.
 
-- **P1.** New migration `108_tasks.sql`:
+- **P1.** New migration `121_tasks.sql`:
 
   ```sql
   CREATE TABLE IF NOT EXISTS tasks (
@@ -529,9 +534,9 @@ _Goal: make the product feel native to Indian real estate agents and legally com
   ```
 
   Find every place `formatCurrencyShort` or `formatCurrency` is called in RE-specific screens (C2 leads list, C4 pipeline cards, Dashboard stat cards, H2 property detail, H3 property match, Q cost sheet modal) and replace with `formatINR` / `formatINRRange` when the account's `default_currency === 'INR'`. Use a conditional: if INR use new functions, else fall back to existing ones — don't break other currencies.
-  Also update the `handle_new_user` trigger in `supabase/migrations/100_real_estate_schema.sql` — add (in a new migration, not by editing 100): `UPDATE accounts SET default_currency = 'INR' WHERE id = v_account_id AND default_currency = 'USD';` in a new migration `110_india_defaults.sql`.
+  Also update the `handle_new_user` trigger in `supabase/migrations/100_real_estate_schema.sql` — add (in a new migration, not by editing 100): `UPDATE accounts SET default_currency = 'INR' WHERE id = v_account_id AND default_currency = 'USD';` in a new migration `115_india_localization.sql`.
 
-- **R2.** New migration `110_india_defaults.sql` (same file as the currency trigger update):
+- **R2.** New migration `115_india_localization.sql` (same file as the currency trigger update):
 
   ```sql
   -- Set INR as default for all existing accounts (safe, idempotent)
@@ -578,7 +583,7 @@ _Goal: make the product feel native to Indian real estate agents and legally com
 
 - **R5.** Property detail screen (Section H2): display `rera_id` as a prominent badge ("RERA: MH/2023/12345"). If `rera_id` is null, show a subtle inline warning badge "RERA ID missing — required under RERA Act 2016" in amber. Display `configuration` as the primary headline metric (e.g. "3BHK" in large bold). Show possession status pill and carpet area. Update the Cost Sheet default template (Q2) to include `{{rera_id}}`, `{{configuration}}`, `{{builder_name}}`, `{{possession_status}}`, `{{carpet_area}} sq ft` as new placeholders.
 
-- **R6.** Hinglish WhatsApp automation templates: in a new seed migration `111_hinglish_templates.sql`, add Hinglish-body variants of the three site-visit automations seeded in migration 101. Each is a new `automations` row with `name` prefixed `[HI]` and `trigger_type` / `step_config` identical to the English variant except for the message body:
+- **R6.** Hinglish WhatsApp automation templates: in a new seed migration `(pending migration)`, add Hinglish-body variants of the three site-visit automations seeded in migration 101. Each is a new `automations` row with `name` prefixed `[HI]` and `trigger_type` / `step_config` identical to the English variant except for the message body:
   - T-24h: `"Namaste {{contact_name}} ji! 🙏 Kal {{visit_time}} baje aapka site visit confirm hai. Property: {{property_title}}, {{property_location}}. Koi bhi sawaal ho toh humein WhatsApp karein."`
   - T-2h: `"{{contact_name}} ji, 2 ghante baad aapka site visit hai! {{#if pickup_required}}Hamara agent aapko {{pickup_location}} se pick karenge {{pickup_time}} baje par.{{/if}} Property ka address: {{property_location}} 🏠"`
   - No-show: `"{{contact_name}} ji, lagta hai aaj site visit chhoot gayi. Koi baat nahi! Kab convenient rahega — is week ya agli week? Hum nayi timing arrange kar sakte hain 🙏"`

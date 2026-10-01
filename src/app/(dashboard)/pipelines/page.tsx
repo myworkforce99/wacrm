@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GitBranch, Plus, ChevronDown, Settings } from 'lucide-react';
+import { GitBranch, Plus, ChevronDown, Settings, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/use-can';
 import { useAuth } from '@/hooks/use-auth';
@@ -393,6 +393,18 @@ export default function PipelinesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <GatedButton
+            variant="outline"
+            canAct={canEditSettings}
+            gateReason="export deals"
+            onClick={() => {
+              window.location.href = '/api/deals/export';
+            }}
+            className="border-border bg-card text-foreground hover:bg-muted"
+          >
+            <Download className="mr-1 h-4 w-4" />
+            Export
+          </GatedButton>
           <GatedButton
             variant="outline"
             canAct={canEditSettings}

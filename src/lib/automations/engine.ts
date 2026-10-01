@@ -426,6 +426,12 @@ async function runStep(
       if (!args.contactId) throw new Error('send_template needs a contact');
       if (!cfg.template_name)
         throw new Error('send_template needs template_name');
+      // Section R6: swap to [HI] sibling if account prefers Hindi/Hinglish.
+      const resolvedTemplateName = await resolveLocalizedTemplateName(
+        db,
+        args.automation.account_id,
+        cfg.template_name
+      );
       const conversationId = await resolveConversationId(args);
       // Meta templates use positional {{1}}, {{2}}, … placeholders, so
       // we MUST emit params in strict numeric order. Lexicographic sort
@@ -450,7 +456,7 @@ async function runStep(
         userId: args.automation.user_id,
         conversationId,
         contactId: args.contactId,
-        templateName: cfg.template_name,
+        templateName: resolvedTemplateName,
         language: cfg.language,
         params,
       });
@@ -1063,4 +1069,49 @@ async function markPending(id: string, status: 'done' | 'failed') {
     .from('automation_pending_executions')
     .update({ status })
     .eq('id', id);
+}
+
+// ---------------------------------------------------------------
+// Section R6: Language selection helper
+//
+// When account.preferred_language is 'hi' or 'hi-en', the engine
+// tries to find a sibling template named '[HI] <templateName>'
+// in message_templates. If one exists, it is used; otherwise the
+// original name is returned unchanged. This allows bilingual
+// automation setups without requiring template-level config changes.
+// ---------------------------------------------------------------
+async function resolveLocalizedTemplateName(
+  db: ReturnType<typeof supabaseAdmin>,
+  accountId: string,
+  templateName: string
+): Promise<string> {
+  // Already a localised template — no swap needed.
+  if (templateName.startsWith('[HI]')) return templateName;
+
+  const { data: acc } = await db
+    .from('accounts')
+    .select('preferred_language')
+    .eq('id', accountId)
+    .single();
+
+  const lang = acc?.preferred_language ?? 'en';
+  if (lang === 'en') return templateName;
+
+  const hiName = `[HI] ${templateName}`;
+  const { data: hiTemplate } = await db
+    .from('message_templates')
+    .select('name')
+    .eq('account_id', accountId)
+    .eq('name', hiName)
+    .maybeSingle();
+
+  if (hiTemplate) {
+    console.log(
+      `[automations:R6] language swap "${templateName}" → "${hiName}" (lang=${lang})`
+    );
+    return hiName;
+  }
+
+  // No [HI] sibling found — use the original.
+  return templateName;
 }

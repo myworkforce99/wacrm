@@ -52,18 +52,27 @@ export async function POST(request: Request) {
 
         const plan_tier = session.metadata?.plan_tier || 'starter';
 
-        // Expand the subscription to get the period end
+        // Retrieve the subscription to get the current period end.
+        // In Stripe API 2026-08-26.dahlia, current_period_end lives on each
+        // subscription item (subscription.items.data[0].current_period_end),
+        // not on the top-level subscription object — which is why the previous
+        // implementation required @ts-ignore and silently produced null.
         let current_period_end: Date | null = null;
         if (session.subscription) {
           const subscriptionId =
             typeof session.subscription === 'string'
               ? session.subscription
               : session.subscription.id;
-          const subscription =
-            await stripe.subscriptions.retrieve(subscriptionId);
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          current_period_end = new Date(subscription.current_period_end * 1000);
+          const subscription = await stripe.subscriptions.retrieve(
+            subscriptionId,
+            {
+              expand: ['items.data'],
+            }
+          );
+          const periodEnd = subscription.items?.data?.[0]?.current_period_end;
+          if (typeof periodEnd === 'number') {
+            current_period_end = new Date(periodEnd * 1000);
+          }
         }
 
         const { error } = await supabase
@@ -97,15 +106,16 @@ export async function POST(request: Request) {
 
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice;
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const sub = invoice.subscription;
+        // In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
+        // The subscription reference now lives at:
+        //   invoice.parent.subscription_details.subscription
+        // This is the same change applied to checkout.session.completed in
+        // FIX_PLAN Fix 3, now extended to the invoice event cases.
+        const subRef = invoice.parent?.subscription_details?.subscription;
         const subscriptionId =
-          typeof sub === 'string'
-            ? sub
-            : typeof sub === 'object' && sub
-              ? sub.id
-              : null;
+          typeof subRef === 'string'
+            ? subRef
+            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
 
         if (!subscriptionId) break;
 
@@ -132,15 +142,13 @@ export async function POST(request: Request) {
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        const sub = invoice.subscription;
+        // In Stripe API 2026-08-26.dahlia, Invoice.subscription was removed.
+        // Use parent.subscription_details.subscription instead.
+        const subRef = invoice.parent?.subscription_details?.subscription;
         const subscriptionId =
-          typeof sub === 'string'
-            ? sub
-            : typeof sub === 'object' && sub
-              ? sub.id
-              : null;
+          typeof subRef === 'string'
+            ? subRef
+            : (subRef as Stripe.Subscription | undefined)?.id ?? null;
 
         if (!subscriptionId) break;
 
