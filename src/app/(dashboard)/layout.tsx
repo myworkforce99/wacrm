@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { DashboardShell } from './dashboard-shell';
+import { AnnouncementBanner } from '@/components/layout/announcement-banner';
 
 // Server layout whose only job is to declare "do not index" metadata
 // for the authed app. robots.ts already disallows these paths at the
@@ -24,5 +25,10 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <>
+      <AnnouncementBanner />
+      <DashboardShell>{children}</DashboardShell>
+    </>
+  );
 }

@@ -49,12 +49,12 @@ export function IntegrationsClient({
         </p>
       </div>
 
-      <div className="bg-card border-border rounded-xl border p-5 shadow-sm">
-        <h2 className="mb-1 text-lg font-semibold">Universal Capture Email</h2>
+      <div className="bg-primary/5 border-primary/20 rounded-xl border-2 p-5 shadow-sm">
+        <h2 className="mb-1 text-lg font-semibold text-primary">Universal Capture Email</h2>
         <p className="text-muted-foreground mb-4 text-sm">
           {t('capture_email.subtitle')}
         </p>
-        <div className="bg-muted flex flex-col justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
+        <div className="bg-background border-border flex flex-col justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
           <code className="font-mono text-sm font-medium break-all select-all">
             {captureEmail}
           </code>

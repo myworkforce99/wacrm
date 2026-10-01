@@ -10,6 +10,7 @@ import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
 import {
   Bell,
   Bot,
+  CalendarCheck,
   Crown,
   GitBranch,
   LayoutDashboard,
@@ -78,6 +79,7 @@ interface NavItem {
   href: string;
   labelKey: string;
   icon: typeof LayoutDashboard;
+  emoji?: string;
   /**
    * When true, the nav row renders a small "Beta" chip after the label.
    * Purely informational — doesn't affect routing or access.
@@ -90,23 +92,18 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { href: '/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
-  { href: '/inbox', labelKey: 'inbox', icon: MessageSquare },
-  { href: '/notifications', labelKey: 'notifications', icon: Bell },
-  { href: '/contacts', labelKey: 'contacts', icon: Users },
-  { href: '/pipelines', labelKey: 'pipelines', icon: GitBranch },
-  { href: '/properties', labelKey: 'properties', icon: Building },
-  { href: '/broadcasts', labelKey: 'broadcasts', icon: Radio },
-  { href: '/automations', labelKey: 'automations', icon: Zap },
-  { href: '/flows', labelKey: 'flows', icon: Workflow, beta: true },
-  { href: '/agents', labelKey: 'aiAgents', icon: Bot },
-  { href: '/team', labelKey: 'team', icon: UsersRound, adminOnly: true },
-  {
-    href: '/integrations',
-    labelKey: 'integrations',
-    icon: Plug,
-    adminOnly: true,
-  },
+  { href: '/dashboard',   labelKey: 'dashboard',   icon: LayoutDashboard, emoji: '📊' },
+  { href: '/contacts',    labelKey: 'contacts',    icon: Users,            emoji: '👥' },
+  { href: '/site-visits', labelKey: 'visits',      icon: CalendarCheck,    emoji: '🏠' },
+  { href: '/pipelines',   labelKey: 'pipelines',   icon: GitBranch,        emoji: '📈' },
+  { href: '/inbox',       labelKey: 'inbox',       icon: MessageSquare,    emoji: '💬' },
+  { href: '/broadcasts',  labelKey: 'broadcasts',  icon: Radio,            emoji: '📣' },
+  { href: '/integrations',labelKey: 'integrations',icon: Plug,             emoji: '🔌', adminOnly: true },
+  { href: '/automations', labelKey: 'automations', icon: Zap,              emoji: '⚡' },
+  { href: '/flows',       labelKey: 'flows',       icon: Workflow,         emoji: '🔀', beta: true },
+  { href: '/agents',      labelKey: 'aiAgents',    icon: Bot,              emoji: '🤖' },
+  { href: '/properties',  labelKey: 'properties',  icon: Building,         emoji: '🏢' },
+  { href: '/team',        labelKey: 'team',        icon: UsersRound,       emoji: '👤', adminOnly: true },
 ];
 
 const bottomNavItems = [
@@ -215,25 +212,17 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          // Mobile: fixed drawer that slides in from the left.
-          'border-border bg-card fixed inset-y-0 left-0 z-40 flex h-full w-64 flex-col border-r',
-          'transition-transform duration-200 ease-out will-change-transform',
-          open ? 'translate-x-0' : '-translate-x-full',
-          // Desktop: static, always visible — reset all the mobile framing.
-          'lg:static lg:z-0 lg:w-60 lg:translate-x-0 lg:transition-none'
+          'fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-border bg-sidebar transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:w-44 lg:translate-x-0 lg:transition-none',
+          open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label={t('primaryNav')}
       >
-        {/* Logo row. On mobile we put a close button here; on desktop the
-            close button is hidden since the sidebar is always-visible. */}
-        <div className="border-border flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4">
+        <div className="flex items-center justify-between gap-2 px-4 py-5 border-b border-border shrink-0">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="bg-primary text-primary-foreground flex h-8 w-8 items-center justify-center rounded-lg">
-              <MessageSquare className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white font-bold text-sm">
+              W
             </div>
-            <span className="text-foreground text-sm font-semibold">
-              {t('title')}
-            </span>
+            <span className="font-semibold text-base text-foreground">WaCRM</span>
           </Link>
           <button
             type="button"
@@ -261,57 +250,30 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                 pathname === item.href ||
                 (item.href !== '/dashboard' && pathname.startsWith(item.href));
 
-              const showUnreadDot =
-                item.href === '/inbox' && totalUnread > 0 && !isActive;
-
-              // Unlike the inbox dot, the notifications count stays visible
-              // even while the page is active — it reflects unread state
-              // (cleared by marking notifications read), not "currently
-              // viewing this section".
-              const showNotificationBadge =
-                item.href === '/notifications' && unreadNotifications > 0;
-
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     className={cn(
-                      // Taller on mobile so fingers can hit the row reliably (≥44px).
-                      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2',
+                      'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-primary/10 text-primary'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                     )}
                   >
-                    <item.icon className="h-4 w-4" />
-                    <span className="flex-1">{t(item.labelKey as string)}</span>
+                    <span className="text-base leading-none">{item.emoji ?? <item.icon className="h-4 w-4" />}</span>
+                    <span>{t(item.labelKey as string)}</span>
                     {item.beta && (
                       <span
                         aria-label={t('beta')}
-                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase"
+                        className="rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-semibold tracking-wider text-amber-300 uppercase ml-1"
                       >
                         {t('beta')}
                       </span>
                     )}
-                    {showUnreadDot && (
-                      <span
-                        aria-label={t('unreadConversations', {
-                          count: totalUnread,
-                        })}
-                        className="relative flex h-2 w-2"
-                      >
-                        <span className="bg-primary absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
-                        <span className="bg-primary relative inline-flex h-2 w-2 rounded-full" />
-                      </span>
-                    )}
-                    {showNotificationBadge && (
-                      <span
-                        aria-label={t('unreadNotifications', {
-                          count: unreadNotifications,
-                        })}
-                        className="bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-semibold"
-                      >
-                        {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    {item.href === '/inbox' && totalUnread > 0 && (
+                      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                        {totalUnread > 99 ? '99+' : totalUnread}
                       </span>
                     )}
                   </Link>
@@ -390,26 +352,26 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             </div>
           ) : null}
           <DropdownMenu>
-            <DropdownMenuTrigger className="hover:bg-muted/60 focus:bg-muted/60 data-popup-open:bg-muted/60 flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors focus:outline-none">
-              <Avatar className="size-8 shrink-0">
+            <DropdownMenuTrigger className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
+              <Avatar className="h-7 w-7">
                 {profile?.avatar_url ? (
                   <AvatarImage
                     src={profile.avatar_url}
                     alt={profile.full_name ?? t('defaultAvatar')}
                   />
                 ) : null}
-                <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+                <AvatarFallback className="text-xs bg-primary/10 text-primary">
                   {profile?.full_name?.charAt(0)?.toUpperCase() ??
                     profile?.email?.charAt(0)?.toUpperCase() ??
                     'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="min-w-0 flex-1">
-                <p className="text-foreground truncate text-sm font-medium">
+              <div className="min-w-0 flex-1 text-left">
+                <p className="truncate text-xs font-medium text-foreground">
                   {profile?.full_name ?? t('defaultUser')}
                 </p>
-                <p className="text-muted-foreground truncate text-xs">
-                  {profile?.email ?? ''}
+                <p className="truncate text-[10px] text-muted-foreground">
+                  {accountRole ? t(ROLE_CHIP[accountRole].labelKey as string) : ''}
                 </p>
               </div>
             </DropdownMenuTrigger>

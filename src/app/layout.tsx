@@ -18,6 +18,7 @@ import {
 const inter = Inter({
   variable: '--font-sans',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {

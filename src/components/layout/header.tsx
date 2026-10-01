@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, Menu, Settings as SettingsIcon, User } from 'lucide-react';
+import { LogOut, Menu, Settings as SettingsIcon, User, Search, ChevronDown, Bell } from 'lucide-react';
+import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -48,6 +49,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
   const t = useTranslations('Header');
   const pathname = usePathname();
   const { profile, accountRole, signOut, refreshProfile } = useAuth();
+  const unreadNotifs = useUnreadNotifications();
   const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
 
   const handleAvailabilityChange = async (isAvailable: boolean) => {
@@ -83,7 +85,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
     'U';
 
   return (
-    <header className="border-border bg-background flex h-14 shrink-0 items-center justify-between gap-3 border-b px-4 lg:px-6">
+    <header className="sticky top-0 z-40 flex h-[52px] shrink-0 items-center justify-between gap-3 border-b border-border bg-card px-4 md:px-6">
       <div className="flex min-w-0 items-center gap-2">
         {/* Hamburger — mobile only. 44×44 hit target per Apple HIG. */}
         <button
@@ -99,28 +101,43 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         </h1>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-2">
-        <ModeToggle />
+      {/* Center: Global search */}
+      <div className="hidden md:flex flex-1 max-w-sm mx-8">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder={t('searchPlaceholder')}
+            className="w-full rounded-lg border border-border bg-muted py-1.5 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button className="relative p-2 rounded-lg hover:bg-muted hidden md:flex">
+          <Bell className="size-4 text-muted-foreground" />
+          {unreadNotifs > 0 && (
+            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary" />
+          )}
+        </button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger
-            className="hover:bg-muted/70 focus:bg-muted/70 data-popup-open:bg-muted/70 flex items-center gap-2 rounded-md px-1 py-1 transition-colors focus:outline-none sm:gap-3 sm:pr-3 sm:pl-1"
-            aria-label={t('openAccountMenu')}
-          >
-            <Avatar className="size-8">
+          <DropdownMenuTrigger className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted focus:outline-none transition-colors">
+            <Avatar className="h-7 w-7">
               {profile?.avatar_url ? (
                 <AvatarImage
                   src={profile.avatar_url}
                   alt={profile.full_name ?? t('defaultAvatar')}
                 />
               ) : null}
-              <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
+              <AvatarFallback className="text-xs bg-primary text-white">
                 {initial}
               </AvatarFallback>
             </Avatar>
-            <span className="text-foreground hidden text-sm font-medium sm:inline">
-              {profile?.full_name ?? t('defaultUser')}
+            <span className="hidden md:block text-sm font-medium text-foreground">
+              {profile?.full_name?.split(' ')[0] ?? t('defaultUser')}
             </span>
+            <ChevronDown className="size-3.5 text-muted-foreground hidden md:block" />
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
@@ -168,6 +185,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
                 />
               </div>
             )}
+            <DropdownMenuSeparator className="bg-border" />
+            <div className="flex items-center justify-between px-2 py-1.5 hover:bg-transparent">
+              <span className="pl-1 text-sm font-medium">Theme</span>
+              <ModeToggle />
+            </div>
             <DropdownMenuSeparator className="bg-border" />
             <DropdownMenuItem
               onClick={signOut}

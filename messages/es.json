@@ -65,7 +65,8 @@
     "menuSettings": "Configuración",
     "menuSignOut": "Cerrar sesión",
     "visits": "Site Visits",
-    "properties": "Properties"
+    "properties": "Properties",
+    "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
     "switchMode": "Cambiar al modo {mode}"
@@ -88,7 +89,16 @@
       "newTodayVsYesterday": "nuevos hoy vs. ayer",
       "vsYesterday": "vs. ayer",
       "openDeals": "{count} {count, plural, =1 {negocio abierto} other {negocios abiertos}}",
-      "noChange": "Sin cambios {suffix}"
+      "noChange": "Sin cambios {suffix}",
+      "greeting": "Good morning",
+      "greetingEvening": "Good evening",
+      "hotLeadsNotice": "{count} hot leads need your attention",
+      "recentLeads": "Recent Leads",
+      "viewAll": "View all",
+      "todayVisits": "Today's Visits",
+      "todayTasks": "Today's Tasks",
+      "addLead": "+ Add Lead",
+      "pendingCount": "{count} pending"
     },
     "quickActions": {
       "newContact": "Nuevo contacto",

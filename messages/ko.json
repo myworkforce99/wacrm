@@ -65,7 +65,8 @@
     "menuSettings": "설정",
     "menuSignOut": "로그아웃",
     "visits": "Site Visits",
-    "properties": "Properties"
+    "properties": "Properties",
+    "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
     "switchMode": "{mode} 모드로 전환"
@@ -88,7 +89,16 @@
       "newTodayVsYesterday": "어제 대비 신규",
       "vsYesterday": "어제 대비",
       "openDeals": "진행 중인 딜 {count}건",
-      "noChange": "변동 없음 {suffix}"
+      "noChange": "변동 없음 {suffix}",
+      "greeting": "Good morning",
+      "greetingEvening": "Good evening",
+      "hotLeadsNotice": "{count} hot leads need your attention",
+      "recentLeads": "Recent Leads",
+      "viewAll": "View all",
+      "todayVisits": "Today's Visits",
+      "todayTasks": "Today's Tasks",
+      "addLead": "+ Add Lead",
+      "pendingCount": "{count} pending"
     },
     "quickActions": {
       "newContact": "새 연락처",

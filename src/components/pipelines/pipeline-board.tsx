@@ -373,10 +373,10 @@ function StageColumn({
         style={{ backgroundColor: stage.color }}
       />
       <div className="flex items-center justify-between pt-3">
-        <h3 className="text-foreground truncate text-sm font-semibold">
+        <h3 className="truncate text-sm font-semibold" style={{ color: stage.color }}>
           {stage.name}
         </h3>
-        <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium">
+        <span className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium" style={{ backgroundColor: stage.color + '20', color: stage.color }}>
           {deals.length}
         </span>
       </div>
@@ -419,7 +419,7 @@ function StageColumn({
         className="border-border text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground mt-3 w-full justify-start border border-dashed bg-transparent"
       >
         <Plus className="mr-1 h-3 w-3" />
-        {t('addDeal')}
+        + Add Lead
       </Button>
     </div>
   );

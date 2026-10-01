@@ -1,10 +1,13 @@
 'use client';
 
-import type { Deal, PipelineStage } from '@/types';
+import type { Deal, PipelineStage, Contact } from '@/types';
 import { Calendar, Check, X, ArrowRightLeft } from 'lucide-react';
 import { formatCurrency, formatINR } from '@/lib/currency';
 import { useTranslations } from 'next-intl';
 import { BrokerageBadge } from '@/components/pipelines/brokerage-badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SourceBadge } from '@/components/ui/source-badge';
+import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 
 interface DealCardProps {
   deal: Deal;
@@ -14,6 +17,10 @@ interface DealCardProps {
   isOverlay?: boolean;
   brokeragePct?: number | null;
 }
+
+type ExtendedContact = Contact & {
+  lead_details?: Array<{ location_preference?: string; source?: string }>;
+};
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -94,13 +101,24 @@ export function DealCard({
       </div>
 
       {/* Contact row */}
-      <div className="mt-2 flex items-center gap-2">
-        <span className="bg-muted text-foreground flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold">
-          {initials(deal.contact?.name, deal.contact?.phone)}
-        </span>
-        <span className="text-muted-foreground truncate text-xs">
-          {contactLabel}
-        </span>
+      <div className="mt-2 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <Avatar className="h-5 w-5 shrink-0">
+            <AvatarFallback className="text-[10px] font-semibold text-white" style={{ background: avatarColorForName(contactLabel) }}>
+              {initialsForName(contactLabel)}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-foreground font-medium truncate text-xs">
+            {contactLabel}
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {(deal.contact as ExtendedContact)?.lead_details?.[0]?.location_preference && (
+            <span className="truncate">📍 {(deal.contact as ExtendedContact).lead_details?.[0].location_preference}</span>
+          )}
+          <SourceBadge source={(deal.contact as ExtendedContact)?.lead_details?.[0]?.source || 'manual'} className="scale-75 origin-left" />
+        </div>
       </div>
 
       <div className="mt-2 flex items-start justify-between">

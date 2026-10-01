@@ -84,10 +84,7 @@ export default async function IntegrationsPage() {
       name: 'WhatsApp Business',
       slug: 'WhatsApp Business',
       icon: MessageCircle,
-      status: (whatsappConfig?.phone_number_id &&
-      whatsappConfig?.status === 'connected'
-        ? 'connected'
-        : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
+      status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: false,
       isNative: true,
     },

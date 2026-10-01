@@ -133,40 +133,55 @@ html[data-mode='dark'] {
 }
 
 html[data-mode='light'] {
-  --background: oklch(0.99 0.002 260);
-  --foreground: oklch(0.21 0.01 260);
-  --card: oklch(1 0 0);
-  --card-2: oklch(0.985 0.002 260);
-  --card-foreground: oklch(0.21 0.01 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.01 260);
-  --secondary: oklch(0.967 0.003 260);
-  --secondary-foreground: oklch(0.25 0.01 260);
-  --muted: oklch(0.967 0.003 260);
-  --muted-foreground: oklch(0.52 0.015 260);
-  --accent: oklch(0.96 0.004 260);
-  --accent-foreground: oklch(0.25 0.01 260);
+  --background: #F9FAFB;
+  --foreground: #111827;
+  --card: #FFFFFF;
+  --card-2: #F9FAFB;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+  --secondary: #F3F4F6;
+  --secondary-foreground: #1F2937;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #F3F4F6;
+  --accent-foreground: #1F2937;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0.004 260);
-  --input: oklch(0.922 0.004 260);
+  --border: #E5E7EB;
+  --input: #E5E7EB;
   --chart-2: oklch(0.6 0.1 260);
   --chart-3: oklch(0.7 0.06 260);
   --chart-4: oklch(0.8 0.04 260);
   --chart-5: oklch(0.87 0.03 260);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0.002 260);
-  --sidebar-foreground: oklch(0.21 0.01 260);
-  --sidebar-accent: oklch(0.96 0.004 260);
-  --sidebar-accent-foreground: oklch(0.25 0.01 260);
-  --sidebar-border: oklch(0.922 0.004 260);
-  --status-new: oklch(0.7 0.1 260);
-  --status-contacted: oklch(0.7 0.15 293);
-  --status-site-visit: oklch(0.75 0.15 65);
-  --status-negotiation: oklch(0.85 0.15 85);
-  --status-closed: oklch(0.65 0.15 162);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #111827;
+  --sidebar-accent: #EFF6FF;
+  --sidebar-accent-foreground: #1D4ED8;
+  --sidebar-border: #E5E7EB;
+  --status-new: #2563EB;
+  --status-contacted: #7C3AED;
+  --status-site-visit: #0D9488;
+  --status-negotiation: #D97706;
+  --status-closed: #16A34A;
   --sla-good: oklch(0.65 0.15 162);
   --sla-warning: oklch(0.75 0.15 65);
   --sla-critical: oklch(0.577 0.245 27.325);
+
+  --source-99acres-bg: #FEE2E2;
+  --source-99acres-text: #DC2626;
+  --source-magicbricks-bg: #FFEDD5;
+  --source-magicbricks-text: #EA580C;
+  --source-housingcom-bg: #D1FAE5;
+  --source-housingcom-text: #059669;
+  --source-nobroker-bg: #EFF6FF;
+  --source-nobroker-text: #3B82F6;
+  --source-manual-bg: #F3F4F6;
+  --source-manual-text: #6B7280;
+  --source-referral-bg: #FDF4FF;
+  --source-referral-text: #9333EA;
+  --source-walkin-bg: #FFF7ED;
+  --source-walkin-text: #EA580C;
 }
 
 /* ---- ACCENT: primary color ---- */
@@ -239,6 +254,19 @@ html[data-theme='rose'] {
   --sidebar-primary: oklch(0.645 0.22 16);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-ring: oklch(0.645 0.22 16);
+}
+
+html[data-theme='blue'] {
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #1D4ED8;
+  --primary-soft: rgba(37, 99, 235, 0.10);
+  --primary-soft-2: rgba(37, 99, 235, 0.18);
+  --ring: #2563EB;
+  --chart-1: #2563EB;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-ring: #2563EB;
 }
 
 @layer base {
