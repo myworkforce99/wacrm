@@ -28,6 +28,8 @@ import {
   Tag,
   UserPlus,
   Workflow,
+  Database,
+  Users,
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -50,7 +52,9 @@ export type NodeType =
   | 'condition'
   | 'set_tag'
   | 'handoff'
-  | 'end';
+  | 'end'
+  | 'update_contact_field'
+  | 'assign_conversation';
 
 export interface BuilderNode {
   node_key: string;
@@ -157,6 +161,18 @@ export const NODE_META: Record<
     color: 'text-muted-foreground',
     category: 'flow',
   },
+  update_contact_field: {
+    slugSeed: 'Update field',
+    icon: Database,
+    color: 'text-indigo-400',
+    category: 'logic',
+  },
+  assign_conversation: {
+    slugSeed: 'Assign chat',
+    icon: Users,
+    color: 'text-orange-400',
+    category: 'flow',
+  },
 };
 
 /**
@@ -197,6 +213,8 @@ const NODE_HUE: Record<NodeType, { l: number; c: number; h: number }> = {
   set_tag: { l: 0.65, c: 0.15, h: 350 }, // pink
   handoff: { l: 0.65, c: 0.17, h: 16 }, // rose — hands off
   end: { l: 0.55, c: 0.01, h: 260 }, // neutral grey — terminal
+  update_contact_field: { l: 0.65, c: 0.15, h: 280 }, // purple-ish
+  assign_conversation: { l: 0.65, c: 0.17, h: 30 }, // orange-ish
 };
 
 export interface NodeColors {
@@ -442,5 +460,16 @@ export function summarizeNode(
       const note = typeof cfg.note === 'string' ? cfg.note : '';
       return note.length > 0 ? truncate(note) : null;
     }
+    case 'update_contact_field': {
+      const field = typeof cfg.field === 'string' ? cfg.field : '';
+      const value = typeof cfg.value === 'string' ? cfg.value : '';
+      if (!field) return null;
+      return `${field} = ${truncate(value, 30)}`;
+    }
+    case 'assign_conversation': {
+      const mode = typeof cfg.mode === 'string' ? cfg.mode : 'round_robin';
+      return mode === 'round_robin' ? 'Round Robin' : 'Specific Agent';
+    }
   }
+  return null;
 }

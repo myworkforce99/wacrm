@@ -1129,6 +1129,7 @@
       "deleteConfirm": "¿Eliminar \"{name}\"? Todas las ejecuciones activas terminarán de inmediato.",
       "deleteSuccess": "Flujo eliminado.",
       "deleteError": "No se pudo eliminar el flujo.",
+      "updateError": "No se pudo actualizar el flujo.",
       "emptyTitle": "Aún no hay flujos",
       "emptyDesc": "Crea tu primera conversación: un menú de bienvenida, una consulta de pedido, un bot de preguntas frecuentes. Los clientes tocan botones; el bot los lleva a la respuesta correcta (o al agente correcto).",
       "createFirst": "Crea tu primer flujo",

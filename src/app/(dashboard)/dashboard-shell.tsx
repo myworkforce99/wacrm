@@ -98,8 +98,8 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
         {/* Thinner horizontal padding on mobile so cards have room to breathe.
             Add bottom padding on mobile to account for the bottom nav. */}
-        <main className="flex-1 overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7 print:overflow-visible print:p-0">
-          <div className="mx-auto max-w-7xl">
+        <main className="flex flex-1 flex-col overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7 print:overflow-visible print:p-0">
+          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
             {/* Above every page: writes are being rejected and here's why.
                 Renders nothing unless the account/role failed to resolve. */}
             <AccountAccessAlert />

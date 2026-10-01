@@ -181,6 +181,39 @@ export async function PUT(
   return NextResponse.json({ flow, nodes: nodes ?? [] });
 }
 
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  try {
+    await requireRole('agent');
+  } catch (err) {
+    return toErrorResponse(err);
+  }
+
+  const guard = await requireOwnership(id);
+  if (!guard.ok) return NextResponse.json(guard.body, { status: guard.status });
+
+  const body = (await request.json().catch(() => null)) as { status?: string };
+  if (!body || !['active', 'draft', 'archived'].includes(body.status ?? '')) {
+    return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+  }
+
+  const admin = supabaseAdmin();
+  const { error } = await admin
+    .from('flows')
+    .update({ status: body.status, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(
   _request: Request,
   context: { params: Promise<{ id: string }> }

@@ -76,8 +76,8 @@ BEGIN
   INSERT INTO public.flow_nodes (flow_id, node_key, node_type, config)
   VALUES 
     (v_flow_id, 'start', 'start', '{"next_node_key": "q1_timeframe"}'::jsonb),
-    (v_flow_id, 'q1_timeframe', 'send_buttons', '{"text": "Hi! Thanks for your interest. To help us find the perfect property, when are you looking to move?", "buttons": [{"id": "asap", "text": "ASAP", "next_node_key": "q2_budget"}, {"id": "1_3_months", "text": "1-3 months", "next_node_key": "q2_budget"}, {"id": "just_looking", "text": "Just looking", "next_node_key": "handoff"}]}'::jsonb),
-    (v_flow_id, 'q2_budget', 'send_buttons', '{"text": "Got it. What is your estimated budget?", "buttons": [{"id": "under_500k", "text": "Under 500k", "next_node_key": "handoff"}, {"id": "500_1m", "text": "500k - 1M", "next_node_key": "handoff"}, {"id": "over_1m", "text": "1M+", "next_node_key": "handoff"}]}'::jsonb),
+    (v_flow_id, 'q1_timeframe', 'send_buttons', '{"text": "Hi! Thanks for your interest. To help us find the perfect property, when are you looking to move?", "buttons": [{"reply_id": "asap", "title": "ASAP", "next_node_key": "q2_budget"}, {"reply_id": "1_3_months", "title": "1-3 months", "next_node_key": "q2_budget"}, {"reply_id": "just_looking", "title": "Just looking", "next_node_key": "handoff"}]}'::jsonb),
+    (v_flow_id, 'q2_budget', 'send_buttons', '{"text": "Got it. What is your estimated budget?", "buttons": [{"reply_id": "under_500k", "title": "Under 500k", "next_node_key": "handoff"}, {"reply_id": "500_1m", "title": "500k - 1M", "next_node_key": "handoff"}, {"reply_id": "over_1m", "title": "1M+", "next_node_key": "handoff"}]}'::jsonb),
     (v_flow_id, 'handoff', 'handoff', '{"message": "Great! A team member will be with you shortly to assist further."}'::jsonb);
 
   RETURN NEW;

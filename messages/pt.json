@@ -1129,6 +1129,7 @@
       "deleteConfirm": "Excluir \"{name}\"? Todas as execuções ativas terminarão imediatamente.",
       "deleteSuccess": "Fluxo excluído.",
       "deleteError": "Não foi possível excluir o fluxo.",
+      "updateError": "Não foi possível atualizar o fluxo.",
       "emptyTitle": "Nenhum fluxo ainda",
       "emptyDesc": "Crie sua primeira conversa — um menu de boas-vindas, uma consulta de pedido, um bot de FAQ. Os clientes tocam em botões; o bot os leva à resposta certa (ou ao agente certo).",
       "createFirst": "Crie seu primeiro fluxo",

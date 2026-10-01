@@ -1129,6 +1129,7 @@
       "deleteConfirm": "Delete \"{name}\"? Any active runs will end immediately.",
       "deleteSuccess": "Flow deleted.",
       "deleteError": "Couldn't delete flow.",
+      "updateError": "Couldn't update flow.",
       "emptyTitle": "No flows yet",
       "emptyDesc": "Build your first conversation — a welcome menu, an order lookup, an FAQ bot. Customers tap buttons; the bot routes them to the right answer (or the right agent).",
       "createFirst": "Create your first flow",
@@ -1308,6 +1309,14 @@
         "end": {
           "label": "End",
           "blurb": "Ends the flow"
+        },
+        "update_contact_field": {
+          "label": "Update field",
+          "blurb": "Updates a lead's contact field"
+        },
+        "assign_conversation": {
+          "label": "Assign chat",
+          "blurb": "Assigns conversation to an agent"
         }
       }
     },
