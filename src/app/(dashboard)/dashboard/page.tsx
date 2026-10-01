@@ -31,6 +31,7 @@ import { ConversationsChart } from '@/components/dashboard/conversations-chart';
 import { PipelineDonut } from '@/components/dashboard/pipeline-donut';
 import { ResponseTimeChart } from '@/components/dashboard/response-time-chart';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
+import { WhatsappSetupChecklist } from '@/components/onboarding/whatsapp-setup-checklist';
 import { TeamSetupChecklist } from '@/components/onboarding/team-setup-checklist';
 import { SourceBadge } from '@/components/ui/source-badge';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -189,6 +190,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <WhatsappSetupChecklist />
       <TeamSetupChecklist />
 
       <PageHeader
