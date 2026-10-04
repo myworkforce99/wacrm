@@ -36,10 +36,14 @@ export async function GET(request: Request) {
     }
 
     // Step 2: Fetch deals in early stages not updated in 48h.
+    // Include deals.assigned_to so we can escalate even when no
+    // WhatsApp conversation exists yet (manually-added leads).
+    // Join the assignee profile to resolve profiles.id → user_id,
+    // since tasks.assigned_to and notifications.user_id expect user_id.
     const { data: staleDeals, error: dealsErr } = await db
       .from('deals')
       .select(
-        'id, title, account_id, contact_id, stage_id, contact:contacts(id, name, conversations!inner(assigned_agent_id))'
+        'id, title, account_id, contact_id, stage_id, assigned_to, assignee:profiles!deals_assigned_to_fkey(user_id), contact:contacts(id, name, conversations(assigned_agent_id))'
       )
       .lt('updated_at', fortyEightHoursAgo)
       .in('stage_id', earlyStageIds);
@@ -59,16 +63,26 @@ export async function GET(request: Request) {
       const contactObj = Array.isArray(deal.contact)
         ? deal.contact[0]
         : deal.contact;
+
+      // Resolve user_id from the joined profile (deals.assigned_to is profiles.id).
+      // tasks.assigned_to and notifications.user_id both require user_id.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dealAssignee = (deal as any).assignee;
+      const dealAgentUserId: string | null = Array.isArray(dealAssignee)
+        ? dealAssignee[0]?.user_id ?? null
+        : dealAssignee?.user_id ?? null;
+
+      // Fall back to conversation assignee (already user_id) for legacy data
       const conversations = Array.isArray(contactObj?.conversations)
         ? contactObj?.conversations
         : [contactObj?.conversations];
-      const conversation = conversations.find(
+      const convAgentId = conversations.find(
         (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
-      );
+      )?.assigned_agent_id;
+      const agentId = dealAgentUserId ?? convAgentId ?? null;
 
-      if (conversation?.assigned_agent_id) {
+      if (agentId) {
         stale++;
-        const agentId = conversation.assigned_agent_id;
         const contactName = contactObj?.name || 'Unknown Contact';
 
         // (a) Create a follow-up task.

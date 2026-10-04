@@ -532,9 +532,11 @@ export async function loadTeamPerformance(
   }
 
   // 4. Fetch deals (conversion rate)
+  // deals.assigned_to stores profiles.id (not user_id) — join profiles
+  // to convert to user_id so dealsByAgent is keyed consistently.
   const { data: dealsRes, error: dErr } = await db
     .from('deals')
-    .select('assigned_to, status')
+    .select('assigned_to, status, assignee:profiles!deals_assigned_to_fkey(user_id)')
     .not('assigned_to', 'is', null);
   if (dErr) throw dErr;
 
@@ -542,13 +544,19 @@ export async function loadTeamPerformance(
   for (const d of (dealsRes ?? []) as {
     assigned_to: string;
     status: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    assignee: any;
   }[]) {
     if (d.status !== 'won' && d.status !== 'lost') continue;
+    const agentUserId: string | null = Array.isArray(d.assignee)
+      ? d.assignee[0]?.user_id
+      : d.assignee?.user_id;
+    if (!agentUserId) continue;
 
-    const stats = dealsByAgent.get(d.assigned_to) ?? { won: 0, closed: 0 };
+    const stats = dealsByAgent.get(agentUserId) ?? { won: 0, closed: 0 };
     stats.closed++;
     if (d.status === 'won') stats.won++;
-    dealsByAgent.set(d.assigned_to, stats);
+    dealsByAgent.set(agentUserId, stats);
   }
 
   // 5. Fetch messages (response time)
@@ -598,28 +606,41 @@ export async function loadTeamPerformance(
     }
   }
 
-  // 6. Fetch stale leads
+  // 6. Fetch stale leads — count per assigned agent.
+  // Use deals.assigned_to as primary source so leads without a WhatsApp
+  // conversation (manually added) are included in the stale count.
+  // deals.assigned_to stores profiles.id — join profiles for user_id.
   const fortyEightHoursAgo = new Date(
     Date.now() - 48 * 60 * 60 * 1000
   ).toISOString();
   const { data: staleDealsRes } = await db
     .from('deals')
     .select(
-      'stage:pipeline_stages(name), contact:contacts(conversations!inner(assigned_agent_id))'
+      'assigned_to, stage:pipeline_stages(name), contact:contacts(conversations(assigned_agent_id)), assignee:profiles!deals_assigned_to_fkey(user_id)'
     )
     .lt('updated_at', fortyEightHoursAgo)
-    .in('stage.name', ['New', 'Contacted'])
-    .not('contact.conversations', 'is', null);
+    .not('stage', 'is', null);
 
   const staleLeadsByAgent = new Map<string, number>();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   for (const d of (staleDealsRes ?? []) as any[]) {
+    const stageName = d.stage?.name;
+    if (!['New', 'Contacted'].includes(stageName)) continue;
+
+    // Resolve user_id from the joined profile
+    const agentUserId: string | null = Array.isArray(d.assignee)
+      ? d.assignee[0]?.user_id
+      : d.assignee?.user_id;
+
+    // Fall back to conversation assignee if no deal-level assignment
     const convs = Array.isArray(d.contact?.conversations)
       ? d.contact.conversations
       : [d.contact?.conversations];
-    const agentId = convs.find(
+    const convAgentId = convs.find(
       (c: { assigned_agent_id?: string | null }) => c?.assigned_agent_id
     )?.assigned_agent_id;
+
+    const agentId = agentUserId ?? convAgentId ?? null;
     if (agentId) {
       staleLeadsByAgent.set(agentId, (staleLeadsByAgent.get(agentId) ?? 0) + 1);
     }

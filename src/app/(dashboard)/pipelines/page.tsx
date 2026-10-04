@@ -50,7 +50,7 @@ export default function PipelinesPage() {
   const supabase = createClient();
   const canEditSettings = useCan('edit-settings');
   const canCreateDeals = useCan('send-messages');
-  const { accountId } = useAuth();
+  const { accountId, accountRole } = useAuth();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
@@ -147,14 +147,24 @@ export default function PipelinesPage() {
       return pipeline as Pipeline;
     }, [supabase, accountId]);
 
-  // Initial load + seed-if-empty
+  // Initial load + seed-if-empty.
+  // Seeding is gated to admin+ only: an agent who just accepted an
+  // invitation joins an existing account that already has a "Real
+  // Estate" pipeline (seeded by the handle_new_user trigger for the
+  // owner). If the pipeline list appears empty for a moment during
+  // the initial fetch, we must NOT let an agent create a duplicate
+  // "Sales Pipeline" on top of it. The seed is purely a fallback for
+  // net-new owner accounts that somehow have no pipeline at all.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setLoading(true);
       let list = await loadPipelines();
 
-      if (list.length === 0 && !seedAttempted.current) {
+      // Only seed if the user can edit account settings (admin+) AND
+      // there are truly no pipelines, AND we haven't tried once already.
+      const canSeed = accountRole === 'owner' || accountRole === 'admin';
+      if (list.length === 0 && canSeed && !seedAttempted.current) {
         seedAttempted.current = true;
         const seeded = await seedDefaultPipeline();
         if (seeded) list = await loadPipelines();
@@ -174,7 +184,7 @@ export default function PipelinesPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadPipelines, seedDefaultPipeline]);
+  }, [loadPipelines, seedDefaultPipeline, accountRole]);
 
   // Load stages + deals whenever selected pipeline changes.
   // Clearing on no-selection is a legitimate sync with URL/prop

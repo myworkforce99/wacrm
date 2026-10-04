@@ -106,6 +106,8 @@ interface ContactWithTags extends Contact {
     budget_max?: number;
   }[];
   deals?: {
+    assigned_to?: string | null;
+    status?: string;
     pipeline_stages?: {
       name?: string;
     };
@@ -116,7 +118,7 @@ export default function ContactsPage() {
   const t = useTranslations('Contacts.page');
   const router = useRouter();
   const supabase = createClient();
-  const { accountRole, user, defaultCurrency } = useAuth();
+  const { accountRole, user, profile, defaultCurrency } = useAuth();
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
 
@@ -188,11 +190,15 @@ export default function ContactsPage() {
       // windowed total count + pagination) so a tag covering many
       // contacts can't silently truncate the result or overflow an IN
       // clause. See migration 025_filter_contacts_by_tags.
+      // p_agent_user_id (migration 125): restrict results to the agent's
+      // own contacts when the caller is an agent, NULL = no restriction.
       const { data, error } = await supabase.rpc('filter_contacts_by_tags', {
         p_tag_ids: selectedTagIds,
         p_search: term || null,
         p_limit: PAGE_SIZE,
         p_offset: from,
+        p_agent_user_id:
+          accountRole === 'agent' && user?.id ? user.id : null,
       });
       if (seq !== fetchSeq.current) return; // superseded by a newer fetch
       if (error) {
@@ -203,21 +209,84 @@ export default function ContactsPage() {
       const rows = (data ?? []) as { contact: Contact; total_count: number }[];
       contactRows = rows.map((r) => r.contact);
       count = rows.length > 0 ? Number(rows[0].total_count) : 0;
-    } else {
-      let query = supabase
+    } else if (accountRole === 'agent' && user?.id) {
+      // ----------------------------------------------------------------
+      // Agent-scoped path: show contacts where this agent is involved.
+      //
+      // We intentionally do NOT use `conversations!inner` here — that
+      // approach only surfaces contacts with an active WhatsApp
+      // conversation assigned to the agent, which silently hides:
+      //   - leads created manually (no conversation yet)
+      //   - leads assigned via deals.assigned_to but with no conversation
+      //   - leads imported via CSV before a conversation was opened
+      //
+      // Correct B2B logic: an agent owns a lead if they are either the
+      // original creator (user_id) OR have an open deal assigned to them
+      // for that contact. We collect both sets, union them, then page.
+      //
+      // IMPORTANT: deals.assigned_to stores profiles.id (the profiles
+      // table PK), NOT user_id (the auth UUID). Use profile.id here.
+      // ----------------------------------------------------------------
+
+      // Step 1: collect contact IDs where agent has a deal assigned.
+      // profile.id is the profiles table PK which deals.assigned_to references.
+      const profileId = profile?.id;
+      const { data: agentDeals } = profileId
+        ? await supabase
+            .from('deals')
+            .select('contact_id')
+            .eq('assigned_to', profileId)
+            .not('contact_id', 'is', null)
+        : { data: [] };
+
+      const dealContactIds = (
+        agentDeals?.map((d) => d.contact_id).filter(Boolean) ?? []
+      ) as string[];
+
+      // Step 2: query contacts — either created by agent OR in dealContactIds
+      let agentQuery = supabase
         .from('contacts')
-        .select(
-          accountRole === 'agent'
-            ? '*, conversations!inner(assigned_agent_id), lead_details(*), deals(status, pipeline_stages(name))'
-            : '*, lead_details(*), deals(status, pipeline_stages(name))',
-          { count: 'exact' }
-        )
+        .select('*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))', {
+          count: 'exact',
+        })
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (accountRole === 'agent' && user?.id) {
-        query = query.eq('conversations.assigned_agent_id', user.id);
+      if (dealContactIds.length > 0) {
+        // OR: created by this agent OR assigned a deal to this agent
+        agentQuery = agentQuery.or(
+          `user_id.eq.${user.id},id.in.(${dealContactIds.join(',')})`
+        );
+      } else {
+        // No deals assigned yet — show only contacts this agent created
+        agentQuery = agentQuery.eq('user_id', user.id);
       }
+
+      if (term) {
+        const like = `%${term}%`;
+        agentQuery = agentQuery.or(
+          `name.ilike.${like},phone.ilike.${like},email.ilike.${like}`
+        );
+      }
+
+      const { data, count: exactCount, error } = await agentQuery;
+      if (seq !== fetchSeq.current) return;
+      if (error) {
+        toast.error(t('toastFailedLoad'));
+        setLoading(false);
+        return;
+      }
+      contactRows = (data as unknown as Contact[]) ?? [];
+      count = exactCount ?? 0;
+    } else {
+      // Admin / owner path: see all contacts in the account
+      let query = supabase
+        .from('contacts')
+        .select('*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))', {
+          count: 'exact',
+        })
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (term) {
         const like = `%${term}%`;
@@ -227,7 +296,7 @@ export default function ContactsPage() {
       }
 
       const { data, count: exactCount, error } = await query;
-      if (seq !== fetchSeq.current) return; // superseded by a newer fetch
+      if (seq !== fetchSeq.current) return;
       if (error) {
         toast.error(t('toastFailedLoad'));
         setLoading(false);
@@ -257,21 +326,45 @@ export default function ContactsPage() {
       .select('contact_id, first_unanswered_at, assigned_agent_id')
       .in('contact_id', contactIds);
 
-    // Fetch profiles for assigned agents
-    const assignedAgentIds = Array.from(
-      new Set(convData?.map((c) => c.assigned_agent_id).filter(Boolean))
+    // Collect all agent IDs we need profiles for.
+    // NOTE: two different ID spaces are in play here:
+    //   - conversations.assigned_agent_id stores user_id (auth UUID)
+    //   - deals.assigned_to stores profiles.id (profiles table PK)
+    // We build separate lookups for each.
+    const convAssigneeIds = (
+      convData?.map((c) => c.assigned_agent_id).filter(Boolean) ?? []
     ) as string[];
-    const agentsMap: Record<string, { id: string; full_name: string }> = {};
-    if (assignedAgentIds.length > 0) {
-      const { data: profiles } = await supabase
+
+    // Extract deal assignees (profiles.id) from already-fetched contactRows
+    type ContactRowWithDeals = Contact & {
+      deals?: { assigned_to?: string | null }[];
+    };
+    const dealAssigneeProfileIds = (contactRows as ContactRowWithDeals[])
+      .flatMap((c) => c.deals?.map((d) => d.assigned_to) ?? [])
+      .filter(Boolean) as string[];
+
+    // Map keyed by user_id — for conversation assignee display
+    const agentsByUserId: Record<string, { id: string; full_name: string }> = {};
+    if (convAssigneeIds.length > 0) {
+      const { data: convProfiles } = await supabase
         .from('profiles')
         .select('user_id, full_name')
-        .in('user_id', assignedAgentIds);
-      if (profiles) {
-        profiles.forEach((p) => {
-          agentsMap[p.user_id] = { id: p.user_id, full_name: p.full_name };
-        });
-      }
+        .in('user_id', convAssigneeIds);
+      convProfiles?.forEach((p) => {
+        agentsByUserId[p.user_id] = { id: p.user_id, full_name: p.full_name };
+      });
+    }
+
+    // Map keyed by profiles.id — for deal assignee display
+    const agentsByProfileId: Record<string, { id: string; full_name: string }> = {};
+    if (dealAssigneeProfileIds.length > 0) {
+      const { data: dealProfiles } = await supabase
+        .from('profiles')
+        .select('id, user_id, full_name')
+        .in('id', dealAssigneeProfileIds);
+      dealProfiles?.forEach((p) => {
+        agentsByProfileId[p.id] = { id: p.user_id, full_name: p.full_name };
+      });
     }
 
     if (seq !== fetchSeq.current) return; // superseded by a newer fetch
@@ -293,23 +386,38 @@ export default function ContactsPage() {
       };
     });
 
+    // Build a map of contact_id → deal assignee profiles.id
+    const dealAssigneeByContact: Record<string, string | null> = {};
+    (contactRows as ContactRowWithDeals[]).forEach((c) => {
+      const firstDealWithAssignee = c.deals?.find((d) => d.assigned_to);
+      if (firstDealWithAssignee?.assigned_to) {
+        dealAssigneeByContact[c.id] = firstDealWithAssignee.assigned_to;
+      }
+    });
+
     const enriched: ContactWithTags[] = contactRows.map((c) => {
       const conv = convByContact[c.id];
+      // Prefer conversation assignee (real-time, user_id space);
+      // fall back to deal assignee (profiles.id space)
+      const convAgentId = conv?.assigned_agent_id ?? null;
+      const dealProfileId = dealAssigneeByContact[c.id] ?? null;
+      const assignee =
+        (convAgentId ? agentsByUserId[convAgentId] : null) ??
+        (dealProfileId ? agentsByProfileId[dealProfileId] : null) ??
+        null;
       return {
         ...c,
         tags: (tagsByContact[c.id] ?? [])
           .map((tid) => tagsMap[tid])
           .filter(Boolean),
         first_unanswered_at: conv?.first_unanswered_at,
-        assignee: conv?.assigned_agent_id
-          ? agentsMap[conv.assigned_agent_id]
-          : null,
+        assignee,
       };
     });
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, tagsMap, t, user, accountRole]);
+  }, [supabase, page, search, selectedTagIds, tagsMap, t, user, profile, accountRole]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not

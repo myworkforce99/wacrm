@@ -20,9 +20,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
+  // deals.assigned_to stores profiles.id — join to resolve the agent's user_id
+  // so canMoveDeal can compare against ctx.userId (auth UUID).
   const { data: deal, error: dealError } = await supabaseAdmin()
     .from('deals')
-    .select('assigned_to, contact_id')
+    .select('assigned_to, contact_id, assignee:profiles!deals_assigned_to_fkey(user_id)')
     .eq('id', id)
     .eq('account_id', ctx.accountId)
     .single();
@@ -39,10 +41,17 @@ export async function PATCH(
     .limit(1)
     .maybeSingle();
 
+  // Resolve the deal assignee's user_id from the joined profile
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const assigneeProfile = (deal as any).assignee;
+  const dealAssigneeUserId: string | null = Array.isArray(assigneeProfile)
+    ? assigneeProfile[0]?.user_id ?? null
+    : assigneeProfile?.user_id ?? null;
+
   if (
     !canMoveDeal(
       ctx.role,
-      deal.assigned_to,
+      dealAssigneeUserId,
       conv?.assigned_agent_id,
       ctx.userId
     )

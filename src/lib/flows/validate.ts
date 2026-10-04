@@ -718,7 +718,11 @@ function validateNode(
       break;
 
     case 'update_contact_field': {
-      const cfg = node.config as { field?: string; value?: string; next_node_key?: string };
+      const cfg = node.config as {
+        field?: string;
+        value?: string;
+        next_node_key?: string;
+      };
       if (!cfg.field?.trim()) {
         issues.push({
           severity: 'error',

@@ -9,5 +9,7 @@ CREATE TABLE IF NOT EXISTS agent_targets (
   UNIQUE (account_id, agent_id, period_start)
 );
 ALTER TABLE agent_targets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS agent_targets_select ON agent_targets;
 CREATE POLICY agent_targets_select ON agent_targets FOR SELECT USING (is_account_member(account_id));
+DROP POLICY IF EXISTS agent_targets_manage ON agent_targets;
 CREATE POLICY agent_targets_manage ON agent_targets FOR ALL USING (is_account_member(account_id, 'admin'));

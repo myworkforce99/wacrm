@@ -184,6 +184,10 @@ export function defaultConfigFor(type: NodeType): Record<string, unknown> {
       return { note: '' };
     case 'end':
       return {};
+    case 'update_contact_field':
+      return { field: '', value: '', next_node_key: '' };
+    case 'assign_conversation':
+      return { mode: 'specific', next_node_key: '' };
   }
 }
 

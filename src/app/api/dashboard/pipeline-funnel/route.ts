@@ -44,13 +44,11 @@ export async function GET(request: Request) {
       existing.count += 1;
     }
 
-    // Include empty stages as well by fetching all stages for this account's pipelines
-    // For simplicity we just use the ones we found if that's enough,
-    // but a real funnel should probably show 0s for empty stages.
+    // pipeline_stages has no account_id — filter via pipelines join
     const { data: allStages, error: sErr } = await ctx.supabase
       .from('pipeline_stages')
-      .select('id, name, position')
-      .eq('account_id', ctx.accountId)
+      .select('id, name, position, pipelines!inner(account_id)')
+      .eq('pipelines.account_id', ctx.accountId)
       .order('position', { ascending: true });
 
     if (sErr) throw sErr;

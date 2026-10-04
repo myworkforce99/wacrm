@@ -13,5 +13,7 @@ CREATE TABLE IF NOT EXISTS lead_routing_rules (
 );
 CREATE INDEX IF NOT EXISTS idx_routing_rules_account ON lead_routing_rules(account_id, priority);
 ALTER TABLE lead_routing_rules ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS routing_rules_select ON lead_routing_rules;
 CREATE POLICY routing_rules_select ON lead_routing_rules FOR SELECT USING (is_account_member(account_id));
+DROP POLICY IF EXISTS routing_rules_manage ON lead_routing_rules;
 CREATE POLICY routing_rules_manage ON lead_routing_rules FOR ALL USING (is_account_member(account_id, 'admin'));

@@ -35,7 +35,8 @@ WHERE automation_id IN (
   SELECT id FROM automations WHERE trigger_type = 'visit_reminder_2h'
 );
 
-DROP FUNCTION IF EXISTS public.handle_new_user();
+-- Use CREATE OR REPLACE (not DROP+CREATE) so the trigger dependency on
+-- handle_new_user() is preserved without needing a separate DROP TRIGGER.
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER

@@ -1,0 +1,2 @@
+-- This migration number was intentionally skipped during development.
+-- No schema changes. Placeholder to maintain sequential numbering.

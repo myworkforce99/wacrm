@@ -86,6 +86,12 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
+    if (session && inviteToken) {
+      window.location.href = `/join/${encodeURIComponent(inviteToken)}`;
+      return;
+    }
+
     if (!session) {
       // Email confirmation required
       setStep(99);

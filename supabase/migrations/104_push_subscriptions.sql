@@ -14,6 +14,7 @@ CREATE TABLE public.push_subscriptions (
 
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own push_subscriptions" ON public.push_subscriptions;
 CREATE POLICY "Users can manage own push_subscriptions" 
   ON public.push_subscriptions 
   FOR ALL USING (auth.uid() = user_id);

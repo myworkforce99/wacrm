@@ -89,7 +89,8 @@ export function WhatsappSetupChecklist() {
             Connect WhatsApp
           </h3>
           <p className="text-muted-foreground max-w-xl text-sm">
-            WACRM needs to connect to the WhatsApp API to send and receive messages. Connect your number to start reaching out to leads.
+            WACRM needs to connect to the WhatsApp API to send and receive
+            messages. Connect your number to start reaching out to leads.
           </p>
         </div>
 

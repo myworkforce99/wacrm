@@ -39,12 +39,12 @@
 
 ### 1.1 Environment
 
-| Item | Value |
-|---|---|
-| Node version | ≥ 20 |
-| Package manager | npm |
-| Local app URL | `http://localhost:3000` |
-| Dev command | `npm run dev` |
+| Item            | Value                   |
+| --------------- | ----------------------- |
+| Node version    | ≥ 20                    |
+| Package manager | npm                     |
+| Local app URL   | `http://localhost:3000` |
+| Dev command     | `npm run dev`           |
 
 ### 1.2 Environment Variables
 
@@ -69,17 +69,18 @@ CRON_SECRET=...
 
 Create the following test users before starting tests. Use the signup flow at `/signup` or seed directly via Supabase dashboard:
 
-| Role | Email | Purpose |
-|---|---|---|
-| `owner` | `owner@retest.com` | Business owner, full access |
-| `admin` | `admin@retest.com` | Manager with team oversight |
-| `agent` | `agent1@retest.com` | Sales agent, scoped access |
-| `agent` | `agent2@retest.com` | Second agent (for round-robin tests) |
-| `viewer` | `viewer@retest.com` | Read-only observer |
+| Role     | Email               | Purpose                              |
+| -------- | ------------------- | ------------------------------------ |
+| `owner`  | `owner@retest.com`  | Business owner, full access          |
+| `admin`  | `admin@retest.com`  | Manager with team oversight          |
+| `agent`  | `agent1@retest.com` | Sales agent, scoped access           |
+| `agent`  | `agent2@retest.com` | Second agent (for round-robin tests) |
+| `viewer` | `viewer@retest.com` | Read-only observer                   |
 
 ### 1.4 Seed Test Data
 
 Using the Supabase dashboard or seed scripts, ensure:
+
 - At least **10 contacts** with varied sources (99acres, MagicBricks, Housing.com, Manual)
 - At least **5 deals** across different pipeline stages
 - At least **3 properties** with BHK configs, RERA IDs, prices
@@ -91,6 +92,7 @@ Using the Supabase dashboard or seed scripts, ensure:
 ## 2. Auth & Onboarding Flows
 
 ### TC-AUTH-01: Login Page
+
 **URL:** `/login`
 
 1. Open `http://localhost:3000` — should redirect to `/login` (not crash).
@@ -105,6 +107,7 @@ Using the Supabase dashboard or seed scripts, ensure:
 ---
 
 ### TC-AUTH-02: Signup & Onboarding Wizard
+
 **URL:** `/signup`
 
 1. Open `/signup`. Fill in name, email (`newowner@retest.com`), password.
@@ -122,6 +125,7 @@ Using the Supabase dashboard or seed scripts, ensure:
 ---
 
 ### TC-AUTH-03: Invite & Join Flow
+
 **URL:** `/settings` → Team tab → Invite
 
 1. Log in as `owner`.
@@ -136,6 +140,7 @@ Using the Supabase dashboard or seed scripts, ensure:
 ---
 
 ### TC-AUTH-04: Password Reset
+
 **URL:** `/forgot-password`
 
 1. Navigate to `/forgot-password`.
@@ -810,6 +815,7 @@ DELETE /api/tasks/<id>
 ### TC-TEAM-03: Agent Cards
 
 Each agent card should show:
+
 1. Name, avatar.
 2. **Availability indicator:** green dot (available) / grey dot + "On Leave" text.
 3. **Load bar:** "12 open leads" as a mini progress bar (green < 10, amber 10–18, red > 18).
@@ -868,6 +874,7 @@ Each agent card should show:
 ### TC-SET-01: Settings Tabs
 
 The settings page should have tabs for:
+
 - **General** (Account name, currency, language, brokerage %)
 - **WhatsApp** (phone number, WABA config)
 - **AI** (OpenAI/Anthropic key, model, knowledge base)
@@ -1170,22 +1177,22 @@ DELETE /api/v1/webhooks/<id>
 
 Summary matrix for quick reference — verify each cell:
 
-| Feature | owner | admin | agent | viewer |
-|---|---|---|---|---|
-| View all leads | ✅ | ✅ | ❌ (own only) | ✅ |
-| Create/edit leads | ✅ | ✅ | ✅ | ❌ |
-| Move deals (own) | ✅ | ✅ | ✅ | ❌ |
-| Move deals (others') | ✅ | ✅ | ❌ (403) | ❌ |
-| Create broadcasts | ✅ | ✅ | ❌ | ❌ |
-| View broadcasts | ✅ | ✅ | ✅ | ✅ |
-| Invite members | ✅ | ✅ | ❌ | ❌ |
-| Access Team Dashboard | ✅ | ✅ | ❌ | ❌ |
-| Access Integrations page | ✅ | ✅ | ❌ | ❌ |
-| Bulk reassign leads | ✅ | ✅ | ❌ | ❌ |
-| Configure routing rules | ✅ | ✅ | ❌ | ❌ |
-| View billing | ✅ | ❌ | ❌ | ❌ |
-| Export CSV | ✅ | ✅ | ❌ | ❌ |
-| Create/revoke API keys | ✅ | ✅ | ❌ | ❌ |
+| Feature                  | owner | admin | agent         | viewer |
+| ------------------------ | ----- | ----- | ------------- | ------ |
+| View all leads           | ✅    | ✅    | ❌ (own only) | ✅     |
+| Create/edit leads        | ✅    | ✅    | ✅            | ❌     |
+| Move deals (own)         | ✅    | ✅    | ✅            | ❌     |
+| Move deals (others')     | ✅    | ✅    | ❌ (403)      | ❌     |
+| Create broadcasts        | ✅    | ✅    | ❌            | ❌     |
+| View broadcasts          | ✅    | ✅    | ✅            | ✅     |
+| Invite members           | ✅    | ✅    | ❌            | ❌     |
+| Access Team Dashboard    | ✅    | ✅    | ❌            | ❌     |
+| Access Integrations page | ✅    | ✅    | ❌            | ❌     |
+| Bulk reassign leads      | ✅    | ✅    | ❌            | ❌     |
+| Configure routing rules  | ✅    | ✅    | ❌            | ❌     |
+| View billing             | ✅    | ❌    | ❌            | ❌     |
+| Export CSV               | ✅    | ✅    | ❌            | ❌     |
+| Create/revoke API keys   | ✅    | ✅    | ❌            | ❌     |
 
 > [!WARNING]
 > All role checks must be enforced **server-side** (in route handlers/server components). UI-only hiding is not sufficient — verify with direct API calls for each role.
@@ -1225,13 +1232,13 @@ Summary matrix for quick reference — verify each cell:
 
 ### TC-L10N-04: Indian Budget Parsing (CSV Import)
 
-| Input | Expected `budget_min` |
-|---|---|
-| "45L" | 4,500,000 |
-| "1.5Cr" | 15,000,000 |
-| "80 Lakh" | 8,000,000 |
-| "1 Crore" | 10,000,000 |
-| "75000" | 75,000 |
+| Input     | Expected `budget_min` |
+| --------- | --------------------- |
+| "45L"     | 4,500,000             |
+| "1.5Cr"   | 15,000,000            |
+| "80 Lakh" | 8,000,000             |
+| "1 Crore" | 10,000,000            |
+| "75000"   | 75,000                |
 
 ---
 
@@ -1247,11 +1254,11 @@ Summary matrix for quick reference — verify each cell:
 
 > As a new developer, document any test failures here during your onboarding test pass.
 
-| # | Test Case | Observed Behavior | Expected Behavior | Status |
-|---|---|---|---|---|
-| 1 | `npm run dev` | `INVALID_KEY` error for `Housing.com` in `messages/en.json` under `Integrations.portals` | Key names in next-intl cannot contain `.` — rename key to `HousingCom` or `Housing_com` | 🔴 Open |
-| 2 | | | | |
-| 3 | | | | |
+| #   | Test Case     | Observed Behavior                                                                        | Expected Behavior                                                                       | Status  |
+| --- | ------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------- |
+| 1   | `npm run dev` | `INVALID_KEY` error for `Housing.com` in `messages/en.json` under `Integrations.portals` | Key names in next-intl cannot contain `.` — rename key to `HousingCom` or `Housing_com` | 🔴 Open |
+| 2   |               |                                                                                          |                                                                                         |         |
+| 3   |               |                                                                                          |                                                                                         |         |
 
 > [!NOTE]
 > **Known bug to fix first:** The `npm run dev` error `INVALID_KEY: Namespace keys cannot contain the character "."` is caused by the i18n key `Housing.com` in `messages/en.json`. Rename to `HousingCom` (and update all references in components) before testing the Integrations page.

@@ -54,10 +54,12 @@ CREATE INDEX IF NOT EXISTS idx_assignment_history_contact ON assignment_history(
 ALTER TABLE assignment_history ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS assignment_history_select ON assignment_history;
+DROP POLICY IF EXISTS assignment_history_select ON assignment_history;
 CREATE POLICY assignment_history_select ON assignment_history FOR SELECT
   USING (is_account_member(account_id));
 
 -- Typically, assignment_history is insert-only (no update/delete)
+DROP POLICY IF EXISTS assignment_history_insert ON assignment_history;
 DROP POLICY IF EXISTS assignment_history_insert ON assignment_history;
 CREATE POLICY assignment_history_insert ON assignment_history FOR INSERT
   WITH CHECK (is_account_member(account_id, 'agent'));

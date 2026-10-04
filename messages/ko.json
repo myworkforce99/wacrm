@@ -1129,6 +1129,7 @@
       "deleteConfirm": "\"{name}\"을(를) 삭제하시겠습니까? 실행 중인 세션은 즉시 종료됩니다.",
       "deleteSuccess": "플로우가 삭제되었습니다.",
       "deleteError": "플로우를 삭제할 수 없습니다.",
+      "updateError": "플로우를 업데이트할 수 없습니다.",
       "emptyTitle": "아직 플로우가 없습니다",
       "emptyDesc": "첫 대화를 만들어보세요 — 환영 메뉴, 주문 조회, FAQ 봇 등. 고객이 버튼을 탭하면 봇이 알맞은 답변(또는 알맞은 상담원)으로 안내합니다.",
       "createFirst": "첫 플로우 만들기",
@@ -1308,6 +1309,14 @@
         "end": {
           "label": "종료",
           "blurb": "플로우를 종료합니다"
+        },
+        "update_contact_field": {
+          "label": "필드 업데이트",
+          "blurb": "리드의 연락처 필드를 업데이트합니다"
+        },
+        "assign_conversation": {
+          "label": "채팅 배정",
+          "blurb": "상담원에게 대화를 배정합니다"
         }
       }
     },

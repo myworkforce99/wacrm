@@ -1309,6 +1309,14 @@
         "end": {
           "label": "Fin",
           "blurb": "Termina el flujo"
+        },
+        "update_contact_field": {
+          "label": "Actualizar campo",
+          "blurb": "Actualiza el campo de contacto de un lead"
+        },
+        "assign_conversation": {
+          "label": "Asignar chat",
+          "blurb": "Asigna la conversación a un agente"
         }
       }
     },

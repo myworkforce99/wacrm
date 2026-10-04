@@ -72,12 +72,12 @@ export function parseInternationalPhone(
 ): string | null {
   if (!raw) return null;
   let compact = raw.trim().replace(/[\s().-]/g, '');
-  
+
   // Implicitly treat 10-digit Indian mobile numbers as +91 if missing
   if (!compact.startsWith('+') && /^[6-9]\d{9}$/.test(compact)) {
     compact = '+91' + compact;
   }
-  
+
   if (!compact.startsWith('+')) return null;
   const digits = compact.slice(1);
   if (!/^\d+$/.test(digits)) return null;

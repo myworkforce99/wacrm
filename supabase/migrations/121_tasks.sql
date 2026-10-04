@@ -22,11 +22,17 @@ CREATE INDEX IF NOT EXISTS idx_tasks_due_pending
 
 ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
--- Copy the is_account_member pattern from migration 102
+-- DROP IF EXISTS guards make this idempotent on re-run
+DROP POLICY IF EXISTS tasks_select ON tasks;
+DROP POLICY IF EXISTS tasks_insert ON tasks;
+DROP POLICY IF EXISTS tasks_update ON tasks;
+DROP POLICY IF EXISTS tasks_delete ON tasks;
+
 CREATE POLICY tasks_select ON tasks FOR SELECT USING (is_account_member(account_id));
 CREATE POLICY tasks_insert ON tasks FOR INSERT WITH CHECK (is_account_member(account_id, 'agent'));
 CREATE POLICY tasks_update ON tasks FOR UPDATE USING (is_account_member(account_id, 'agent'));
 CREATE POLICY tasks_delete ON tasks FOR DELETE USING (is_account_member(account_id, 'agent'));
 
+DROP TRIGGER IF EXISTS set_updated_at ON tasks;
 CREATE TRIGGER set_updated_at BEFORE UPDATE ON tasks
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
