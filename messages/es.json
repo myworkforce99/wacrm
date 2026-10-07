@@ -487,7 +487,8 @@
       "toastTemplateSent": "Plantilla \"{name}\" enviada",
       "toastTemplateFailed": "Error al enviar la plantilla: {reason}",
       "assignmentHistoryTitle": "Historial de asignación",
-      "noAssignmentHistory": "No se encontró historial de asignación."
+      "noAssignmentHistory": "No se encontró historial de asignación.",
+      "assignedTo": "Assigned to: "
     },
     "importModal": {
       "title": "Importar contactos",

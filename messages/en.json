@@ -487,7 +487,8 @@
       "toastTemplateSent": "Template \"{name}\" sent",
       "toastTemplateFailed": "Failed to send template: {reason}",
       "assignmentHistoryTitle": "Assignment History",
-      "noAssignmentHistory": "No assignment history found."
+      "noAssignmentHistory": "No assignment history found.",
+      "assignedTo": "Assigned to: "
     },
     "importModal": {
       "title": "Import Contacts",

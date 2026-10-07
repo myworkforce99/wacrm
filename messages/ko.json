@@ -487,7 +487,8 @@
       "toastTemplateSent": "\"{name}\" 템플릿을 보냈습니다",
       "toastTemplateFailed": "템플릿을 보내지 못했습니다: {reason}",
       "assignmentHistoryTitle": "담당 이력",
-      "noAssignmentHistory": "담당 이력이 없습니다."
+      "noAssignmentHistory": "담당 이력이 없습니다.",
+      "assignedTo": "Assigned to: "
     },
     "importModal": {
       "title": "연락처 가져오기",

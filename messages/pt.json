@@ -487,7 +487,8 @@
       "toastTemplateSent": "Modelo \"{name}\" enviado",
       "toastTemplateFailed": "Falha ao enviar o modelo: {reason}",
       "assignmentHistoryTitle": "Histórico de Atribuição",
-      "noAssignmentHistory": "Nenhum histórico de atribuição encontrado."
+      "noAssignmentHistory": "Nenhum histórico de atribuição encontrado.",
+      "assignedTo": "Assigned to: "
     },
     "importModal": {
       "title": "Importar contatos",

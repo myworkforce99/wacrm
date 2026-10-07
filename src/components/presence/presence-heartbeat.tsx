@@ -66,7 +66,7 @@ export function PresenceHeartbeat() {
       if (error && !cancelled) {
         // Non-fatal: presence is best-effort. Log once per failure so a
         // misconfigured RPC is visible without spamming.
-        console.error(
+        console.warn(
           '[PresenceHeartbeat] sync_profile_data failed:',
           error.message
         );
