@@ -134,7 +134,17 @@ export function ContactForm({
       .eq('contact_id', contactId)
       .single();
     if (data?.source) {
-      const knownSources = ['99acres', 'MagicBricks', 'Housing.com', 'Manual'];
+      const knownSources = [
+        '99acres',
+        'MagicBricks',
+        'Housing.com',
+        'NoBroker',
+        'Walk-in',
+        'Referral',
+        'Meta Ads',
+        'Google Ads',
+        'Manual Entry',
+      ];
       if (knownSources.includes(data.source)) {
         setSource(data.source);
         setOtherSource('');
@@ -416,7 +426,12 @@ export function ContactForm({
                 <SelectItem value="99acres">99acres</SelectItem>
                 <SelectItem value="MagicBricks">MagicBricks</SelectItem>
                 <SelectItem value="Housing.com">Housing.com</SelectItem>
-                <SelectItem value="Manual">Manual</SelectItem>
+                <SelectItem value="NoBroker">NoBroker</SelectItem>
+                <SelectItem value="Walk-in">Walk-in</SelectItem>
+                <SelectItem value="Referral">Referral</SelectItem>
+                <SelectItem value="Meta Ads">Meta Ads</SelectItem>
+                <SelectItem value="Google Ads">Google Ads</SelectItem>
+                <SelectItem value="Manual Entry">Manual Entry</SelectItem>
                 <SelectItem value="Other">Other</SelectItem>
               </SelectContent>
             </Select>

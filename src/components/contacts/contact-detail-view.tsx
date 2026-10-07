@@ -35,6 +35,13 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -64,6 +71,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
 import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
+import { PROPERTY_CONFIGURATIONS } from '@/types';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -71,6 +79,19 @@ interface ContactDetailViewProps {
   contactId: string | null;
   onUpdated: () => void;
 }
+
+// Known portal source values — must stay in sync with SourceBadge and contact-form options
+const KNOWN_SOURCES = [
+  '99acres',
+  'MagicBricks',
+  'Housing.com',
+  'NoBroker',
+  'Walk-in',
+  'Referral',
+  'Meta Ads',
+  'Google Ads',
+  'Manual Entry',
+];
 
 export function ContactDetailView({
   open,
@@ -118,6 +139,18 @@ export function ContactDetailView({
   const [editEmail, setEditEmail] = useState('');
   const [editCompany, setEditCompany] = useState('');
   const [savingDetails, setSavingDetails] = useState(false);
+
+  // Lead details (RE qualification) — part of the Details tab
+  const [editSource, setEditSource] = useState('');
+  const [editOtherSource, setEditOtherSource] = useState('');
+  const [editConfigPref, setEditConfigPref] = useState<string[]>([]);
+  const [editPossessionPref, setEditPossessionPref] = useState('');
+  const [editLocationPref, setEditLocationPref] = useState('');
+  const [editBudgetMin, setEditBudgetMin] = useState('');
+  const [editBudgetMax, setEditBudgetMax] = useState('');
+  const [existingLeadDetailId, setExistingLeadDetailId] = useState<
+    string | null
+  >(null);
 
   // Tags tab
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -183,6 +216,65 @@ export function ContactDetailView({
 
     setLoading(false);
   }, [contactId, supabase]);
+
+  const fetchLeadDetails = useCallback(async () => {
+    if (!contactId) return;
+    const { data } = await supabase
+      .from('lead_details')
+      .select('*')
+      .eq('contact_id', contactId)
+      .maybeSingle();
+    if (data) {
+      setExistingLeadDetailId(data.id);
+      const src = data.source ?? '';
+      if (!src || KNOWN_SOURCES.includes(src)) {
+        setEditSource(src);
+        setEditOtherSource('');
+      } else {
+        // Freeform value from contact-form "Other" flow
+        setEditSource('Other');
+        setEditOtherSource(src);
+      }
+      setEditConfigPref(data.configuration_preference ?? []);
+      setEditPossessionPref(data.possession_preference ?? '');
+      setEditLocationPref(data.location_preference ?? '');
+      setEditBudgetMin(data.budget_min ? String(data.budget_min) : '');
+      setEditBudgetMax(data.budget_max ? String(data.budget_max) : '');
+    } else {
+      setExistingLeadDetailId(null);
+      setEditSource('');
+      setEditOtherSource('');
+      setEditConfigPref([]);
+      setEditPossessionPref('');
+      setEditLocationPref('');
+      setEditBudgetMin('');
+      setEditBudgetMax('');
+    }
+  }, [contactId, supabase]);
+
+  async function saveLeadDetails() {
+    if (!contactId || !accountId) return;
+    const resolvedSource =
+      editSource === 'Other' ? editOtherSource.trim() : editSource;
+    const payload = {
+      account_id: accountId,
+      contact_id: contactId,
+      ...(resolvedSource ? { source: resolvedSource } : {}),
+      configuration_preference: editConfigPref,
+      possession_preference: editPossessionPref || null,
+      location_preference: editLocationPref || null,
+      budget_min: editBudgetMin ? Number(editBudgetMin) : null,
+      budget_max: editBudgetMax ? Number(editBudgetMax) : null,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = existingLeadDetailId
+      ? await supabase
+          .from('lead_details')
+          .update(payload)
+          .eq('id', existingLeadDetailId)
+      : await supabase.from('lead_details').insert(payload);
+    if (error) throw error;
+  }
 
   const fetchTags = useCallback(async () => {
     if (!contactId) return;
@@ -306,6 +398,7 @@ export function ContactDetailView({
   useEffect(() => {
     if (open && contactId) {
       fetchContact();
+      fetchLeadDetails();
       fetchTags();
       fetchNotes();
       fetchCustomFields();
@@ -317,6 +410,7 @@ export function ContactDetailView({
     open,
     contactId,
     fetchContact,
+    fetchLeadDetails,
     fetchTags,
     fetchNotes,
     fetchCustomFields,
@@ -366,23 +460,26 @@ export function ContactDetailView({
     }
 
     setSavingDetails(true);
-    const { error } = await supabase
-      .from('contacts')
-      .update({
-        name: editName.trim() || null,
-        phone: editPhone.trim(),
-        email: editEmail.trim() || null,
-        company: editCompany.trim() || null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', contactId);
-
-    if (error) {
-      toast.error(t('toastUpdateFailed'));
-    } else {
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({
+          name: editName.trim() || null,
+          phone: editPhone.trim(),
+          email: editEmail.trim() || null,
+          company: editCompany.trim() || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contactId);
+      if (error) throw error;
+      await saveLeadDetails();
       toast.success(t('toastUpdated'));
       fetchContact();
-      onUpdated();
+      fetchLeadDetails();
+      // Small delay so the table re-fetch sees committed DB writes
+      setTimeout(() => onUpdated(), 300);
+    } catch {
+      toast.error(t('toastUpdateFailed'));
     }
     setSavingDetails(false);
   }
@@ -582,6 +679,10 @@ export function ContactDetailView({
   const detailsContent = (
     <>
       <div className="space-y-3">
+        {/* ── Contact Info ── */}
+        <p className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
+          Contact Info
+        </p>
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-xs">{t('name')}</Label>
           <Input
@@ -618,6 +719,144 @@ export function ContactDetailView({
             className="bg-muted border-border text-foreground h-8 text-sm"
           />
         </div>
+
+        {/* ── Lead Qualification ── */}
+        <p className="text-muted-foreground mt-4 text-[11px] font-semibold tracking-wide uppercase">
+          Lead Qualification
+        </p>
+
+        <div className="space-y-1.5">
+          <Label className="text-muted-foreground text-xs">Source</Label>
+          <Select
+            value={editSource}
+            onValueChange={(val: string | null) => {
+              setEditSource(val ?? '');
+              if (val !== 'Other') setEditOtherSource('');
+            }}
+          >
+            <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
+              <SelectValue placeholder="Select source..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="99acres">99acres</SelectItem>
+              <SelectItem value="MagicBricks">MagicBricks</SelectItem>
+              <SelectItem value="Housing.com">Housing.com</SelectItem>
+              <SelectItem value="NoBroker">NoBroker</SelectItem>
+              <SelectItem value="Walk-in">Walk-in</SelectItem>
+              <SelectItem value="Referral">Referral</SelectItem>
+              <SelectItem value="Meta Ads">Meta Ads</SelectItem>
+              <SelectItem value="Google Ads">Google Ads</SelectItem>
+              <SelectItem value="Manual Entry">Manual Entry</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          {editSource === 'Other' && (
+            <Input
+              value={editOtherSource}
+              onChange={(e) => setEditOtherSource(e.target.value)}
+              placeholder="Specify source..."
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground mt-1.5 h-8 text-sm"
+            />
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-muted-foreground text-xs">
+            Configuration Preference
+          </Label>
+          <div className="flex flex-wrap gap-1.5">
+            {PROPERTY_CONFIGURATIONS.map((config) => {
+              const isSelected = editConfigPref.includes(config);
+              return (
+                <button
+                  key={config}
+                  type="button"
+                  onClick={() =>
+                    setEditConfigPref((prev) =>
+                      prev.includes(config)
+                        ? prev.filter((c) => c !== config)
+                        : [...prev, config]
+                    )
+                  }
+                  className={`inline-flex cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                    isSelected
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
+                  }`}
+                >
+                  {config}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-muted-foreground text-xs">
+            Possession Preference
+          </Label>
+          <Select
+            value={editPossessionPref}
+            onValueChange={(val: string | null) =>
+              setEditPossessionPref(val ?? '')
+            }
+          >
+            <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
+              <SelectValue placeholder="Any" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any</SelectItem>
+              <SelectItem value="ready_to_move_only">
+                Ready to move only
+              </SelectItem>
+              <SelectItem value="under_construction_ok">
+                Under construction OK
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label className="text-muted-foreground text-xs">
+            Preferred Location
+          </Label>
+          <Input
+            value={editLocationPref}
+            onChange={(e) => setEditLocationPref(e.target.value)}
+            placeholder="e.g. Bandra, Powai, Whitefield"
+            className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground text-xs">
+              Budget Min{' '}
+              {defaultCurrency === 'INR' ? '(₹)' : `(${defaultCurrency})`}
+            </Label>
+            <Input
+              type="number"
+              value={editBudgetMin}
+              onChange={(e) => setEditBudgetMin(e.target.value)}
+              placeholder="e.g. 2500000"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-muted-foreground text-xs">
+              Budget Max{' '}
+              {defaultCurrency === 'INR' ? '(₹)' : `(${defaultCurrency})`}
+            </Label>
+            <Input
+              type="number"
+              value={editBudgetMax}
+              onChange={(e) => setEditBudgetMax(e.target.value)}
+              placeholder="e.g. 5000000"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+            />
+          </div>
+        </div>
+
         <Button
           onClick={saveDetails}
           disabled={savingDetails}
@@ -753,26 +992,59 @@ export function ContactDetailView({
         </p>
       ) : (
         <div className="space-y-3">
-          {customFields.map((field) => (
-            <div key={field.id} className="space-y-1.5">
-              <Label className="text-muted-foreground text-xs capitalize">
-                {field.field_name}
-              </Label>
-              <Input
-                value={customValues[field.id] ?? ''}
-                onChange={(e) =>
-                  setCustomValues((prev) => ({
-                    ...prev,
-                    [field.id]: e.target.value,
-                  }))
-                }
-                placeholder={t('enterCustomField', {
-                  name: field.field_name,
-                })}
-                className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
-              />
-            </div>
-          ))}
+          {customFields.map((field) => {
+            const rawOptions = field.field_options;
+            const isSelect =
+              field.field_type === 'select' &&
+              Array.isArray(rawOptions) &&
+              (rawOptions as unknown[]).length > 0;
+            const options = isSelect ? (rawOptions as unknown as string[]) : [];
+            return (
+              <div key={field.id} className="space-y-1.5">
+                <Label className="text-muted-foreground text-xs capitalize">
+                  {field.field_name}
+                </Label>
+                {isSelect ? (
+                  <Select
+                    value={customValues[field.id] ?? ''}
+                    onValueChange={(val: string | null) =>
+                      setCustomValues((prev) => ({
+                        ...prev,
+                        [field.id]: val ?? '',
+                      }))
+                    }
+                  >
+                    <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
+                      <SelectValue
+                        placeholder={`Select ${field.field_name}...`}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {options.map((opt) => (
+                        <SelectItem key={opt} value={opt}>
+                          {opt}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    value={customValues[field.id] ?? ''}
+                    onChange={(e) =>
+                      setCustomValues((prev) => ({
+                        ...prev,
+                        [field.id]: e.target.value,
+                      }))
+                    }
+                    placeholder={t('enterCustomField', {
+                      name: field.field_name,
+                    })}
+                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+                  />
+                )}
+              </div>
+            );
+          })}
           <Button
             onClick={saveCustomFields}
             disabled={savingCustom}

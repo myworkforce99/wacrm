@@ -49,9 +49,10 @@ interface DashboardLead {
   contact_tags?: { tags?: { name?: string } }[];
   lead_details?: {
     location_preference?: string;
+    budget_min?: number;
     budget_max?: number;
     source?: string;
-  }[];
+  } | null;
   deals?: { pipeline_stages?: { name?: string } }[];
 }
 
@@ -142,6 +143,7 @@ export default function DashboardPage() {
         '*, lead_details(*), deals(status, pipeline_stages(name)), contact_tags(tags(name))'
       )
       .order('created_at', { ascending: false })
+      .order('created_at', { referencedTable: 'deals', ascending: false })
       .limit(5)
       .then(({ data, error }) => {
         if (error) console.error('[dashboard] recent leads failed:', error);
@@ -377,17 +379,24 @@ export default function DashboardPage() {
                     (t) => t.tags?.name === 'hot-lead'
                   );
                   const location =
-                    lead.lead_details?.[0]?.location_preference ||
-                    'No location';
-                  const budget = lead.lead_details?.[0]?.budget_max
-                    ? defaultCurrency === 'INR'
-                      ? formatINR(lead.lead_details[0].budget_max)
-                      : formatCurrency(
-                          lead.lead_details[0].budget_max,
-                          defaultCurrency
-                        )
-                    : 'No budget';
-                  const source = lead.lead_details?.[0]?.source || 'manual';
+                    lead.lead_details?.location_preference || 'No location';
+
+                  const min = lead.lead_details?.budget_min;
+                  const max = lead.lead_details?.budget_max;
+                  const format = (v: number) =>
+                    defaultCurrency === 'INR'
+                      ? formatINR(v)
+                      : formatCurrency(v, defaultCurrency);
+                  const budget =
+                    !min && !max
+                      ? 'No budget'
+                      : min && !max
+                        ? format(min)
+                        : !min && max
+                          ? format(max)
+                          : `${format(min as number)} - ${format(max as number)}`;
+
+                  const source = lead.lead_details?.source || 'manual';
                   const stageName =
                     lead.deals?.[0]?.pipeline_stages?.name || 'New';
 

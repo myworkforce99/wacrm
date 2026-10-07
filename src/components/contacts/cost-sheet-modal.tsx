@@ -130,7 +130,7 @@ export function CostSheetModal({
         setContactData(contactJson.contact);
 
         const allProperties: Property[] = propertiesJson.properties || [];
-        const leadDetails = contactJson.contact?.lead_details?.[0] || {};
+        const leadDetails = contactJson.contact?.lead_details || {};
 
         const locPref = (leadDetails.location_preference || '').toLowerCase();
 
@@ -184,8 +184,8 @@ export function CostSheetModal({
 
   const filledTemplate = useMemo(() => {
     if (!templateContent) return '';
-    const leadDetails = (contactData as { lead_details?: LeadDetail[] })
-      ?.lead_details?.[0];
+    const leadDetails = (contactData as { lead_details?: LeadDetail | null })
+      ?.lead_details;
 
     const dataMap: Record<string, string> = {
       property_title: selectedProperty?.title || '',

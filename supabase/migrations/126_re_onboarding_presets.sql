@@ -81,25 +81,13 @@ BEGIN
 
   -- --------------------------------------------------------
   -- 2. CONTACT CUSTOM FIELDS
-  --    Structured fields displayed in the contact detail panel.
-  --    These complement lead_details (which holds the core RE
-  --    qualification data) with CRM-workflow fields.
+  --    CRM-workflow fields only — NOT duplicating lead_details columns.
+  --    Lead Source, Budget, Property Interest, Possession Timeline are
+  --    stored as structured columns in lead_details and edited via the
+  --    Details tab. Only unique workflow fields are seeded here.
   -- --------------------------------------------------------
   INSERT INTO public.custom_fields (account_id, user_id, field_name, field_type, field_options)
   VALUES
-    -- Lead source (free-text complement to source tags)
-    (p_account_id, p_user_id, 'Lead Source',          'select',
-     '["99acres","MagicBricks","Housing.com","NoBroker","Walk-in","Referral","Meta Ads","Google Ads","Manual Entry","Other"]'::jsonb),
-    -- Budget range display label (lead_details stores numeric min/max;
-    -- this field gives agents a quick human-readable label)
-    (p_account_id, p_user_id, 'Budget Range',         'select',
-     '["Under ₹25L","₹25L–50L","₹50L–1Cr","₹1Cr–2Cr","₹2Cr–5Cr","₹5Cr+"]'::jsonb),
-    -- Property interest type
-    (p_account_id, p_user_id, 'Property Interest',    'select',
-     '["Apartment","Villa","Plot","Commercial","Row House","Penthouse"]'::jsonb),
-    -- Possession timeline preference
-    (p_account_id, p_user_id, 'Possession Timeline',  'select',
-     '["Immediate","Within 3 months","3–6 months","6–12 months","1–2 years","2+ years"]'::jsonb),
     -- Loan status — affects urgency and closure probability
     (p_account_id, p_user_id, 'Loan Pre-approval',    'select',
      '["Not Applied","Applied","Pre-approved","Sanctioned","Not Required"]'::jsonb),

@@ -19,7 +19,7 @@ interface DealCardProps {
 }
 
 type ExtendedContact = Contact & {
-  lead_details?: Array<{ location_preference?: string; source?: string }>;
+  lead_details?: { location_preference?: string; source?: string } | null;
 };
 
 function formatDate(dateStr: string) {
@@ -117,19 +117,19 @@ export function DealCard({
         </div>
 
         <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          {(deal.contact as ExtendedContact)?.lead_details?.[0]
+          {(deal.contact as ExtendedContact)?.lead_details
             ?.location_preference && (
             <span className="truncate">
               📍{' '}
               {
-                (deal.contact as ExtendedContact).lead_details?.[0]
-                  .location_preference
+                (deal.contact as ExtendedContact).lead_details
+                  ?.location_preference
               }
             </span>
           )}
           <SourceBadge
             source={
-              (deal.contact as ExtendedContact)?.lead_details?.[0]?.source ||
+              (deal.contact as ExtendedContact)?.lead_details?.source ||
               'manual'
             }
             className="origin-left scale-75"

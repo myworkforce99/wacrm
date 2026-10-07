@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { vibrate } from '@/lib/utils/vibrate';
-import type { Contact, Tag, ContactTag } from '@/types';
+import type { Contact, Tag } from '@/types';
 import { Skeleton } from '@/components/dashboard/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,7 +71,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageCircle, Phone } from 'lucide-react';
+import { MessageCircle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const PAGE_SIZE = 25;
@@ -103,8 +103,9 @@ interface ContactWithTags extends Contact {
   lead_details?: {
     source?: string;
     location_preference?: string;
+    budget_min?: number;
     budget_max?: number;
-  }[];
+  } | null;
   deals?: {
     assigned_to?: string | null;
     status?: string;
@@ -133,7 +134,6 @@ export default function ContactsPage() {
   // Modals
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
-  const [editContactTags, setEditContactTags] = useState<ContactTag[]>([]);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailContactId, setDetailContactId] = useState<string | null>(null);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
@@ -206,7 +206,27 @@ export default function ContactsPage() {
         return;
       }
       const rows = (data ?? []) as { contact: Contact; total_count: number }[];
-      contactRows = rows.map((r) => r.contact);
+
+      const ids = rows.map((r) => r.contact.id);
+      if (ids.length > 0) {
+        // Fetch the missing relations that the RPC drops
+        const { data: relations } = await supabase
+          .from('contacts')
+          .select(
+            'id, lead_details(*), deals(status, assigned_to, pipeline_stages(name))'
+          )
+          .in('id', ids)
+          .order('created_at', { referencedTable: 'deals', ascending: false });
+
+        const relationMap = new Map((relations ?? []).map((r) => [r.id, r]));
+        contactRows = rows.map((r) => ({
+          ...r.contact,
+          lead_details: relationMap.get(r.contact.id)?.lead_details ?? null,
+          deals: relationMap.get(r.contact.id)?.deals ?? [],
+        }));
+      } else {
+        contactRows = [];
+      }
       count = rows.length > 0 ? Number(rows[0].total_count) : 0;
     } else if (accountRole === 'agent' && user?.id) {
       // ----------------------------------------------------------------
@@ -252,6 +272,7 @@ export default function ContactsPage() {
           }
         )
         .order('created_at', { ascending: false })
+        .order('created_at', { referencedTable: 'deals', ascending: false })
         .range(from, to);
 
       if (dealContactIds.length > 0) {
@@ -291,6 +312,7 @@ export default function ContactsPage() {
           }
         )
         .order('created_at', { ascending: false })
+        .order('created_at', { referencedTable: 'deals', ascending: false })
         .range(from, to);
 
       if (term) {
@@ -452,17 +474,6 @@ export default function ContactsPage() {
 
   function openAddForm() {
     setEditContact(null);
-    setEditContactTags([]);
-    setFormOpen(true);
-  }
-
-  async function openEditForm(contact: Contact) {
-    const { data } = await supabase
-      .from('contact_tags')
-      .select('*')
-      .eq('contact_id', contact.id);
-    setEditContact(contact);
-    setEditContactTags(data ?? []);
     setFormOpen(true);
   }
 
@@ -923,11 +934,11 @@ export default function ContactsPage() {
                   {/* Swipe Actions */}
                   <div className="divide-border flex flex-none snap-end divide-x">
                     <button
-                      onClick={() => openEditForm(contact)}
+                      onClick={() => openDetail(contact.id)}
                       className="bg-muted hover:bg-muted/80 flex items-center justify-center px-4 transition-colors"
-                      aria-label={t('editAction')}
+                      aria-label="View details"
                     >
-                      <Pencil className="text-foreground size-4" />
+                      <ExternalLink className="text-foreground size-4" />
                     </button>
                     <button
                       onClick={() => confirmDelete(contact)}
@@ -982,7 +993,7 @@ export default function ContactsPage() {
                   TAGS
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  LAST CONTACT
+                  UPDATED
                 </TableHead>
                 <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
                   CREATED
@@ -1085,18 +1096,9 @@ export default function ContactsPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-foreground truncate text-sm font-medium">
-                              {contact.name || 'Unknown'}
-                            </span>
-                            {contact.tags?.some(
-                              (t) => t.name === 'hot-lead'
-                            ) && (
-                              <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 uppercase">
-                                HOT
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-foreground truncate text-sm font-medium">
+                            {contact.name || 'Unknown'}
+                          </p>
                           <p className="text-muted-foreground truncate text-xs">
                             {contact.phone}
                           </p>
@@ -1104,33 +1106,41 @@ export default function ContactsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
-                      <SourceBadge
-                        source={contact.lead_details?.[0]?.source || 'manual'}
-                      />
+                      {contact.lead_details?.source ? (
+                        <SourceBadge source={contact.lead_details.source} />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {contact.lead_details?.[0]?.location_preference || '-'}
+                      {contact.lead_details?.location_preference || '-'}
                     </TableCell>
                     <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {contact.lead_details?.[0]?.budget_max
-                        ? defaultCurrency === 'INR'
-                          ? formatINR(contact.lead_details[0].budget_max)
-                          : formatCurrency(
-                              contact.lead_details[0].budget_max,
-                              defaultCurrency
-                            )
-                        : '-'}
+                      {(() => {
+                        const min = contact.lead_details?.budget_min;
+                        const max = contact.lead_details?.budget_max;
+                        if (!min && !max) return '-';
+
+                        const format = (v: number) =>
+                          defaultCurrency === 'INR'
+                            ? formatINR(v)
+                            : formatCurrency(v, defaultCurrency);
+
+                        if (min && !max) return format(min);
+                        if (!min && max) return format(max);
+                        return `${format(min as number)} - ${format(max as number)}`;
+                      })()}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      <StatusBadge
-                        status={
-                          contact.deals?.[0]?.pipeline_stages?.name || 'New'
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
-                      {/* Using updated_at for time ago fallback */}
-                      {formatRelativeDate(contact.updated_at)}
+                      {contact.deals &&
+                      contact.deals.length > 0 &&
+                      contact.deals[0]?.pipeline_stages?.name ? (
+                        <StatusBadge
+                          status={contact.deals[0].pipeline_stages.name}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {contact.first_unanswered_at ? (
@@ -1178,6 +1188,9 @@ export default function ContactsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
+                      {formatRelativeDate(contact.updated_at)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
                       {new Date(contact.created_at).toLocaleDateString(
                         'en-US',
                         {
@@ -1187,39 +1200,56 @@ export default function ContactsPage() {
                         }
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1.5">
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1">
                         <Link
                           href={`/inbox?contact=${contact.id}`}
                           className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
                           onClick={(e) => e.stopPropagation()}
+                          title="Open in Inbox"
                         >
                           <MessageCircle className="size-4" />
                         </Link>
                         <button
                           className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Phone className="size-4" />
-                        </button>
-                        <button
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                          title="Edit lead"
                           onClick={(e) => {
                             e.stopPropagation();
-                            openEditForm(contact);
+                            openDetail(contact.id);
                           }}
                         >
                           <Pencil className="size-4" />
                         </button>
-                        <button
-                          className="hover:bg-muted/50 text-destructive/70 hover:text-destructive rounded-lg p-1.5"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmDelete(contact);
-                          }}
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDetail(contact.id);
+                              }}
+                            >
+                              <ExternalLink className="mr-2 size-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirmDelete(contact);
+                              }}
+                            >
+                              <Trash2 className="mr-2 size-4" />
+                              Delete Lead
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -1265,12 +1295,12 @@ export default function ContactsPage() {
           </div>
         )}
 
-        {/* Contact Form Dialog */}
+        {/* Contact Form Dialog — used only for new lead creation */}
         <ContactForm
           open={formOpen}
           onOpenChange={setFormOpen}
           contact={editContact}
-          contactTags={editContactTags}
+          contactTags={[]}
           onSaved={() => {
             fetchContacts();
             fetchTags();

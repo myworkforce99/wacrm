@@ -19,7 +19,7 @@ type UnassignedLead = {
   name: string | null;
   phone: string | null;
   created_at: string;
-  lead_details?: { source?: string }[];
+  lead_details?: { source?: string } | null;
 };
 
 export function UnassignedPool() {
@@ -159,7 +159,7 @@ export function UnassignedPool() {
                 </p>
               </div>
               {(() => {
-                const source = lead.lead_details?.[0]?.source;
+                const source = lead.lead_details?.source;
                 return source ? (
                   <Badge variant="secondary" className="text-[10px]">
                     {source}
