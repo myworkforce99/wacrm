@@ -340,6 +340,7 @@
       "subtitle": "연락처 목록을 관리하세요. 전체 연락처 {count}개.",
       "subtitleZero": "연락처 목록을 관리하세요.",
       "customFieldsBtn": "커스텀 필드",
+      "exportBtn": "CSV 내보내기",
       "selectAllOnPage": "이 페이지의 모든 연락처 선택",
       "importBtn": "가져오기",
       "addContactBtn": "연락처 추가",
@@ -377,8 +378,7 @@
       "toastFailedDelete": "연락처를 삭제하지 못했습니다",
       "toastDeleted": "연락처가 삭제되었습니다",
       "toastBulkFailedDelete": "연락처를 삭제하지 못했습니다",
-      "toastBulkDeleted": "연락처 {count}개가 삭제되었습니다",
-      "exportBtn": "CSV 내보내기"
+      "toastBulkDeleted": "연락처 {count}개가 삭제되었습니다"
     },
     "form": {
       "addTitle": "연락처 추가",
@@ -796,12 +796,14 @@
           "all": "전체 연락처",
           "tags": "태그로 필터링",
           "customField": "커스텀 필드",
+          "leadSegment": "Lead Details Segment",
           "csv": "CSV 업로드"
         },
         "allDesc": "데이터베이스의 전체 연락처 {count}명에게 보냅니다.",
         "allDescLoading": "데이터베이스의 전체 연락처에게 보냅니다.",
         "tagDesc": "특정 태그와 일치하는 연락처에 보냅니다.",
         "customFieldDesc": "커스텀 필드 규칙과 일치하는 연락처에 보냅니다.",
+        "leadSegmentDesc": "Filter by BHK, budget, location, etc.",
         "csvDesc": "전화번호(선택적으로 이름 포함)가 담긴 CSV를 업로드하세요.",
         "selectTags": "태그 선택",
         "searchTags": "태그 검색...",

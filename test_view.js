@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 require('dotenv').config({ path: '.env.local' });
 const { createClient } = require('@supabase/supabase-js');
 
@@ -17,10 +18,13 @@ async function run() {
           EXISTS (SELECT 1 FROM deals d WHERE d.contact_id = c.id AND d.assigned_to = auth.uid())
         ) AS is_mine
       FROM contacts c;
-    `
+    `,
   });
-  
-  const { data, error } = await supabase.from('contacts_with_ownership').select('id, name, is_mine, deals(status)').limit(1);
-  console.log("View test:", data, error);
+
+  const { data, error } = await supabase
+    .from('contacts_with_ownership')
+    .select('id, name, is_mine, deals(status)')
+    .limit(1);
+  console.log('View test:', data, error);
 }
 run();

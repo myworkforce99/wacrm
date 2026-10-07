@@ -197,8 +197,7 @@ export default function ContactsPage() {
         p_search: term || null,
         p_limit: PAGE_SIZE,
         p_offset: from,
-        p_agent_user_id:
-          accountRole === 'agent' && user?.id ? user.id : null,
+        p_agent_user_id: accountRole === 'agent' && user?.id ? user.id : null,
       });
       if (seq !== fetchSeq.current) return; // superseded by a newer fetch
       if (error) {
@@ -239,16 +238,19 @@ export default function ContactsPage() {
             .not('contact_id', 'is', null)
         : { data: [] };
 
-      const dealContactIds = (
-        agentDeals?.map((d) => d.contact_id).filter(Boolean) ?? []
-      ) as string[];
+      const dealContactIds = (agentDeals
+        ?.map((d) => d.contact_id)
+        .filter(Boolean) ?? []) as string[];
 
       // Step 2: query contacts — either created by agent OR in dealContactIds
       let agentQuery = supabase
         .from('contacts')
-        .select('*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))', {
-          count: 'exact',
-        })
+        .select(
+          '*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))',
+          {
+            count: 'exact',
+          }
+        )
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -282,9 +284,12 @@ export default function ContactsPage() {
       // Admin / owner path: see all contacts in the account
       let query = supabase
         .from('contacts')
-        .select('*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))', {
-          count: 'exact',
-        })
+        .select(
+          '*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))',
+          {
+            count: 'exact',
+          }
+        )
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -331,9 +336,9 @@ export default function ContactsPage() {
     //   - conversations.assigned_agent_id stores user_id (auth UUID)
     //   - deals.assigned_to stores profiles.id (profiles table PK)
     // We build separate lookups for each.
-    const convAssigneeIds = (
-      convData?.map((c) => c.assigned_agent_id).filter(Boolean) ?? []
-    ) as string[];
+    const convAssigneeIds = (convData
+      ?.map((c) => c.assigned_agent_id)
+      .filter(Boolean) ?? []) as string[];
 
     // Extract deal assignees (profiles.id) from already-fetched contactRows
     type ContactRowWithDeals = Contact & {
@@ -344,7 +349,8 @@ export default function ContactsPage() {
       .filter(Boolean) as string[];
 
     // Map keyed by user_id — for conversation assignee display
-    const agentsByUserId: Record<string, { id: string; full_name: string }> = {};
+    const agentsByUserId: Record<string, { id: string; full_name: string }> =
+      {};
     if (convAssigneeIds.length > 0) {
       const { data: convProfiles } = await supabase
         .from('profiles')
@@ -356,7 +362,8 @@ export default function ContactsPage() {
     }
 
     // Map keyed by profiles.id — for deal assignee display
-    const agentsByProfileId: Record<string, { id: string; full_name: string }> = {};
+    const agentsByProfileId: Record<string, { id: string; full_name: string }> =
+      {};
     if (dealAssigneeProfileIds.length > 0) {
       const { data: dealProfiles } = await supabase
         .from('profiles')
@@ -417,7 +424,17 @@ export default function ContactsPage() {
 
     setContacts(enriched);
     setLoading(false);
-  }, [supabase, page, search, selectedTagIds, tagsMap, t, user, profile, accountRole]);
+  }, [
+    supabase,
+    page,
+    search,
+    selectedTagIds,
+    tagsMap,
+    t,
+    user,
+    profile,
+    accountRole,
+  ]);
 
   // Load-once-on-mount-ish data fetches. Each setter inside runs
   // inside an async promise completion (Supabase await), not

@@ -24,7 +24,9 @@ export async function PATCH(
   // so canMoveDeal can compare against ctx.userId (auth UUID).
   const { data: deal, error: dealError } = await supabaseAdmin()
     .from('deals')
-    .select('assigned_to, contact_id, assignee:profiles!deals_assigned_to_fkey(user_id)')
+    .select(
+      'assigned_to, contact_id, assignee:profiles!deals_assigned_to_fkey(user_id)'
+    )
     .eq('id', id)
     .eq('account_id', ctx.accountId)
     .single();
@@ -45,8 +47,8 @@ export async function PATCH(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const assigneeProfile = (deal as any).assignee;
   const dealAssigneeUserId: string | null = Array.isArray(assigneeProfile)
-    ? assigneeProfile[0]?.user_id ?? null
-    : assigneeProfile?.user_id ?? null;
+    ? (assigneeProfile[0]?.user_id ?? null)
+    : (assigneeProfile?.user_id ?? null);
 
   if (
     !canMoveDeal(

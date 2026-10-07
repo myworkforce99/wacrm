@@ -536,7 +536,9 @@ export async function loadTeamPerformance(
   // to convert to user_id so dealsByAgent is keyed consistently.
   const { data: dealsRes, error: dErr } = await db
     .from('deals')
-    .select('assigned_to, status, assignee:profiles!deals_assigned_to_fkey(user_id)')
+    .select(
+      'assigned_to, status, assignee:profiles!deals_assigned_to_fkey(user_id)'
+    )
     .not('assigned_to', 'is', null);
   if (dErr) throw dErr;
 
