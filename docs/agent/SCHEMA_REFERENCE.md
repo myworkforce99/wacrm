@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `124_robust_redeem_invitation.sql`.**
-- **Every new migration in the implementation plan starts at `125` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `126_re_onboarding_presets.sql`.**
+- **Every new migration in the implementation plan starts at `127` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
@@ -56,8 +56,22 @@ running fork where migrations may have been added since this was written.
 | `lead_details`                  | 043                           | real-estate vertical additions                                                    |
 | `properties`                    | 043                           | real-estate vertical additions                                                    |
 | `site_visits`                   | 043                           | real-estate vertical additions                                                    |
+| `broadcast_templates`           | 117                           | global read-only RE broadcast template library (no `account_id`, world-readable)  |
+| `lead_routing_rules`            | 113                           | account-scoped condition→action routing rules for incoming leads                  |
+| `assignment_history`            | 102                           | immutable audit log of conversation re-assignments                                |
+| `tasks`                         | 121                           | account-scoped to-do items linked to contacts and/or site visits                  |
 
-Not yet present — these are the additions the implementation plan's Section F introduces: **`deals_history` (or similar assignment audit table).**
+Not yet present — these are the additions still planned: **`deals_history`** (deal-stage audit trail, Section F of the implementation plan).
+
+## Helper functions (Postgres)
+
+| Function                                           | Introduced in            | Notes                                                                                            |
+| -------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------ |
+| `is_account_member(account_id, min_role?)`         | 017                      | Shared RLS helper — use in every new account-scoped table's policies                             |
+| `filter_contacts_by_tags(...)`                     | 025, extended 125        | Tag-based contact search with optional agent scope                                               |
+| `update_updated_at_column()`                       | 001                      | Trigger function used by all `updated_at` triggers                                               |
+| `handle_new_user()`                                | 001, updated through 126 | Auth trigger; seeds account, profile, pipeline, automations, qualifier flow, and RE presets      |
+| `seed_re_presets_for_account(account_id, user_id)` | 126                      | Factored helper that seeds tags, custom fields, and quick replies; callable from backfill blocks |
 
 ## Core entity shapes (from `src/types/index.ts` — the canonical TS source)
 
