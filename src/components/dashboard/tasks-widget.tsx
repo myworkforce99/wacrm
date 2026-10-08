@@ -25,15 +25,29 @@ function formatDueTime(dueAt: string | null | undefined) {
 
 interface TasksWidgetProps {
   contactId?: string;
+  initialTasks?: Task[];
+  initialLoading?: boolean;
 }
 
-export function TasksWidget({ contactId }: TasksWidgetProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
+export function TasksWidget({
+  contactId,
+  initialTasks,
+  initialLoading,
+}: TasksWidgetProps) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks || []);
+  const [loading, setLoading] = useState(initialLoading ?? true);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [dueDate, setDueDate] = useState('');
 
   useEffect(() => {
+    if (initialTasks !== undefined) {
+      setTasks(initialTasks);
+      setLoading(initialLoading ?? false);
+    }
+  }, [initialTasks, initialLoading]);
+
+  useEffect(() => {
+    if (initialTasks !== undefined) return;
     async function loadTasks() {
       try {
         const url = contactId
@@ -51,7 +65,7 @@ export function TasksWidget({ contactId }: TasksWidgetProps) {
       }
     }
     loadTasks();
-  }, [contactId]);
+  }, [contactId, initialTasks]);
 
   const handleToggle = async (task: Task) => {
     const updated = !task.done;

@@ -7,6 +7,8 @@ import { formatCurrency, formatINR } from '@/lib/currency';
 import { MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 
+import { Task } from '@/types';
+
 import {
   loadActivity,
   loadConversationsSeries,
@@ -104,6 +106,11 @@ export default function DashboardPage() {
   const [todayVisits, setTodayVisits] = useState<DashboardVisit[]>([]);
   const [todayVisitsLoading, setTodayVisitsLoading] = useState(true);
 
+  const [todayTasks, setTodayTasks] = useState<Task[]>([]);
+  const [todayTasksLoading, setTodayTasksLoading] = useState(true);
+
+  const [hotLeadsCount, setHotLeadsCount] = useState(0);
+
   const loadAll = useCallback(() => {
     const db = createClient();
 
@@ -139,6 +146,23 @@ export default function DashboardPage() {
 
     void db
       .from('contacts')
+      .select('id', { count: 'exact', head: true })
+      .eq('contact_tags.tags.name', 'hot-lead')
+      .not('contact_tags', 'is', null) // We would need a custom RPC or view for perfect tag filtering due to PostgREST inner join limitations, so we fallback to a simpler count if needed. Actually, a simpler way is fetching the contacts with tags.
+      .then(({ count, error }) => {
+        // Fallback: we'll just fetch hot leads in a separate simpler query if needed, or rely on a known query.
+      });
+
+    void db
+      .from('contacts')
+      .select('id, contact_tags!inner(tags!inner(name))')
+      .eq('contact_tags.tags.name', 'hot-lead')
+      .then(({ data, error }) => {
+        if (!error && data) setHotLeadsCount(data.length);
+      });
+
+    void db
+      .from('contacts')
       .select(
         '*, lead_details(*), deals(status, pipeline_stages!deals_stage_id_fkey(name)), contact_tags(tags(name))'
       )
@@ -167,6 +191,16 @@ export default function DashboardPage() {
         else setTodayVisits(data || []);
         setTodayVisitsLoading(false);
       });
+
+    // We can fetch today's tasks via the API, or duplicate logic here.
+    // Fetching via our API route is simpler to reuse the exact task formatting/filters.
+    fetch('/api/tasks?due_today=true')
+      .then((r) => r.json())
+      .then((d) => {
+        setTodayTasks(d.tasks || []);
+      })
+      .catch((e) => console.error('[dashboard] tasks failed:', e))
+      .finally(() => setTodayTasksLoading(false));
   }, []);
 
   useEffect(() => {
@@ -188,15 +222,26 @@ export default function DashboardPage() {
   );
 
   const firstName = profile?.full_name?.split(' ')[0] || '';
-  const hotLeadsCount = 3; // Mocked for UI, ideally from query
 
   return (
     <div className="space-y-6">
-      <WhatsappSetupChecklist />
-      <TeamSetupChecklist />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <WhatsappSetupChecklist />
+        <TeamSetupChecklist />
+      </div>
 
       <PageHeader
-        title={t('greeting') + `, ${firstName} 👋`}
+        title={
+          <div className="flex items-center gap-2">
+            <span>{t('greeting') + `, ${firstName} 👋`}</span>
+            {(profile?.account_role === 'owner' ||
+              profile?.account_role === 'admin') && (
+              <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
+                Team View
+              </span>
+            )}
+          </div>
+        }
         subtitle={
           <span>
             Here&apos;s your pipeline today.{' '}
@@ -214,9 +259,9 @@ export default function DashboardPage() {
       <QuickActions />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
         {metricsLoading ? (
-          Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+          Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
             <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
@@ -243,8 +288,11 @@ export default function DashboardPage() {
               <div className="text-muted-foreground mt-1 text-sm">
                 Site Visits Today
               </div>
-              <div className="mt-2 text-xs font-medium text-green-600">
-                All confirmed
+              <div className="text-muted-foreground mt-2 text-xs font-medium">
+                {todayVisits.filter((v) => v.status === 'completed').length}{' '}
+                completed,{' '}
+                {todayVisits.filter((v) => v.status === 'scheduled').length}{' '}
+                scheduled
               </div>
             </div>
 
@@ -254,7 +302,7 @@ export default function DashboardPage() {
                 {followups?.count ?? 0}
               </div>
               <div className="text-muted-foreground mt-1 text-sm">
-                Follow-ups Due
+                Action Items
               </div>
               <div
                 className={cn(
@@ -441,9 +489,27 @@ export default function DashboardPage() {
                         >
                           <MessageCircle className="size-4" />
                         </Link>
-                        <button className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5">
-                          <Phone className="size-4" />
-                        </button>
+                        <a
+                          href={`/contacts?contactId=${lead.id}`}
+                          className="hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center rounded-lg p-1.5"
+                          title="Edit Contact"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="lucide lucide-pencil"
+                          >
+                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                            <path d="m15 5 4 4" />
+                          </svg>
+                        </a>
                       </div>
                     </div>
                   );
@@ -500,7 +566,67 @@ export default function DashboardPage() {
                           📍 {v.properties?.title || 'No property'}
                         </p>
                       </div>
-                      <StatusBadge status={v.status} />
+                      <div className="flex flex-col items-end gap-1">
+                        <StatusBadge status={v.status} />
+                        {v.status === 'scheduled' && (
+                          <div className="mt-1 flex gap-1">
+                            <button
+                              onClick={() => {
+                                // Optimistic update
+                                setTodayVisits((prev) =>
+                                  prev.map((visit) =>
+                                    visit.id === v.id
+                                      ? { ...visit, status: 'completed' }
+                                      : visit
+                                  )
+                                );
+                                const db = createClient();
+                                db.from('site_visits')
+                                  .update({ status: 'completed' })
+                                  .eq('id', v.id)
+                                  .then(({ error }) => {
+                                    if (error) {
+                                      console.error(
+                                        'Failed to update site visit:',
+                                        error
+                                      );
+                                      // Revert on error if needed
+                                    }
+                                  });
+                              }}
+                              className="rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 transition-colors hover:bg-green-100"
+                            >
+                              Complete
+                            </button>
+                            <button
+                              onClick={() => {
+                                setTodayVisits((prev) =>
+                                  prev.map((visit) =>
+                                    visit.id === v.id
+                                      ? { ...visit, status: 'no_show' }
+                                      : visit
+                                  )
+                                );
+                                const db = createClient();
+                                db.from('site_visits')
+                                  .update({ status: 'no_show' })
+                                  .eq('id', v.id)
+                                  .then(({ error }) => {
+                                    if (error) {
+                                      console.error(
+                                        'Failed to update site visit:',
+                                        error
+                                      );
+                                    }
+                                  });
+                              }}
+                              className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700 transition-colors hover:bg-red-100"
+                            >
+                              No-show
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })
@@ -509,7 +635,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="border-border bg-card flex min-h-[300px] flex-1 flex-col rounded-xl border shadow-sm">
-            <TasksWidget />
+            <TasksWidget
+              initialTasks={todayTasks}
+              initialLoading={todayTasksLoading}
+            />
           </div>
         </div>
       </div>
