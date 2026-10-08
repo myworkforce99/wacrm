@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Plus, Route, Trash2, Edit2 } from 'lucide-react';
+import { Loader2, Plus, Route, Trash2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RequireRole } from '@/components/auth/require-role';
-import { useAuth } from '@/hooks/use-auth';
+
 import { SettingsPanelHead } from './settings-panel-head';
 import type { LeadRoutingRule } from '@/types';
 import {
@@ -30,8 +30,6 @@ import {
 } from '@/components/ui/select';
 
 export function RoutingSettings() {
-  const { canEditSettings } = useAuth();
-
   const [rules, setRules] = useState<LeadRoutingRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
@@ -45,7 +43,7 @@ export function RoutingSettings() {
       if (!res.ok) throw new Error('Failed to load rules');
       const data = await res.json();
       setRules(data.routing_rules || []);
-    } catch (err) {
+    } catch {
       toast.error('Network Error');
     } finally {
       setLoading(false);
@@ -65,7 +63,7 @@ export function RoutingSettings() {
       if (!res.ok) throw new Error('Failed to delete rule');
       toast.success('Rule deleted');
       setRules((prev) => prev.filter((r) => r.id !== rule.id));
-    } catch (err) {
+    } catch {
       toast.error('Failed to delete rule');
     } finally {
       setDeleting(null);
@@ -245,7 +243,7 @@ function CreateRuleDialog({
       toast.success('Rule created');
       onCreated();
       onOpenChange(false);
-    } catch (err) {
+    } catch {
       toast.error('Failed to create rule');
     } finally {
       setSubmitting(false);

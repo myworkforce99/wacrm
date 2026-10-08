@@ -589,13 +589,21 @@
       "toastFailedMoveDeal": "딜을 이동하지 못했습니다",
       "toastFailedCreatePipeline": "파이프라인을 만들지 못했습니다",
       "toastPipelineCreated": "파이프라인이 생성되었습니다",
-      "toastNotLinkedToAccount": "프로필이 계정에 연결되어 있지 않습니다."
+      "toastNotLinkedToAccount": "프로필이 계정에 연결되어 있지 않습니다.",
+      "filterOpen": "Open",
+      "filterWon": "Won",
+      "filterLost": "Lost",
+      "filterAll": "All",
+      "noWonDeals": "No won deals yet",
+      "noLostDeals": "No lost deals yet",
+      "noDeals": "No deals found"
     },
     "board": {
       "dropDealHere": "여기에 딜을 놓으세요",
       "addDeal": "딜 추가",
       "moveToStage": "Move to Stage",
-      "totalValue": "Total Value"
+      "totalValue": "Total Value",
+      "currentStage": "Current Stage"
     },
     "card": {
       "noContact": "연락처 없음",
@@ -642,7 +650,11 @@
       "toastMarkedLost": "실패로 표시했습니다",
       "toastReopened": "딜이 재개되었습니다",
       "toastFailedDelete": "딜을 삭제하지 못했습니다",
-      "toastDeleted": "딜이 삭제되었습니다"
+      "toastDeleted": "딜이 삭제되었습니다",
+      "bannerWon": "This deal was marked as Won",
+      "bannerLost": "This deal was marked as Lost",
+      "bannerLostReason": "Reason: {reason}",
+      "undo": "Undo"
     },
     "settings": {
       "managePipeline": "파이프라인 관리",
@@ -682,6 +694,19 @@
       "lostThisMonth": "이번 달 실패",
       "lostThisMonthTooltip": "이번 달 1일 이후 실패로 표시된 딜입니다.",
       "howCalculated": "{label} 계산 방법"
+    },
+    "lostModal": {
+      "title": "Mark as Lost",
+      "subtitle": "Help the team understand why this deal didn't close.",
+      "reasonLabel": "Reason for loss",
+      "selectReason": "Select a reason…",
+      "loadingReasons": "Loading reasons…",
+      "noteLabel": "Additional note (optional)",
+      "notePlaceholder": "What happened? Any context that might help...",
+      "reEngageLabel": "Re-engage on (optional)",
+      "reEngageHint": "Set a date and we'll remind you to follow up — the lead may be ready to buy later.",
+      "cancel": "Cancel",
+      "confirm": "Mark as Lost"
     }
   },
   "Broadcasts": {
@@ -2108,7 +2133,21 @@
       "statusConfirmed": "Confirmed",
       "statusCompleted": "Completed",
       "statusNoShow": "No Show",
-      "statusRescheduled": "Rescheduled"
+      "statusRescheduled": "Rescheduled",
+      "noVisitsTitle": "No site visits yet",
+      "noVisitsHint": "Schedule your first property visit to get started.",
+      "searchPlaceholder": "Search by name, phone, or property...",
+      "statsScheduled": "Scheduled",
+      "statsConfirmed": "Confirmed",
+      "statsToday": "Today",
+      "showMore": "Show {count} more",
+      "showLess": "Show less",
+      "openInbox": "Open in Inbox",
+      "callContact": "Call contact",
+      "editVisit": "Edit visit",
+      "pickupRequired": "Pickup required",
+      "toastStatusUpdated": "Visit status updated.",
+      "toastStatusError": "Failed to update visit status."
     },
     "schedule": {
       "title": "Schedule Visit",
@@ -2117,16 +2156,26 @@
       "contactPlaceholder": "Select a lead...",
       "propertyLabel": "Property (Optional)",
       "propertyPlaceholder": "Select a property...",
-      "dateLabel": "Date",
-      "timeLabel": "Time",
       "notesLabel": "Notes",
       "notesPlaceholder": "Any special requirements...",
       "cancel": "Cancel",
       "schedule": "Schedule",
       "toastSuccess": "Visit scheduled successfully.",
       "toastError": "Failed to schedule visit.",
-      "toastStatusUpdated": "Visit status updated.",
-      "toastStatusError": "Failed to update visit status."
+      "editTitle": "Edit Visit",
+      "contactSearch": "Search by name or phone...",
+      "dateTimeLabel": "Date & Time",
+      "agentLabel": "Assigned Agent (Optional)",
+      "agentPlaceholder": "Any available agent",
+      "statusLabel": "Initial Status",
+      "statusPending": "Pending",
+      "statusConfirmed": "Confirmed",
+      "pickupLabel": "Pickup needed?",
+      "pickupHint": "Arrange pickup from the lead's location",
+      "pickupAddressLabel": "Pickup Address",
+      "pickupAddressPlaceholder": "Full address or landmark...",
+      "saveChanges": "Save Changes",
+      "toastUpdated": "Visit updated successfully."
     }
   },
   "Properties": {

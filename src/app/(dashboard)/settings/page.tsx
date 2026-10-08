@@ -45,7 +45,7 @@ export default function SettingsPage() {
 function SettingsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { defaultCurrency, accountRole, isAgent, isViewer } = useAuth();
+  const { defaultCurrency, isAgent, isViewer } = useAuth();
   const { mode } = useTheme();
   const t = useTranslations('Settings');
 

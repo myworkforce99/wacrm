@@ -38,7 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { MessageBubble } from './message-bubble';
 import { MessageActions } from './message-actions';
 import { MediaLightbox } from './media-lightbox';
@@ -788,7 +788,7 @@ export function MessageThread({
         preview: buildReplyPreview(msg, tQuote),
       });
     },
-    [authorLabelFor]
+    [authorLabelFor, tQuote]
   );
 
   // Single reaction-set primitive. emoji === "" removes; otherwise adds/swaps.

@@ -69,7 +69,7 @@ export default function FlowEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [params.id, t]);
 
   if (loading) {
     return (

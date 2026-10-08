@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { requireApiKey } from '@/lib/auth/api-context'; // wait, for dashboard routes we usually use try/catch -> toErrorResponse with getCurrentAccount.
+
 // Let's look at `src/app/api/account/route.ts` pattern.
 import { getCurrentAccount } from '@/lib/auth/account';
 import { createClient } from '@/lib/supabase/server';
 import { hasMinRole } from '@/lib/auth/roles';
 import { toApiErrorResponse } from '@/lib/api/v1/respond';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const account = await getCurrentAccount();
     if (!account)

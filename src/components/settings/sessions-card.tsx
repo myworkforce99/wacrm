@@ -25,6 +25,7 @@ import { useTranslations } from 'next-intl';
 
 export function SessionsCard() {
   const t = useTranslations('Settings.profile');
+
   const supabase = createClient();
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -40,6 +41,7 @@ export function SessionsCard() {
         toast.error(t('signOutFailed', { message: error.message }));
         return;
       }
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = '/login';
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Unknown error';

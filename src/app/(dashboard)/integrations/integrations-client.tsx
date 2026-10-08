@@ -41,7 +41,7 @@ export function IntegrationsClient({
       await navigator.clipboard.writeText(captureEmail);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
+    } catch {
       console.error('Failed to copy');
     }
   };

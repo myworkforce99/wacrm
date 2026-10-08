@@ -279,7 +279,7 @@ export function MembersTab() {
           ? 'Agent marked as available'
           : 'Agent marked as unavailable'
       );
-    } catch (err) {
+    } catch {
       setMembers((prev) =>
         prev.map((m) =>
           m.user_id === member.user_id ? { ...m, is_available: previous } : m

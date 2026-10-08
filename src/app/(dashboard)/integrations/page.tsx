@@ -1,8 +1,6 @@
-import { redirect } from 'next/navigation';
 import { getCurrentAccount } from '@/lib/auth/account';
 import { createClient } from '@/lib/supabase/server';
-import { Home, Mail, MessageCircle, Copy, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+
 import { IntegrationsClient } from './integrations-client';
 
 export const metadata = {

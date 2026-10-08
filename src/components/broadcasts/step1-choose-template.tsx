@@ -74,7 +74,7 @@ export function Step1ChooseTemplate({
     }
 
     fetchTemplates();
-  }, []);
+  }, [t]);
 
   if (loading) {
     return (

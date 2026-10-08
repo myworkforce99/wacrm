@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     const ctx = await requireRole('admin');
 

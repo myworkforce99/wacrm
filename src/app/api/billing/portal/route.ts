@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import Stripe from 'stripe';
-import { supabaseAdmin } from '@/lib/automations/admin-client';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
   apiVersion: '2026-08-26.dahlia',
 });
 
-export async function POST(request: Request) {
+export async function POST() {
   let ctx;
   try {
     ctx = await requireRole('owner');

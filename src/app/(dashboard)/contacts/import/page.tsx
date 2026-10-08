@@ -4,7 +4,6 @@ import { useState, useRef } from 'react';
 import * as xlsx from 'xlsx';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useRouter } from 'next/navigation';
 import { parseBudget } from '@/lib/contacts/parse-budget';
 import { ChevronLeft, Upload, TableProperties, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -57,12 +56,11 @@ function parseIndianMobile(raw: string): string {
 }
 
 export default function ImportLeadsPage() {
-  const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { accountRole } = useAuth();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [file, setFile] = useState<File | null>(null);
+  const [, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [data, setData] = useState<unknown[][]>([]);
   const [mapping, setMapping] = useState<Record<number, string>>({});

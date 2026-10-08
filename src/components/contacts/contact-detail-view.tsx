@@ -64,7 +64,6 @@ import {
   LayoutTemplate,
   History,
   User,
-  Building,
   Send,
   Zap,
 } from 'lucide-react';
@@ -174,6 +173,7 @@ export function ContactDetailView({
   const [loadingDeals, setLoadingDeals] = useState(false);
 
   // Match tab
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [leadDetail, setLeadDetail] = useState<LeadDetail | null>(null);
   const [matchedProperties, setMatchedProperties] = useState<Property[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);

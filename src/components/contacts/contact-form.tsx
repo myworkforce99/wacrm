@@ -25,7 +25,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -103,6 +102,7 @@ export function ContactForm({
         setPossessionPreference('');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contact]);
 
   // Look up an existing contact with this number (new contacts only).

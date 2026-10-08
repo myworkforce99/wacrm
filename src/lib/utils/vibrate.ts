@@ -6,7 +6,7 @@ export function vibrate(pattern: number | number[] = 50) {
   ) {
     try {
       navigator.vibrate(pattern);
-    } catch (e) {
+    } catch {
       // Ignore vibration errors
     }
   }

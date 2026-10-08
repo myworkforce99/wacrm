@@ -59,7 +59,7 @@ export default function AutomationLogsPage({
       }
     }
     load();
-  }, [id]);
+  }, [id, t]);
 
   if (error) {
     return (

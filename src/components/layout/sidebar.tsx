@@ -6,9 +6,8 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
 import { useTotalUnread } from '@/hooks/use-total-unread';
-import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
+
 import {
-  Bell,
   Bot,
   CalendarCheck,
   Crown,
@@ -158,7 +157,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     refreshProfile,
   } = useAuth();
   const totalUnread = useTotalUnread();
-  const unreadNotifications = useUnreadNotifications();
+
   const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
   // Only surface the account-name strip when it actually carries
   // information. A solo user's personal account is named after them
@@ -214,7 +213,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           ? 'You are now marked as available'
           : 'You are now marked as unavailable'
       );
-    } catch (err) {
+    } catch {
       toast.error('Failed to update availability');
     } finally {
       setIsUpdatingAvailability(false);

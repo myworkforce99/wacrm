@@ -79,7 +79,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
           ? 'You are now marked as available'
           : 'You are now marked as unavailable'
       );
-    } catch (err) {
+    } catch {
       toast.error('Failed to update availability');
     } finally {
       setIsUpdatingAvailability(false);

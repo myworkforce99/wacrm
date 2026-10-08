@@ -63,7 +63,7 @@ export function BulkReassignModal({
       toast.success(t('success', { count: selectedIds.length }));
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
+    } catch {
       toast.error(t('error'));
     } finally {
       setLoading(false);

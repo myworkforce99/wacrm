@@ -593,6 +593,7 @@ export default function ContactsPage() {
                 <Button
                   variant="outline"
                   onClick={() => {
+                    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                     window.location.href = '/api/contacts/export';
                   }}
                   className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
@@ -632,6 +633,7 @@ export default function ContactsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
                         onClick={() => {
+                          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
                           window.location.href = '/api/contacts/export';
                         }}
                       >

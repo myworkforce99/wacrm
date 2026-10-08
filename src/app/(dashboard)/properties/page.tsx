@@ -3,20 +3,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Property } from '@/types';
-import { Button } from '@/components/ui/button';
+
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
-  Search,
-  MapPin,
-  Building,
-  IndianRupee,
-  Loader2,
-  Plus,
-  Pencil,
-  Trash2,
-} from 'lucide-react';
+import { Search, MapPin, Building, IndianRupee, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';

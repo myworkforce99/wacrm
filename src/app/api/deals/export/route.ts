@@ -69,7 +69,7 @@ export async function GET() {
         'Content-Disposition': 'attachment; filename="deals_export.csv"',
       },
     });
-  } catch (_error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to export deals' },
       { status: 500 }

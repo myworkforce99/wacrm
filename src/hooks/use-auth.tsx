@@ -394,6 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setProfile(null);
     setAccount(null);
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = '/login';
   }, []);
 
@@ -471,6 +472,7 @@ export function useAuth(): AuthContextValue {
       loading: false,
       profileLoading: false,
       signOut: async () => {
+        // eslint-disable-next-line @next/next/no-location-assign-relative-destination
         window.location.href = '/login';
       },
       refreshProfile: async () => {},

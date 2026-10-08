@@ -294,7 +294,7 @@ export default function PipelinesPage() {
     if (!selectedPipelineId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setStages([]);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+
       setDeals([]);
       return;
     }
@@ -537,7 +537,7 @@ export default function PipelinesPage() {
             canAct={canEditSettings}
             gateReason="export deals"
             onClick={() => {
-              window.location.href = '/api/deals/export';
+              window.open('/api/deals/export', '_self');
             }}
             className="border-border bg-card text-foreground hover:bg-muted"
           >

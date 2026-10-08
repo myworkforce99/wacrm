@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageCircle, Phone, ArrowUpRight } from 'lucide-react';
+import { MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 
 import {
@@ -75,7 +75,7 @@ export default function DashboardPage() {
     count: number;
     overdue: number;
   } | null>(null);
-  const [followupsLoading, setFollowupsLoading] = useState(true);
+  const [, setFollowupsLoading] = useState(true);
 
   const [range, setRange] = useState<RangeDays>(30);
   const [series, setSeries] = useState<

@@ -65,9 +65,6 @@ export function LostReasonModal({
   // pattern as deal-form.tsx.
   useEffect(() => {
     if (!open) return;
-    setSelectedReasonId('');
-    setNote('');
-    setReEngageOn('');
     let cancelled = false;
 
     (async () => {
@@ -97,7 +94,17 @@ export function LostReasonModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(val) => {
+        onOpenChange(val);
+        if (!val) {
+          setSelectedReasonId('');
+          setNote('');
+          setReEngageOn('');
+        }
+      }}
+    >
       <DialogContent className="bg-popover border-border sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-popover-foreground">

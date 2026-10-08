@@ -22,7 +22,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatINR } from '@/lib/currency';
-import Link from 'next/link';
+
 import { EmiCalculator } from '@/components/properties/emi-calculator';
 
 export default function PropertyDetailPage() {

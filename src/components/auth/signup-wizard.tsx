@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { createClient } from '@/lib/supabase/client';
@@ -88,6 +88,7 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
     } = await supabase.auth.getSession();
 
     if (session && inviteToken) {
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = `/join/${encodeURIComponent(inviteToken)}`;
       return;
     }
