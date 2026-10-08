@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { Pipeline, PipelineStage, Deal } from '@/types';
 import { PipelineBoard } from '@/components/pipelines/pipeline-board';
@@ -24,12 +24,24 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { GitBranch, Plus, ChevronDown, Settings, Download } from 'lucide-react';
+import {
+  GitBranch,
+  Plus,
+  ChevronDown,
+  Settings,
+  Download,
+  Trophy,
+  XCircle,
+  Kanban,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/use-can';
 import { useAuth } from '@/hooks/use-auth';
 import { GatedButton } from '@/components/ui/gated-button';
 import { useTranslations } from 'next-intl';
+import { formatCurrency, formatINR } from '@/lib/currency';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 
 // Pipeline creation is admin-class (settings-tier write under
 // the new RLS); deal creation is operational and only requires
@@ -37,26 +49,111 @@ import { useTranslations } from 'next-intl';
 // not on different copy.
 
 // Spec-defined seed — name and color per the product spec.
+// NOTE: Final stage is 'Booking / Token Paid', not 'Won' or 'Closed'.
+// Won/Lost are outcomes expressed via deal.status, not stage names.
 const SPEC_DEFAULT_STAGES = [
   { name: 'New Lead', color: '#3b82f6', position: 0 }, // blue
   { name: 'Qualified', color: '#eab308', position: 1 }, // yellow
   { name: 'Proposal Sent', color: '#f97316', position: 2 }, // orange
   { name: 'Negotiation', color: '#8b5cf6', position: 3 }, // purple
-  { name: 'Won', color: '#22c55e', position: 4 }, // green
+  { name: 'Booking / Token Paid', color: '#22c55e', position: 4 }, // green
 ];
+
+// Filter tabs: what deals the board / list shows
+type StatusFilter = 'open' | 'won' | 'lost' | 'all';
+
+// A compact row in the Won/Lost list view
+function ClosedDealRow({
+  deal,
+  defaultCurrency,
+  onEdit,
+}: {
+  deal: Deal;
+  defaultCurrency: string;
+  onEdit: (deal: Deal) => void;
+}) {
+  const contactLabel =
+    deal.contact?.name || deal.contact?.phone || 'No contact';
+  const assigneeLabel = deal.assignee?.full_name;
+  const closedDate = deal.closed_at
+    ? new Date(deal.closed_at).toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '—';
+
+  return (
+    <button
+      type="button"
+      onClick={() => onEdit(deal)}
+      className="border-border/50 bg-card hover:bg-muted flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors"
+    >
+      <span
+        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+          deal.status === 'won'
+            ? 'bg-primary/15 text-primary'
+            : 'bg-red-500/15 text-red-400'
+        }`}
+      >
+        {deal.status === 'won' ? '✓' : '✗'}
+      </span>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-foreground truncate text-sm font-semibold">
+          {deal.title}
+        </p>
+        <div className="text-muted-foreground flex items-center gap-2 text-xs">
+          <span className="truncate">{contactLabel}</span>
+          {deal.status === 'lost' && deal.lost_reason && (
+            <>
+              <span>·</span>
+              <span className="truncate text-red-400">
+                {deal.lost_reason.label}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-end gap-0.5">
+        <span className="text-primary text-sm font-bold">
+          {defaultCurrency === 'INR'
+            ? formatINR(deal.value)
+            : formatCurrency(deal.value, defaultCurrency)}
+        </span>
+        <span className="text-muted-foreground text-[11px]">{closedDate}</span>
+      </div>
+
+      {assigneeLabel && (
+        <Avatar className="h-6 w-6 shrink-0">
+          <AvatarFallback
+            className="text-[10px] font-bold text-white"
+            style={{ background: avatarColorForName(assigneeLabel) }}
+          >
+            {initialsForName(assigneeLabel)}
+          </AvatarFallback>
+        </Avatar>
+      )}
+    </button>
+  );
+}
 
 export default function PipelinesPage() {
   const t = useTranslations('Pipelines.page');
   const supabase = createClient();
   const canEditSettings = useCan('edit-settings');
   const canCreateDeals = useCan('send-messages');
-  const { accountId, accountRole } = useAuth();
+  const { accountId, accountRole, defaultCurrency } = useAuth();
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Status filter — drives what the board / list shows
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
 
   // Dialog / sheet state
   const [newPipelineOpen, setNewPipelineOpen] = useState(false);
@@ -99,10 +196,13 @@ export default function PipelinesPage() {
 
   const loadDeals = useCallback(
     async (pipelineId: string) => {
+      // Load ALL deals (all statuses) so the client-side filter can switch
+      // between Open / Won / Lost / All without a new network round-trip.
+      // Closed deals are a small fraction of the total so fetching all is safe.
       const { data } = await supabase
         .from('deals')
         .select(
-          '*, contact:contacts(*, lead_details(*)), assignee:profiles!deals_assigned_to_fkey(*)'
+          '*, contact:contacts(*, lead_details(*)), assignee:profiles!deals_assigned_to_fkey(*), lost_reason:lost_reasons(*)'
         )
         .eq('pipeline_id', pipelineId)
         .order('created_at', { ascending: false });
@@ -245,8 +345,6 @@ export default function PipelinesPage() {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         if (body.error === 'DEAL_NOT_YOURS') {
-          // Because of optimistic update, deals inside useCallback scope might be slightly stale if we don't use a ref,
-          // but we can just use setDeals to grab it if we needed to, or find it directly.
           setDeals((prev) => {
             const deal = prev.find((d) => d.id === dealId);
             const ownerName =
@@ -331,6 +429,37 @@ export default function PipelinesPage() {
   }
 
   const selectedPipeline = pipelines.find((p) => p.id === selectedPipelineId);
+
+  // Deals shown on the board are always only open ones.
+  // Won / Lost views use the list view below.
+  const openDeals = useMemo(
+    () => deals.filter((d) => d.status === 'open' || !d.status),
+    [deals]
+  );
+  const wonDeals = useMemo(
+    () => deals.filter((d) => d.status === 'won'),
+    [deals]
+  );
+  const lostDeals = useMemo(
+    () => deals.filter((d) => d.status === 'lost'),
+    [deals]
+  );
+
+  // Counts for filter tabs
+  const filterCounts: Record<StatusFilter, number> = {
+    open: openDeals.length,
+    won: wonDeals.length,
+    lost: lostDeals.length,
+    all: deals.length,
+  };
+
+  // Deals shown in the closed list view
+  const closedListDeals = useMemo(() => {
+    if (statusFilter === 'won') return wonDeals;
+    if (statusFilter === 'lost') return lostDeals;
+    if (statusFilter === 'all') return deals;
+    return [];
+  }, [statusFilter, wonDeals, lostDeals, deals]);
 
   if (loading) {
     return (
@@ -425,20 +554,74 @@ export default function PipelinesPage() {
             <Plus className="mr-1 h-4 w-4" />
             {t('addPipeline')}
           </GatedButton>
-          <GatedButton
-            canAct={canCreateDeals}
-            gateReason="create deals"
-            disabled={!selectedPipelineId || stages.length === 0}
-            onClick={() => handleAddDeal()}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            {t('addDeal')}
-          </GatedButton>
+          {statusFilter === 'open' && (
+            <GatedButton
+              canAct={canCreateDeals}
+              gateReason="create deals"
+              disabled={!selectedPipelineId || stages.length === 0}
+              onClick={() => handleAddDeal()}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              <Plus className="mr-1 h-4 w-4" />
+              {t('addDeal')}
+            </GatedButton>
+          )}
         </div>
       </div>
 
-      {/* Board */}
+      {/* Status filter tabs */}
+      {pipelines.length > 0 && (
+        <div
+          className="border-border flex gap-1 rounded-xl border p-1"
+          style={{ width: 'fit-content' }}
+        >
+          {(
+            [
+              {
+                key: 'open' as StatusFilter,
+                label: t('filterOpen'),
+                icon: <Kanban className="h-3.5 w-3.5" />,
+              },
+              {
+                key: 'won' as StatusFilter,
+                label: t('filterWon'),
+                icon: <Trophy className="h-3.5 w-3.5" />,
+              },
+              {
+                key: 'lost' as StatusFilter,
+                label: t('filterLost'),
+                icon: <XCircle className="h-3.5 w-3.5" />,
+              },
+              { key: 'all' as StatusFilter, label: t('filterAll'), icon: null },
+            ] as { key: StatusFilter; label: string; icon: React.ReactNode }[]
+          ).map(({ key, label, icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setStatusFilter(key)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                statusFilter === key
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+              }`}
+            >
+              {icon}
+              {label}
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+                  statusFilter === key
+                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {filterCounts[key]}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Board or list based on selected filter */}
       {pipelines.length === 0 ? (
         <div className="border-border flex flex-col items-center justify-center rounded-xl border border-dashed py-20">
           <GitBranch className="text-muted-foreground h-12 w-12" />
@@ -458,16 +641,49 @@ export default function PipelinesPage() {
             {t('createPipeline')}
           </GatedButton>
         </div>
-      ) : (
+      ) : statusFilter === 'open' ? (
         <>
           <PipelineAnalytics stages={stages} deals={deals} />
           <PipelineBoard
             stages={stages}
-            deals={deals}
+            deals={openDeals}
             onDealMoved={handleDealMoved}
             onAddDeal={handleAddDeal}
             onEditDeal={handleEditDeal}
           />
+        </>
+      ) : (
+        <>
+          <PipelineAnalytics stages={stages} deals={deals} />
+          {/* Won / Lost / All list view */}
+          <div className="space-y-2">
+            {closedListDeals.length === 0 ? (
+              <div className="border-border text-muted-foreground flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-sm">
+                {statusFilter === 'won' && (
+                  <>
+                    <Trophy className="mb-2 h-8 w-8 opacity-40" />
+                    <p>{t('noWonDeals')}</p>
+                  </>
+                )}
+                {statusFilter === 'lost' && (
+                  <>
+                    <XCircle className="mb-2 h-8 w-8 opacity-40" />
+                    <p>{t('noLostDeals')}</p>
+                  </>
+                )}
+                {statusFilter === 'all' && <p>{t('noDeals')}</p>}
+              </div>
+            ) : (
+              closedListDeals.map((deal) => (
+                <ClosedDealRow
+                  key={deal.id}
+                  deal={deal}
+                  defaultCurrency={defaultCurrency}
+                  onEdit={handleEditDeal}
+                />
+              ))
+            )}
+          </div>
         </>
       )}
 

@@ -408,6 +408,24 @@ export interface MessageTemplate {
   created_at: string;
 }
 
+// ============================================================
+// Lost Reasons (migration 129)
+// ============================================================
+
+/**
+ * Account-scoped lookup table for why a deal was lost.
+ * Agents pick one from a dropdown when marking a deal lost;
+ * admins can add/rename/reorder reasons in pipeline settings.
+ */
+export interface LostReason {
+  id: string;
+  account_id: string;
+  label: string;
+  position: number;
+  is_active: boolean;
+  created_at: string;
+}
+
 export interface Pipeline {
   id: string;
   user_id: string;
@@ -444,11 +462,53 @@ export interface Deal {
   notes?: string;
   expected_close_date?: string;
   status?: DealStatus;
+  /**
+   * Frozen when the deal is first marked won or lost (migration 129).
+   * More reliable than updated_at for monthly won/lost reports because
+   * updated_at is bumped on any subsequent field edit.
+   */
+  closed_at?: string | null;
+  /**
+   * FK to lost_reasons.id. Required when status='lost'; NULL otherwise.
+   * Added in migration 129.
+   */
+  lost_reason_id?: string | null;
+  /** Free-form context the agent adds when marking a deal lost. */
+  lost_note?: string | null;
+  /**
+   * Snapshot of stage_id at time of loss. stage_id itself is never
+   * overwritten on close, but lost_from_stage_id gives a guaranteed
+   * immutable record of where in the funnel the deal was lost.
+   */
+  lost_from_stage_id?: string | null;
+  /**
+   * Actual negotiated sale price at close. May differ from the
+   * pre-negotiation `value` field; both are preserved.
+   */
+  won_value?: number | null;
+  /**
+   * How many times this deal has been moved from won/lost back to open.
+   * Zero for most deals; elevated counts flag potential data quality issues.
+   */
+  reopened_count?: number;
+  /**
+   * Updated on every significant deal event (stage move, status change,
+   * note save). Powers the stale-deal "rotting" badge — cards with no
+   * activity after N days get a visual warning.
+   */
+  last_activity_at?: string | null;
+  /**
+   * Optional future date set at loss time so an automation can send a
+   * WhatsApp re-engagement nudge when the buyer may be ready to revisit.
+   */
+  re_engage_on?: string | null;
   created_at: string;
   updated_at?: string;
   contact?: Contact;
   stage?: PipelineStage;
   assignee?: Profile;
+  /** Hydrated when the lost_reason_id FK is joined. */
+  lost_reason?: LostReason;
 }
 
 export interface AssignmentHistory {

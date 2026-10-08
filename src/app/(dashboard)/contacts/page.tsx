@@ -213,7 +213,7 @@ export default function ContactsPage() {
         const { data: relations } = await supabase
           .from('contacts')
           .select(
-            'id, lead_details(*), deals(status, assigned_to, pipeline_stages(name))'
+            'id, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))'
           )
           .in('id', ids)
           .order('created_at', { referencedTable: 'deals', ascending: false });
@@ -266,7 +266,7 @@ export default function ContactsPage() {
       let agentQuery = supabase
         .from('contacts')
         .select(
-          '*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))',
+          '*, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
           {
             count: 'exact',
           }
@@ -306,7 +306,7 @@ export default function ContactsPage() {
       let query = supabase
         .from('contacts')
         .select(
-          '*, lead_details(*), deals(status, assigned_to, pipeline_stages(name))',
+          '*, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
           {
             count: 'exact',
           }

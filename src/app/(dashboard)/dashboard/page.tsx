@@ -140,7 +140,7 @@ export default function DashboardPage() {
     void db
       .from('contacts')
       .select(
-        '*, lead_details(*), deals(status, pipeline_stages(name)), contact_tags(tags(name))'
+        '*, lead_details(*), deals(status, pipeline_stages!deals_stage_id_fkey(name)), contact_tags(tags(name))'
       )
       .order('created_at', { ascending: false })
       .order('created_at', { referencedTable: 'deals', ascending: false })

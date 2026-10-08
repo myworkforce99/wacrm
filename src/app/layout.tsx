@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
-import { Inter } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { ThemeProvider } from '@/hooks/use-theme';
 import { ThemedToaster } from '@/components/themed-toaster';
@@ -15,10 +15,11 @@ import {
   THEME_IDS,
 } from '@/lib/themes';
 
-const inter = Inter({
+const inter = localFont({
+  src: './fonts/InterVariable.woff2',
   variable: '--font-sans',
-  subsets: ['latin'],
   display: 'swap',
+  weight: '100 900',
 });
 
 export const metadata: Metadata = {

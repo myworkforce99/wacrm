@@ -30,9 +30,11 @@ import {
   MessageSquare,
   IndianRupee,
   Loader2,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { LostReasonModal } from '@/components/pipelines/lost-reason-modal';
 
 interface DealFormProps {
   open: boolean;
@@ -75,6 +77,10 @@ export function DealForm({
   const [statusAction, setStatusAction] = useState<DealStatus | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Lost-reason modal state
+  const [lostModalOpen, setLostModalOpen] = useState(false);
+  const [lostLoading, setLostLoading] = useState(false);
 
   // Reset the form fields every time the sheet opens or its input
   // props change. This is a legitimate prop-driven sync; the rule is
@@ -206,6 +212,7 @@ export function DealForm({
         user_id: user.id,
         account_id: accountId,
         status: 'open',
+        last_activity_at: new Date().toISOString(),
       });
       if (error) {
         toast.error(t('toastFailedCreate'));
@@ -220,31 +227,109 @@ export function DealForm({
     onSaved();
   }
 
-  async function handleStatusChange(status: DealStatus) {
+  /**
+   * Mark as Won — no modal needed, just confirm immediately and show undo.
+   */
+  async function handleMarkWon() {
     if (!deal) return;
-    setStatusAction(status);
+    setStatusAction('won');
+
     const res = await fetch(`/api/deals/${deal.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status: 'won' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setStatusAction(null);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(
+        body.error === 'DEAL_NOT_YOURS' ? body.message : t('toastFailedStatus')
+      );
+      return;
+    }
+
+    onOpenChange(false);
+    onSaved();
+
+    // Undo toast: re-open the deal within 6 seconds
+    toast.success(t('toastMarkedWon'), {
+      duration: 6000,
+      action: {
+        label: t('undo'),
+        onClick: () => void handleReopen(deal.id),
+      },
+    });
+  }
+
+  /**
+   * Mark as Lost — opens the LostReasonModal first so the agent
+   * must supply a reason before the API is called.
+   */
+  function handleMarkLostClick() {
+    setLostModalOpen(true);
+  }
+
+  async function handleLostConfirmed(payload: {
+    lost_reason_id: string;
+    lost_note?: string;
+    re_engage_on?: string;
+  }) {
+    if (!deal) return;
+    setLostLoading(true);
+
+    const res = await fetch(`/api/deals/${deal.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'lost', ...payload }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    setLostLoading(false);
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      toast.error(
+        body.error === 'DEAL_NOT_YOURS' ? body.message : t('toastFailedStatus')
+      );
+      return;
+    }
+
+    setLostModalOpen(false);
+    onOpenChange(false);
+    onSaved();
+
+    // Undo toast: re-open the deal within 6 seconds
+    toast.success(t('toastMarkedLost'), {
+      duration: 6000,
+      action: {
+        label: t('undo'),
+        onClick: () => void handleReopen(deal.id),
+      },
+    });
+  }
+
+  /**
+   * Reopen — either from the undo toast callback or from the Reopen button
+   * inside the sheet. dealId may be passed directly from the toast closure
+   * so it doesn't depend on the 'deal' prop being still in scope.
+   */
+  async function handleReopen(dealId?: string) {
+    const id = dealId ?? deal?.id;
+    if (!id) return;
+    setStatusAction('open');
+    const res = await fetch(`/api/deals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'open' }),
       headers: { 'Content-Type': 'application/json' },
     });
     setStatusAction(null);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      if (body.error === 'DEAL_NOT_YOURS') {
-        toast.error(body.message);
-      } else {
-        toast.error(t('toastFailedStatus'));
-      }
+      toast.error(
+        body.error === 'DEAL_NOT_YOURS' ? body.message : t('toastFailedStatus')
+      );
       return;
     }
-    toast.success(
-      status === 'won'
-        ? t('toastMarkedWon')
-        : status === 'lost'
-          ? t('toastMarkedLost')
-          : t('toastReopened')
-    );
+    toast.success(t('toastReopened'));
     onOpenChange(false);
     onSaved();
   }
@@ -264,249 +349,303 @@ export function DealForm({
     onSaved();
   }
 
+  const isClosed = deal?.status && deal.status !== 'open';
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="bg-popover border-border text-popover-foreground w-full p-0 sm:max-w-lg"
-      >
-        <div className="flex h-full flex-col">
-          <SheetHeader className="border-border/50 border-b p-4">
-            <SheetTitle className="text-popover-foreground">
-              {deal ? t('editDeal') : t('newDeal')}
-            </SheetTitle>
-          </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="bg-popover border-border text-popover-foreground w-full p-0 sm:max-w-lg"
+        >
+          <div className="flex h-full flex-col">
+            <SheetHeader className="border-border/50 border-b p-4">
+              <SheetTitle className="text-popover-foreground">
+                {deal ? t('editDeal') : t('newDeal')}
+              </SheetTitle>
+            </SheetHeader>
 
-          <div className="flex-1 space-y-4 overflow-y-auto p-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t('title')}</Label>
-              <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t('titlePlaceholder')}
-                className="border-border bg-muted text-foreground"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t('contact')}</Label>
-              <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
-              >
-                <option value="">{t('selectContact')}</option>
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || c.phone}
-                  </option>
-                ))}
-              </select>
-
-              {linkedConversation && (
-                <Link
-                  href="/inbox"
-                  className="bg-primary/10 text-primary hover:bg-primary/20 mt-1 inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs"
+            <div className="flex-1 space-y-4 overflow-y-auto p-4">
+              {/* Status banner for closed deals */}
+              {isClosed && (
+                <div
+                  className={`rounded-lg border px-3 py-2 text-sm font-medium ${
+                    deal?.status === 'won'
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'border-red-500/30 bg-red-500/10 text-red-400'
+                  }`}
                 >
-                  <MessageSquare className="h-3 w-3" />
-                  {t('linkToConversation')}
-                </Link>
+                  {deal?.status === 'won' ? (
+                    <span className="flex items-center gap-1.5">
+                      <Check className="h-4 w-4" />
+                      {t('bannerWon')}
+                    </span>
+                  ) : (
+                    <span className="flex flex-col gap-0.5">
+                      <span className="flex items-center gap-1.5">
+                        <X className="h-4 w-4" />
+                        {t('bannerLost')}
+                      </span>
+                      {deal?.lost_reason?.label && (
+                        <span className="text-xs opacity-80">
+                          {t('bannerLostReason', {
+                            reason: deal.lost_reason.label,
+                          })}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
               )}
-            </div>
 
-            <div className="grid grid-cols-[1fr_110px] gap-3">
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t('value')}</Label>
-                <div className="relative">
-                  <IndianRupee className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="0"
-                    className="border-border bg-muted text-foreground pl-7"
-                  />
+                <Label className="text-muted-foreground">{t('title')}</Label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('titlePlaceholder')}
+                  className="border-border bg-muted text-foreground"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t('contact')}</Label>
+                <select
+                  value={contactId}
+                  onChange={(e) => setContactId(e.target.value)}
+                  className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
+                >
+                  <option value="">{t('selectContact')}</option>
+                  {contacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name || c.phone}
+                    </option>
+                  ))}
+                </select>
+
+                {linkedConversation && (
+                  <Link
+                    href="/inbox"
+                    className="bg-primary/10 text-primary hover:bg-primary/20 mt-1 inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    {t('linkToConversation')}
+                  </Link>
+                )}
+              </div>
+
+              <div className="grid grid-cols-[1fr_110px] gap-3">
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">{t('value')}</Label>
+                  <div className="relative">
+                    <IndianRupee className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
+                    <Input
+                      type="number"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      placeholder="0"
+                      className="border-border bg-muted text-foreground pl-7"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">
+                    {t('currency')}
+                  </Label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t('currency')}</Label>
+                <Label className="text-muted-foreground">
+                  {t('expectedCloseDate')}
+                </Label>
+                <Input
+                  type="date"
+                  value={expectedCloseDate}
+                  onChange={(e) => setExpectedCloseDate(e.target.value)}
+                  className="border-border bg-muted text-foreground"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t('stage')}</Label>
                 <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  value={stageId}
+                  onChange={(e) => setStageId(e.target.value)}
                   className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
                 >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code}
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
                     </option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">
-                {t('expectedCloseDate')}
-              </Label>
-              <Input
-                type="date"
-                value={expectedCloseDate}
-                onChange={(e) => setExpectedCloseDate(e.target.value)}
-                className="border-border bg-muted text-foreground"
-              />
-            </div>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">
+                  {t('assignedTo')}
+                </Label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
+                >
+                  <option value="">{t('unassigned')}</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.full_name || p.email}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t('stage')}</Label>
-              <select
-                value={stageId}
-                onChange={(e) => setStageId(e.target.value)}
-                className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
-              >
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t('notes')}</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t('notesPlaceholder')}
+                  className="border-border bg-muted text-foreground min-h-[100px]"
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t('assignedTo')}</Label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
-              >
-                <option value="">{t('unassigned')}</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name || p.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t('notes')}</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t('notesPlaceholder')}
-                className="border-border bg-muted text-foreground min-h-[100px]"
-              />
-            </div>
-
-            {deal && (
-              <div className="border-border bg-muted/50 space-y-2 rounded-lg border p-3">
-                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                  {t('status')}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange('won')}
-                    disabled={!!statusAction || deal.status === 'won'}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 disabled:opacity-50"
-                  >
-                    {statusAction === 'won' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="mr-1 h-4 w-4" />
-                        {t('markAsWon')}
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange('lost')}
-                    disabled={!!statusAction || deal.status === 'lost'}
-                    className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {statusAction === 'lost' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
+              {/* Status actions — only for existing open deals */}
+              {deal && deal.status === 'open' && (
+                <div className="border-border bg-muted/50 space-y-2 rounded-lg border p-3">
+                  <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                    {t('status')}
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={handleMarkWon}
+                      disabled={!!statusAction}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 disabled:opacity-50"
+                    >
+                      {statusAction === 'won' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="mr-1 h-4 w-4" />
+                          {t('markAsWon')}
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={handleMarkLostClick}
+                      disabled={!!statusAction}
+                      className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    >
                       <>
                         <X className="mr-1 h-4 w-4" />
                         {t('markAsLost')}
                       </>
-                    )}
-                  </Button>
+                    </Button>
+                  </div>
                 </div>
-                {deal.status && deal.status !== 'open' && (
+              )}
+
+              {/* Reopen button — only for closed deals */}
+              {deal && isClosed && (
+                <div className="border-border bg-muted/50 rounded-lg border p-3">
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => handleStatusChange('open')}
+                    onClick={() => handleReopen()}
                     disabled={!!statusAction}
                     className="text-muted-foreground hover:text-foreground w-full"
                   >
+                    {statusAction === 'open' ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                    ) : (
+                      <RotateCcw className="mr-1 h-4 w-4" />
+                    )}
                     {t('reopenDeal')}
                   </Button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="border-border/50 bg-popover/80 border-t p-4">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="border-border text-muted-foreground hover:bg-muted flex-1 bg-transparent"
-              >
-                {t('cancel')}
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={saving || !title.trim() || !contactId || !stageId}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
-              >
-                {saving
-                  ? t('saving')
-                  : deal
-                    ? t('saveChanges')
-                    : t('createDeal')}
-              </Button>
+                </div>
+              )}
             </div>
 
-            {deal &&
-              (confirmDelete ? (
-                <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
-                  <span className="text-red-300">{t('deletePrompt')}</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                      className="text-muted-foreground hover:bg-muted rounded px-2 py-1"
-                    >
-                      {t('cancel')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="rounded bg-red-600 px-2 py-1 font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {deleting ? t('deleting') : t('confirm')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(true)}
-                  className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-red-400 hover:text-red-300"
+            <div className="border-border/50 bg-popover/80 border-t p-4">
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  className="border-border text-muted-foreground hover:bg-muted flex-1 bg-transparent"
                 >
-                  <Trash2 className="h-3 w-3" />
-                  {t('deleteDeal')}
-                </button>
-              ))}
+                  {t('cancel')}
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !title.trim() || !contactId || !stageId}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+                >
+                  {saving
+                    ? t('saving')
+                    : deal
+                      ? t('saveChanges')
+                      : t('createDeal')}
+                </Button>
+              </div>
+
+              {deal &&
+                (confirmDelete ? (
+                  <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
+                    <span className="text-red-300">{t('deletePrompt')}</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        className="text-muted-foreground hover:bg-muted rounded px-2 py-1"
+                      >
+                        {t('cancel')}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="rounded bg-red-600 px-2 py-1 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {deleting ? t('deleting') : t('confirm')}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    {t('deleteDeal')}
+                  </button>
+                ))}
+            </div>
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+
+      {/* Lost reason modal — shown instead of immediately calling the API */}
+      <LostReasonModal
+        open={lostModalOpen}
+        onOpenChange={setLostModalOpen}
+        onConfirm={handleLostConfirmed}
+        loading={lostLoading}
+      />
+    </>
   );
 }

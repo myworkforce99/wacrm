@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     // Query deals grouped by stage and join pipeline_stages
     const { data: deals, error: dErr } = await ctx.supabase
       .from('deals')
-      .select('stage_id, pipeline_stages(name, position)')
+      .select('stage_id, pipeline_stages!deals_stage_id_fkey(name, position)')
       .eq('account_id', ctx.accountId)
       .eq('status', 'open'); // Assuming we only want the funnel for open deals
 

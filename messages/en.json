@@ -581,7 +581,7 @@
       "newPipeline": "New Pipeline",
       "pipelineName": "Pipeline Name",
       "pipelineNamePlaceholder": "e.g., Enterprise Sales",
-      "defaultStagesDesc": "Default stages (New Lead → Won) will be created automatically.",
+      "defaultStagesDesc": "Default stages (New Lead → Booking / Token Paid) will be created automatically.",
       "cancel": "Cancel",
       "creating": "Creating...",
       "createPipelineBtn": "Create Pipeline",
@@ -589,13 +589,21 @@
       "toastFailedMoveDeal": "Failed to move deal",
       "toastFailedCreatePipeline": "Failed to create pipeline",
       "toastPipelineCreated": "Pipeline created",
-      "toastNotLinkedToAccount": "Your profile is not linked to an account."
+      "toastNotLinkedToAccount": "Your profile is not linked to an account.",
+      "filterOpen": "Open",
+      "filterWon": "Won",
+      "filterLost": "Lost",
+      "filterAll": "All",
+      "noWonDeals": "No won deals yet",
+      "noLostDeals": "No lost deals yet",
+      "noDeals": "No deals found"
     },
     "board": {
       "dropDealHere": "Drop a deal here",
       "addDeal": "Add Deal",
       "moveToStage": "Move to Stage",
-      "totalValue": "Total Value"
+      "totalValue": "Total Value",
+      "currentStage": "Current Stage"
     },
     "card": {
       "noContact": "No contact",
@@ -621,7 +629,10 @@
       "status": "Status",
       "markAsWon": "Mark as Won",
       "markAsLost": "Mark as Lost",
-      "reopenDeal": "Reopen deal",
+      "reopenDeal": "Reopen Deal",
+      "bannerWon": "This deal was marked as Won",
+      "bannerLost": "This deal was marked as Lost",
+      "bannerLostReason": "Reason: {reason}",
       "cancel": "Cancel",
       "saving": "Saving...",
       "saveChanges": "Save Changes",
@@ -638,11 +649,25 @@
       "toastUpdated": "Deal updated",
       "toastCreated": "Deal created",
       "toastFailedStatus": "Failed to update deal status",
-      "toastMarkedWon": "Marked as won",
+      "toastMarkedWon": "Marked as won ✓",
       "toastMarkedLost": "Marked as lost",
       "toastReopened": "Deal reopened",
       "toastFailedDelete": "Failed to delete deal",
-      "toastDeleted": "Deal deleted"
+      "toastDeleted": "Deal deleted",
+      "undo": "Undo"
+    },
+    "lostModal": {
+      "title": "Mark as Lost",
+      "subtitle": "Help the team understand why this deal didn't close.",
+      "reasonLabel": "Reason for loss",
+      "selectReason": "Select a reason…",
+      "loadingReasons": "Loading reasons…",
+      "noteLabel": "Additional note (optional)",
+      "notePlaceholder": "What happened? Any context that might help...",
+      "reEngageLabel": "Re-engage on (optional)",
+      "reEngageHint": "Set a date and we'll remind you to follow up — the lead may be ready to buy later.",
+      "cancel": "Cancel",
+      "confirm": "Mark as Lost"
     },
     "settings": {
       "managePipeline": "Manage Pipeline",

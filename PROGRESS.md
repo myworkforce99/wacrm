@@ -62,3 +62,13 @@ D6 → (C6 + J3) → S → R → (J4 + J5 + J6) → T → U → L → O → P �
 - [x] FIX 10: QUALITY-03: Replace window.location.href with router.push() for Internal Routes (Skipped as N/A)
 - [x] FIX 11: QUALITY-04: Onboarding Checklist Persist Dismiss to DB
 - [x] FIX 12: MISSING-05: Update IMPLEMENTATION_PLAN.md Migration References
+
+## Pipeline Deal Lifecycle Improvements (migration 129)
+
+- [x] **Schema (129):** Added `lost_reasons` lookup table (account-scoped, 8 seeded defaults, RLS agent/admin gated). Added `closed_at`, `lost_reason_id`, `lost_note`, `lost_from_stage_id`, `won_value`, `reopened_count`, `last_activity_at`, `re_engage_on` to `deals`. Updated `handle_new_user` to rename final stage from `'Closed'` → `'Booking / Token Paid'`.
+- [x] **API:** Rewrote `PATCH /api/deals/[id]` to enforce lifecycle semantics server-side: frozen `closed_at`, `lost_from_stage_id` snapshot at loss time, `reopened_count` increment on reopen, stage-move guard for closed deals, `last_activity_at` bumped on every update.
+- [x] **LostReasonModal:** New component intercepts "Mark as Lost" and forces reason selection from the account's lookup list. Captures optional note and re-engage date.
+- [x] **DealForm:** Separate Won/Lost buttons, undo-action toasts (6 s), status banner for closed deals showing loss reason, standalone Reopen button for closed deals.
+- [x] **Pipelines page:** Filter pill tabs (Open / Won / Lost / All), board only shows open deals, Won/Lost/All use a compact list view with reason badge. Analytics use `closed_at` for accurate monthly counts.
+- [x] **Types:** Extended `Deal` with all 8 new lifecycle fields; added `LostReason` interface.
+- [x] **i18n:** Added filter tab keys, lost modal keys, undo key, status banner keys, empty state messages.

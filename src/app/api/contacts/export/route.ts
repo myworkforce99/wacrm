@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         id, name, phone, created_at,
         lead_details ( source, budget_max, location_preference, configuration_preference ),
         conversations ( id, status, assigned_agent_id, last_message_at, updated_at ),
-        deals ( status, stage:pipeline_stages(name) ),
+        deals ( status, stage:pipeline_stages!deals_stage_id_fkey(name) ),
         site_visits ( status, property:properties(rera_id) )
       `
       )

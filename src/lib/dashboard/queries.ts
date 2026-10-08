@@ -312,7 +312,7 @@ export async function loadActivity(
       .limit(10),
     db
       .from('deals')
-      .select('id, title, updated_at, stage:pipeline_stages(name)')
+      .select('id, title, updated_at, stage:pipeline_stages!deals_stage_id_fkey(name)')
       .order('updated_at', { ascending: false })
       .limit(10),
     db
@@ -618,7 +618,7 @@ export async function loadTeamPerformance(
   const { data: staleDealsRes } = await db
     .from('deals')
     .select(
-      'assigned_to, stage:pipeline_stages(name), contact:contacts(conversations(assigned_agent_id)), assignee:profiles!deals_assigned_to_fkey(user_id)'
+      'assigned_to, stage:pipeline_stages!deals_stage_id_fkey(name), contact:contacts(conversations(assigned_agent_id)), assignee:profiles!deals_assigned_to_fkey(user_id)'
     )
     .lt('updated_at', fortyEightHoursAgo)
     .not('stage', 'is', null);
