@@ -53,8 +53,10 @@ export default function PropertyDetailPage() {
   }, [supabase, params.id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchProperty();
+    const timer = setTimeout(() => {
+      void fetchProperty();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchProperty]);
 
   if (loading) {
