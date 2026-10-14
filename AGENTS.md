@@ -17,6 +17,9 @@ touching a directory you haven't touched yet in this session**, and
 treat what's in them as ground truth over anything you'd otherwise
 infer or recall:
 
+- **[`AGENT_MASTER_CONTEXT.md`](./AGENT_MASTER_CONTEXT.md)** —
+  the master all-in-one architecture reference, database invariants,
+  RBAC rules, i18n parity requirements, and UI/UX benchmark checklist.
 - **[`docs/agent/ARCHITECTURE.md`](./docs/agent/ARCHITECTURE.md)** —
   stack, directory map, and the conventions already in use (auth,
   API routes, i18n, design tokens, RLS). Read this first, every
