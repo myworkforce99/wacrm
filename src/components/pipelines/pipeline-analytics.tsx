@@ -99,7 +99,8 @@ export function PipelineAnalytics({
 
     const wonThisMonth = wonDeals.filter(closedThisMonth).length;
     const totalClosed = wonDeals.length + lostDeals.length;
-    const winRate = totalClosed > 0 ? Math.round((wonDeals.length / totalClosed) * 100) : 0;
+    const winRate =
+      totalClosed > 0 ? Math.round((wonDeals.length / totalClosed) * 100) : 0;
 
     return {
       totalCount,
@@ -176,7 +177,7 @@ export function PipelineAnalytics({
 
         {/* Won Closures */}
         <MetricCard
-          icon={<Trophy className="text-emerald-500 size-4" />}
+          icon={<Trophy className="size-4 text-emerald-500" />}
           label={t('wonThisMonth')}
           value={String(stats.wonThisMonth)}
           subtext={`${stats.wonTotal} all-time`}
@@ -229,9 +230,9 @@ function MetricCard({
   return (
     <div
       onClick={onClick}
-      className={`border-border/80 bg-card/80 flex flex-col justify-between rounded-xl border p-3.5 transition-all shadow-xs ${
+      className={`border-border/80 bg-card/80 flex flex-col justify-between rounded-xl border p-3.5 shadow-xs transition-all ${
         onClick ? 'cursor-pointer ' + accent : ''
-      } ${isActive ? 'ring-2 ring-primary/40 border-primary' : ''}`}
+      } ${isActive ? 'ring-primary/40 border-primary ring-2' : ''}`}
     >
       <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px] font-medium tracking-wide uppercase">
         <div className="flex items-center gap-1.5 truncate">
@@ -258,9 +259,11 @@ function MetricCard({
       </div>
 
       <div className="mt-2 flex items-baseline justify-between gap-1">
-        <p className="text-foreground text-xl font-bold tracking-tight">{value}</p>
+        <p className="text-foreground text-xl font-bold tracking-tight">
+          {value}
+        </p>
         {subtext && (
-          <span className="text-muted-foreground text-[10px] font-medium truncate">
+          <span className="text-muted-foreground truncate text-[10px] font-medium">
             {subtext}
           </span>
         )}

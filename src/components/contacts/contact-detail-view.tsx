@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency, formatINR } from '@/lib/currency';
+import { formatCurrency, formatINR, formatINRRange } from '@/lib/currency';
+import { parseBudget } from '@/lib/contacts/parse-budget';
 import { toast } from 'sonner';
 import type {
   Contact,
@@ -70,6 +71,7 @@ import {
   Zap,
   Calendar,
   MessageCircle,
+  Pencil,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
@@ -81,6 +83,7 @@ interface ContactDetailViewProps {
   onOpenChange: (open: boolean) => void;
   contactId: string | null;
   onUpdated: () => void;
+  onEdit?: (contact: Contact) => void;
 }
 
 // Known portal source values — must stay in sync with SourceBadge and contact-form options
@@ -101,6 +104,7 @@ export function ContactDetailView({
   onOpenChange,
   contactId,
   onUpdated,
+  onEdit,
 }: ContactDetailViewProps) {
   const t = useTranslations('Contacts.detailView');
   const supabase = createClient();
@@ -152,6 +156,8 @@ export function ContactDetailView({
   const [editLocationPref, setEditLocationPref] = useState('');
   const [editBudgetMin, setEditBudgetMin] = useState('');
   const [editBudgetMax, setEditBudgetMax] = useState('');
+  const [editPropertyType, setEditPropertyType] = useState('');
+  const [editIntent, setEditIntent] = useState('');
   const [existingLeadDetailId, setExistingLeadDetailId] = useState<
     string | null
   >(null);
@@ -243,8 +249,14 @@ export function ContactDetailView({
       setEditConfigPref(data.configuration_preference ?? []);
       setEditPossessionPref(data.possession_preference ?? '');
       setEditLocationPref(data.location_preference ?? '');
-      setEditBudgetMin(data.budget_min ? String(data.budget_min) : '');
-      setEditBudgetMax(data.budget_max ? String(data.budget_max) : '');
+      setEditBudgetMin(
+        data.budget_min ? formatINR(data.budget_min).replace('₹', '') : ''
+      );
+      setEditBudgetMax(
+        data.budget_max ? formatINR(data.budget_max).replace('₹', '') : ''
+      );
+      setEditPropertyType(data.property_type ?? '');
+      setEditIntent(data.intent ?? '');
     } else {
       setExistingLeadDetailId(null);
       setEditSource('');
@@ -254,6 +266,8 @@ export function ContactDetailView({
       setEditLocationPref('');
       setEditBudgetMin('');
       setEditBudgetMax('');
+      setEditPropertyType('');
+      setEditIntent('');
     }
   }, [contactId, supabase]);
 
@@ -261,6 +275,8 @@ export function ContactDetailView({
     if (!contactId || !accountId) return;
     const resolvedSource =
       editSource === 'Other' ? editOtherSource.trim() : editSource;
+    const parsedMin = parseBudget(editBudgetMin);
+    const parsedMax = parseBudget(editBudgetMax);
     const payload = {
       account_id: accountId,
       contact_id: contactId,
@@ -268,8 +284,10 @@ export function ContactDetailView({
       configuration_preference: editConfigPref,
       possession_preference: editPossessionPref || null,
       location_preference: editLocationPref || null,
-      budget_min: editBudgetMin ? Number(editBudgetMin) : null,
-      budget_max: editBudgetMax ? Number(editBudgetMax) : null,
+      budget_min: parsedMin ?? null,
+      budget_max: parsedMax ?? null,
+      property_type: editPropertyType || null,
+      intent: editIntent || null,
       updated_at: new Date().toISOString(),
     };
     const { error } = existingLeadDetailId
@@ -836,27 +854,75 @@ export function ContactDetailView({
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label className="text-muted-foreground text-xs">
-              Budget Min{' '}
-              {defaultCurrency === 'INR' ? '(₹)' : `(${defaultCurrency})`}
+              Property Type
             </Label>
-            <Input
-              type="number"
-              value={editBudgetMin}
-              onChange={(e) => setEditBudgetMin(e.target.value)}
-              placeholder="e.g. 2500000"
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
-            />
+            <Select
+              value={editPropertyType}
+              onValueChange={(val: string | null) =>
+                setEditPropertyType(val ?? '')
+              }
+            >
+              <SelectTrigger className="bg-muted border-border text-foreground h-8 w-full text-sm">
+                <SelectValue placeholder="All types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Apartment">Apartment</SelectItem>
+                <SelectItem value="Villa">Villa</SelectItem>
+                <SelectItem value="Plot">Plot</SelectItem>
+                <SelectItem value="Commercial">Commercial</SelectItem>
+                <SelectItem value="Penthouse">Penthouse</SelectItem>
+                <SelectItem value="Builder Floor">Builder Floor</SelectItem>
+                <SelectItem value="Studio">Studio</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-muted-foreground text-xs">
-              Budget Max{' '}
+              Buyer Intent
+            </Label>
+            <Select
+              value={editIntent}
+              onValueChange={(val: string | null) => setEditIntent(val ?? '')}
+            >
+              <SelectTrigger className="bg-muted border-border text-foreground h-8 w-full text-sm">
+                <SelectValue placeholder="Any intent" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="End Use">End Use</SelectItem>
+                <SelectItem value="Investment">Investment</SelectItem>
+                <SelectItem value="Rental Yield">Rental Yield</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <Label className="text-muted-foreground text-xs">
+              Budget Range{' '}
               {defaultCurrency === 'INR' ? '(₹)' : `(${defaultCurrency})`}
             </Label>
+            {(parseBudget(editBudgetMin) !== null ||
+              parseBudget(editBudgetMax) !== null) && (
+              <span className="text-primary bg-primary/10 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                {formatINRRange(
+                  parseBudget(editBudgetMin),
+                  parseBudget(editBudgetMax)
+                )}
+              </span>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <Input
-              type="number"
+              value={editBudgetMin}
+              onChange={(e) => setEditBudgetMin(e.target.value)}
+              placeholder="Min (e.g. 50L or 5000000)"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+            />
+            <Input
               value={editBudgetMax}
               onChange={(e) => setEditBudgetMax(e.target.value)}
-              placeholder="e.g. 5000000"
+              placeholder="Max (e.g. 1.5Cr or 15000000)"
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
             />
           </div>
@@ -1260,13 +1326,27 @@ export function ContactDetailView({
                   </div>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {onEdit && contact && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        onOpenChange(false);
+                        onEdit(contact);
+                      }}
+                      className="border-border text-foreground hover:bg-muted"
+                    >
+                      <Pencil className="text-primary mr-1.5 size-3.5" />
+                      {t('editLeadBtn') || 'Edit Details'}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={() => setScheduleVisitOpen(true)}
                     className="border-border text-foreground hover:bg-muted"
                   >
-                    <Calendar className="mr-1.5 size-3.5 text-primary" />
+                    <Calendar className="text-primary mr-1.5 size-3.5" />
                     {t('scheduleVisitBtn') || 'Schedule Visit'}
                   </Button>
                   <Button

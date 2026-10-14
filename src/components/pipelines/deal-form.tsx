@@ -158,10 +158,7 @@ export function DealForm({
     const timer = setTimeout(() => {
       void (async () => {
         const [c, p] = await Promise.all([
-          supabase
-            .from('contacts')
-            .select('*, lead_details(*)')
-            .order('name'),
+          supabase.from('contacts').select('*, lead_details(*)').order('name'),
           supabase.from('profiles').select('*').order('full_name'),
         ]);
         if (cancelled) return;
@@ -482,7 +479,7 @@ export function DealForm({
                       {selectedContact.phone && (
                         <a
                           href={`tel:${selectedContact.phone}`}
-                          className="text-primary hover:underline font-mono inline-flex items-center gap-1 text-[11px]"
+                          className="text-primary inline-flex items-center gap-1 font-mono text-[11px] hover:underline"
                         >
                           <Phone className="size-3" />
                           {selectedContact.phone}
@@ -511,9 +508,9 @@ export function DealForm({
                           variant="outline"
                           size="sm"
                           onClick={() => onScheduleVisit(contactId)}
-                          className="border-border text-xs h-7 gap-1"
+                          className="border-border h-7 gap-1 text-xs"
                         >
-                          <CalendarPlus className="size-3 text-primary" />
+                          <CalendarPlus className="text-primary size-3" />
                           {t('scheduleVisitForBuyer')}
                         </Button>
                       )}
@@ -526,7 +523,9 @@ export function DealForm({
               <div className="space-y-1.5">
                 <div className="grid grid-cols-[1fr_110px] gap-3">
                   <div className="grid gap-2">
-                    <Label className="text-muted-foreground">{t('value')}</Label>
+                    <Label className="text-muted-foreground">
+                      {t('value')}
+                    </Label>
                     <div className="relative">
                       <IndianRupee className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                       <Input
@@ -567,7 +566,7 @@ export function DealForm({
                         : formatCurrency(parsedNumericVal, currency)}
                     </span>
                     {estimatedBrokerage !== null && (
-                      <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md px-2 py-0.5 text-xs font-medium">
+                      <span className="rounded-md bg-purple-500/10 px-2 py-0.5 text-xs font-medium text-purple-600 dark:text-purple-400">
                         {t('estBrokerage', {
                           pct: brokeragePct ?? 2,
                           amount:

@@ -72,6 +72,7 @@ import {
   Trash2,
   Loader2,
   Users,
+  Eye,
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
@@ -509,6 +510,11 @@ export default function ContactsPage() {
 
   function openAddForm() {
     setEditContact(null);
+    setFormOpen(true);
+  }
+
+  function openEditForm(contact: Contact) {
+    setEditContact(contact);
     setFormOpen(true);
   }
 
@@ -971,7 +977,7 @@ export default function ContactsPage() {
                       <button
                         type="button"
                         onClick={() => setSelectedTagIds([])}
-                        className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors cursor-pointer"
+                        className="cursor-pointer rounded border border-red-200/60 bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
                       >
                         {t('clearAll')}
                       </button>
@@ -1048,7 +1054,7 @@ export default function ContactsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-8.5 shrink-0 gap-1 self-end px-2.5 text-xs font-medium transition-colors shadow-2xs md:self-auto"
+                className="h-8.5 shrink-0 gap-1 self-end border border-red-200/60 bg-red-50 px-2.5 text-xs font-medium text-red-600 shadow-2xs transition-colors hover:border-red-300 hover:bg-red-100 hover:text-red-700 md:self-auto dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:border-red-800 dark:hover:bg-red-900/50 dark:hover:text-red-300"
               >
                 <X className="size-3.5" />
                 {t('clearAll')} ({activeFiltersCount})
@@ -1324,12 +1330,12 @@ export default function ContactsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => openDetail(contact.id)}
+                      onClick={() => openEditForm(contact)}
                       className="bg-muted hover:bg-muted/80 text-foreground flex cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
-                      title={t('viewDetailsAction') || 'View details'}
+                      title={t('editContactAction') || 'Edit details'}
                     >
                       <Pencil className="text-muted-foreground size-3.5" />
-                      <span>Edit</span>
+                      <span>{t('editAction') || 'Edit'}</span>
                     </button>
                   </div>
                 </div>
@@ -1630,6 +1636,19 @@ export default function ContactsPage() {
                             <Calendar className="size-4" />
                           </button>
 
+                          {/* Quick Edit Details */}
+                          <button
+                            type="button"
+                            className="hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer rounded-lg p-1.5 transition-colors"
+                            title={t('editContactAction') || 'Edit details'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditForm(contact);
+                            }}
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+
                           {/* More Options Menu */}
                           <DropdownMenu>
                             <DropdownMenuTrigger
@@ -1645,9 +1664,17 @@ export default function ContactsPage() {
                                   openDetail(contact.id);
                                 }}
                               >
+                                <Eye className="mr-2 size-4" />
+                                {t('viewDetailsAction') || 'View Details'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openEditForm(contact);
+                                }}
+                              >
                                 <Pencil className="mr-2 size-4" />
-                                {t('viewDetailsAction') ||
-                                  'View Details / Edit'}
+                                {t('editContactAction') || 'Edit Details'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={(e) => {
@@ -1720,9 +1747,14 @@ export default function ContactsPage() {
         {/* Modals & Sheets */}
         <ContactForm
           open={formOpen}
-          onOpenChange={setFormOpen}
+          onOpenChange={(isOpen) => {
+            setFormOpen(isOpen);
+            if (!isOpen) {
+              setEditContact(null);
+            }
+          }}
           contact={editContact}
-          contactTags={[]}
+          contactTags={editContact?.tags || []}
           onSaved={() => {
             fetchContacts();
             fetchTags();
@@ -1738,6 +1770,9 @@ export default function ContactsPage() {
           onOpenChange={setDetailOpen}
           contactId={detailContactId}
           onUpdated={fetchContacts}
+          onEdit={(c) => {
+            openEditForm(c);
+          }}
         />
 
         <ScheduleVisitSheet

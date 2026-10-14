@@ -76,7 +76,11 @@ const mockDeals: (Deal & { contact?: ExtendedContact })[] = [
 describe('DealTable Component', () => {
   it('renders deal rows with formatted currency, BHK, contact info, and actions', () => {
     const markup = renderToStaticMarkup(
-      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Asia/Kolkata">
+      <NextIntlClientProvider
+        locale="en"
+        messages={enMessages}
+        timeZone="Asia/Kolkata"
+      >
         <DealTable
           deals={mockDeals}
           stages={mockStages}
@@ -103,7 +107,11 @@ describe('DealTable Component', () => {
 
   it('renders empty state when there are no deals', () => {
     const markup = renderToStaticMarkup(
-      <NextIntlClientProvider locale="en" messages={enMessages} timeZone="Asia/Kolkata">
+      <NextIntlClientProvider
+        locale="en"
+        messages={enMessages}
+        timeZone="Asia/Kolkata"
+      >
         <DealTable
           deals={[]}
           stages={mockStages}

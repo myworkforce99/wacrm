@@ -497,7 +497,7 @@ export function TeamDashboardClient() {
                   variant="ghost"
                   size="sm"
                   onClick={clearAllFilters}
-                  className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-9 gap-1 px-2.5 text-xs font-medium transition-colors shadow-2xs"
+                  className="h-9 gap-1 border border-red-200/60 bg-red-50 px-2.5 text-xs font-medium text-red-600 shadow-2xs transition-colors hover:border-red-300 hover:bg-red-100 hover:text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:border-red-800 dark:hover:bg-red-900/50 dark:hover:text-red-300"
                 >
                   <X className="size-3.5" />
                   {tFilters('clearFilters')} ({activeFiltersCount})
@@ -560,7 +560,7 @@ export function TeamDashboardClient() {
                 variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 mt-4 gap-1 text-xs font-medium transition-colors shadow-2xs"
+                className="mt-4 gap-1 border border-red-200/60 bg-red-50 text-xs font-medium text-red-600 shadow-2xs transition-colors hover:border-red-300 hover:bg-red-100 hover:text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:border-red-800 dark:hover:bg-red-900/50 dark:hover:text-red-300"
               >
                 <X className="size-3.5" />
                 {tFilters('clearFilters')} ({activeFiltersCount})

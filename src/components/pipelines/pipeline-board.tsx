@@ -1,4 +1,10 @@
-import { useMemo, useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
 import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 
@@ -286,11 +292,13 @@ export function PipelineBoard({
                 }}
               >
                 {activeDeal ? (
-                  <div className="opacity-95 cursor-grabbing pointer-events-none select-none">
+                  <div className="pointer-events-none cursor-grabbing opacity-95 select-none">
                     <DealCard
                       deal={activeDeal}
                       stage={
-                        sortedStages.find((s) => s.id === activeDeal.stage_id) ?? null
+                        sortedStages.find(
+                          (s) => s.id === activeDeal.stage_id
+                        ) ?? null
                       }
                       onEdit={() => {}}
                       isOverlay
@@ -421,9 +429,9 @@ function StageColumn({
   return (
     <div
       ref={setNodeRef}
-      className={`border-border bg-card/60 flex w-[85vw] max-w-[320px] min-w-[260px] shrink-0 snap-start flex-col rounded-xl border p-4 transition-all min-h-[460px] lg:w-auto lg:max-w-none lg:flex-1 lg:shrink lg:basis-[260px] lg:snap-none ${
+      className={`border-border bg-card/60 flex min-h-[460px] w-[85vw] max-w-[320px] min-w-[260px] shrink-0 snap-start flex-col rounded-xl border p-4 transition-all lg:w-auto lg:max-w-none lg:flex-1 lg:shrink lg:basis-[260px] lg:snap-none ${
         isOver
-          ? 'ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary/50'
+          ? 'ring-primary bg-primary/5 border-primary/50 ring-2 ring-offset-2'
           : ''
       }`}
     >
@@ -456,7 +464,9 @@ function StageColumn({
         {deals.length === 0 ? (
           <div
             className={`border-border text-muted-foreground flex flex-1 items-center justify-center rounded-lg border-2 border-dashed py-10 text-xs transition-colors ${
-              isOver ? 'border-primary bg-primary/10 text-primary font-medium' : ''
+              isOver
+                ? 'border-primary bg-primary/10 text-primary font-medium'
+                : ''
             }`}
           >
             {t('dropDealHere')}
@@ -513,7 +523,7 @@ function DraggableDealCard({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className="cursor-grab active:cursor-grabbing select-none"
+      className="cursor-grab select-none active:cursor-grabbing"
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none' }}
     >
       <DealCard

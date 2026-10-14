@@ -12,7 +12,11 @@ const SOURCE_CONFIG: Record<
   { bg: string; text: string; label: string }
 > = {
   // ── Current seeded values ──────────────────────────────────────────────────
-  '99acres': { bg: 'bg-red-100 dark:bg-red-950/60', text: 'text-red-600 dark:text-red-400', label: '99acres' },
+  '99acres': {
+    bg: 'bg-red-100 dark:bg-red-950/60',
+    text: 'text-red-600 dark:text-red-400',
+    label: '99acres',
+  },
   MagicBricks: {
     bg: 'bg-orange-100 dark:bg-orange-950/60',
     text: 'text-orange-600 dark:text-orange-400',
@@ -23,9 +27,21 @@ const SOURCE_CONFIG: Record<
     text: 'text-green-700 dark:text-emerald-400',
     label: 'Housing.com',
   },
-  NoBroker: { bg: 'bg-blue-100 dark:bg-blue-950/60', text: 'text-blue-600 dark:text-blue-400', label: 'NoBroker' },
-  Referral: { bg: 'bg-purple-100 dark:bg-purple-950/60', text: 'text-purple-600 dark:text-purple-400', label: 'Referral' },
-  'Walk-in': { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-600 dark:text-amber-400', label: 'Walk-in' },
+  NoBroker: {
+    bg: 'bg-blue-100 dark:bg-blue-950/60',
+    text: 'text-blue-600 dark:text-blue-400',
+    label: 'NoBroker',
+  },
+  Referral: {
+    bg: 'bg-purple-100 dark:bg-purple-950/60',
+    text: 'text-purple-600 dark:text-purple-400',
+    label: 'Referral',
+  },
+  'Walk-in': {
+    bg: 'bg-amber-100 dark:bg-amber-950/60',
+    text: 'text-amber-600 dark:text-amber-400',
+    label: 'Walk-in',
+  },
   'Meta Ads': {
     bg: 'bg-indigo-100 dark:bg-indigo-950/60',
     text: 'text-indigo-600 dark:text-indigo-400',
@@ -41,7 +57,11 @@ const SOURCE_CONFIG: Record<
     text: 'text-gray-600 dark:text-muted-foreground',
     label: 'Manual Entry',
   },
-  Other: { bg: 'bg-gray-100 dark:bg-muted/80', text: 'text-gray-500 dark:text-muted-foreground', label: 'Other' },
+  Other: {
+    bg: 'bg-gray-100 dark:bg-muted/80',
+    text: 'text-gray-500 dark:text-muted-foreground',
+    label: 'Other',
+  },
 
   // ── Legacy / webhook-generated keys (backward compatibility) ───────────────
   magicbricks: {
@@ -54,15 +74,31 @@ const SOURCE_CONFIG: Record<
     text: 'text-green-700 dark:text-emerald-400',
     label: 'Housing.com',
   },
-  no_broker: { bg: 'bg-blue-100 dark:bg-blue-950/60', text: 'text-blue-600 dark:text-blue-400', label: 'NoBroker' },
-  walk_in: { bg: 'bg-amber-100 dark:bg-amber-950/60', text: 'text-amber-600 dark:text-amber-400', label: 'Walk-in' },
-  referral: { bg: 'bg-purple-100 dark:bg-purple-950/60', text: 'text-purple-600 dark:text-purple-400', label: 'Referral' },
+  no_broker: {
+    bg: 'bg-blue-100 dark:bg-blue-950/60',
+    text: 'text-blue-600 dark:text-blue-400',
+    label: 'NoBroker',
+  },
+  walk_in: {
+    bg: 'bg-amber-100 dark:bg-amber-950/60',
+    text: 'text-amber-600 dark:text-amber-400',
+    label: 'Walk-in',
+  },
+  referral: {
+    bg: 'bg-purple-100 dark:bg-purple-950/60',
+    text: 'text-purple-600 dark:text-purple-400',
+    label: 'Referral',
+  },
   whatsapp_inbound: {
     bg: 'bg-green-100 dark:bg-emerald-950/60',
     text: 'text-green-600 dark:text-emerald-400',
     label: 'WhatsApp',
   },
-  manual: { bg: 'bg-gray-100 dark:bg-muted/80', text: 'text-gray-600 dark:text-muted-foreground', label: 'Manual' },
+  manual: {
+    bg: 'bg-gray-100 dark:bg-muted/80',
+    text: 'text-gray-600 dark:text-muted-foreground',
+    label: 'Manual',
+  },
 };
 
 export function SourceBadge({
@@ -95,7 +131,7 @@ export function SourceBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full bg-gray-100 dark:bg-muted/80 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:text-muted-foreground',
+        'dark:bg-muted/80 dark:text-muted-foreground inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600',
         className
       )}
     >
