@@ -36,6 +36,8 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -88,6 +90,7 @@ const PROPERTY_TYPES = [
 
 export default function PropertiesPage() {
   const t = useTranslations('Properties.page');
+  const tForm = useTranslations('Properties.form');
   const router = useRouter();
   const supabase = createClient();
   const isViewOnly = useCan('view-only');
@@ -535,10 +538,15 @@ export default function PropertiesPage() {
               value={configFilter}
               onValueChange={(val) => setConfigFilter(val || 'all')}
             >
-              <SelectTrigger className="bg-card h-8 w-[130px] text-xs">
-                <SelectValue placeholder={t('filterConfig')} />
+              <SelectTrigger
+                label={t('filterConfig')}
+                className="bg-card h-8 min-w-[140px] text-xs"
+              >
+                <SelectValue placeholder={t('allConfigs')} />
               </SelectTrigger>
               <SelectContent>
+                <SelectLabel>{t('filterConfig')}</SelectLabel>
+                <SelectSeparator />
                 <SelectItem value="all" className="text-xs">
                   {t('allConfigs')}
                 </SelectItem>
@@ -555,10 +563,15 @@ export default function PropertiesPage() {
               value={typeFilter}
               onValueChange={(val) => setTypeFilter(val || 'all')}
             >
-              <SelectTrigger className="bg-card h-8 w-[130px] text-xs">
-                <SelectValue placeholder={t('filterType')} />
+              <SelectTrigger
+                label={t('filterType')}
+                className="bg-card h-8 min-w-[140px] text-xs"
+              >
+                <SelectValue placeholder={t('allTypes')} />
               </SelectTrigger>
               <SelectContent>
+                <SelectLabel>{t('filterType')}</SelectLabel>
+                <SelectSeparator />
                 <SelectItem value="all" className="text-xs">
                   {t('allTypes')}
                 </SelectItem>
@@ -575,10 +588,15 @@ export default function PropertiesPage() {
               value={possessionFilter}
               onValueChange={(val) => setPossessionFilter(val || 'all')}
             >
-              <SelectTrigger className="bg-card h-8 w-[145px] text-xs">
-                <SelectValue placeholder={t('filterPossession')} />
+              <SelectTrigger
+                label={t('filterPossession')}
+                className="bg-card h-8 min-w-[155px] text-xs"
+              >
+                <SelectValue placeholder={t('allPossessions')} />
               </SelectTrigger>
               <SelectContent>
+                <SelectLabel>{t('filterPossession')}</SelectLabel>
+                <SelectSeparator />
                 <SelectItem value="all" className="text-xs">
                   {t('allPossessions')}
                 </SelectItem>
@@ -589,7 +607,7 @@ export default function PropertiesPage() {
                   {t('statUnderConst')}
                 </SelectItem>
                 <SelectItem value="nearing_possession" className="text-xs">
-                  {t('statUnderConst')}
+                  {tForm('possessionNearing')}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -599,10 +617,15 @@ export default function PropertiesPage() {
               value={priceFilter}
               onValueChange={(val) => setPriceFilter(val || 'all')}
             >
-              <SelectTrigger className="bg-card h-8 w-[140px] text-xs">
-                <SelectValue placeholder={t('filterPrice')} />
+              <SelectTrigger
+                label={t('filterPrice')}
+                className="bg-card h-8 min-w-[150px] text-xs"
+              >
+                <SelectValue placeholder={t('allPrices')} />
               </SelectTrigger>
               <SelectContent>
+                <SelectLabel>{t('filterPrice')}</SelectLabel>
+                <SelectSeparator />
                 <SelectItem value="all" className="text-xs">
                   {t('allPrices')}
                 </SelectItem>

@@ -6,7 +6,49 @@ import { Select as SelectPrimitive } from '@base-ui/react/select';
 import { cn } from '@/lib/utils';
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from 'lucide-react';
 
-const Select = SelectPrimitive.Root;
+function extractItemsFromChildren(
+  children: React.ReactNode,
+  record: Record<string, React.ReactNode> = {}
+): Record<string, React.ReactNode> {
+  React.Children.forEach(children, (child) => {
+    if (!child || typeof child !== 'object') return;
+    if (React.isValidElement(child)) {
+      const props = child.props as Record<string, unknown> | undefined;
+      if (props) {
+        if (
+          'value' in props &&
+          props.value !== undefined &&
+          props.children !== undefined
+        ) {
+          record[String(props.value)] = props.children as React.ReactNode;
+        }
+        if (props.children) {
+          extractItemsFromChildren(props.children as React.ReactNode, record);
+        }
+      }
+    }
+  });
+  return record;
+}
+
+function Select<Value = unknown, Multiple extends boolean | undefined = false>({
+  items,
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const resolvedItems = React.useMemo(() => {
+    if (items) return items;
+    const extracted = extractItemsFromChildren(children);
+    if (Object.keys(extracted).length === 0) return undefined;
+    return extracted;
+  }, [items, children]);
+
+  return (
+    <SelectPrimitive.Root items={resolvedItems} {...props}>
+      {children}
+    </SelectPrimitive.Root>
+  );
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -31,10 +73,12 @@ function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
 function SelectTrigger({
   className,
   size = 'default',
+  label,
   children,
   ...props
 }: SelectPrimitive.Trigger.Props & {
   size?: 'sm' | 'default';
+  label?: React.ReactNode;
 }) {
   return (
     <SelectPrimitive.Trigger
@@ -46,6 +90,11 @@ function SelectTrigger({
       )}
       {...props}
     >
+      {label && (
+        <span className="text-muted-foreground mr-1 shrink-0 font-normal select-none">
+          {label}:
+        </span>
+      )}
       {children}
       <SelectPrimitive.Icon
         render={
@@ -98,14 +147,14 @@ function SelectContent({
   );
 }
 
-function SelectLabel({
-  className,
-  ...props
-}: SelectPrimitive.GroupLabel.Props) {
+function SelectLabel({ className, ...props }: React.ComponentProps<'div'>) {
   return (
-    <SelectPrimitive.GroupLabel
+    <div
       data-slot="select-label"
-      className={cn('text-muted-foreground px-1.5 py-1 text-xs', className)}
+      className={cn(
+        'text-muted-foreground px-2 py-1.5 text-xs font-semibold select-none',
+        className
+      )}
       {...props}
     />
   );

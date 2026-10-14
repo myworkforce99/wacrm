@@ -21,6 +21,8 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -412,10 +414,15 @@ export function TeamDashboardClient() {
                 value={availabilityFilter}
                 onValueChange={(val) => setAvailabilityFilter(val ?? 'all')}
               >
-                <SelectTrigger className="h-9 w-[130px] text-xs">
-                  <SelectValue placeholder={tFilters('availability')} />
+                <SelectTrigger
+                  label={tFilters('availability')}
+                  className="h-9 min-w-[155px] text-xs"
+                >
+                  <SelectValue placeholder={tFilters('availabilityAll')} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectLabel>{tFilters('availability')}</SelectLabel>
+                  <SelectSeparator />
                   <SelectItem value="all">
                     {tFilters('availabilityAll')}
                   </SelectItem>
@@ -433,10 +440,15 @@ export function TeamDashboardClient() {
                 value={roleFilter}
                 onValueChange={(val) => setRoleFilter(val ?? 'all')}
               >
-                <SelectTrigger className="h-9 w-[120px] text-xs">
-                  <SelectValue placeholder={tFilters('role')} />
+                <SelectTrigger
+                  label={tFilters('role')}
+                  className="h-9 min-w-[140px] text-xs"
+                >
+                  <SelectValue placeholder={tFilters('roleAll')} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectLabel>{tFilters('role')}</SelectLabel>
+                  <SelectSeparator />
                   <SelectItem value="all">{tFilters('roleAll')}</SelectItem>
                   <SelectItem value="agent">{tFilters('roleAgent')}</SelectItem>
                   <SelectItem value="admin">{tFilters('roleAdmin')}</SelectItem>
@@ -449,10 +461,15 @@ export function TeamDashboardClient() {
                 value={workloadFilter}
                 onValueChange={(val) => setWorkloadFilter(val ?? 'all')}
               >
-                <SelectTrigger className="h-9 w-[150px] text-xs">
-                  <SelectValue placeholder={tFilters('workload')} />
+                <SelectTrigger
+                  label={tFilters('workload')}
+                  className="h-9 min-w-[175px] text-xs"
+                >
+                  <SelectValue placeholder={tFilters('workloadAll')} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectLabel>{tFilters('workload')}</SelectLabel>
+                  <SelectSeparator />
                   <SelectItem value="all">{tFilters('workloadAll')}</SelectItem>
                   <SelectItem value="overloaded">
                     {tFilters('workloadOverloaded')}

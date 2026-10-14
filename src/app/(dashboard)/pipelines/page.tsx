@@ -21,7 +21,7 @@
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Pipeline, PipelineStage, Deal, Profile } from '@/types';
+import type { Pipeline, PipelineStage, Deal, Profile, Contact } from '@/types';
 import { PipelineBoard } from '@/components/pipelines/pipeline-board';
 import { PipelineSettings } from '@/components/pipelines/pipeline-settings';
 import { DealForm } from '@/components/pipelines/deal-form';
@@ -55,6 +55,8 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
@@ -90,6 +92,10 @@ const SPEC_DEFAULT_STAGES = [
 
 type StatusFilter = 'open' | 'won' | 'lost' | 'all';
 type ViewMode = 'kanban' | 'table';
+
+type ContactWithLeadDetails = Contact & {
+  lead_details?: { location_preference?: string; source?: string } | null;
+};
 
 const KNOWN_SOURCES = [
   '99acres',
@@ -142,7 +148,9 @@ export default function PipelinesPage() {
 
   // Cross-module ScheduleVisitSheet
   const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
-  const [scheduleVisitContactId, setScheduleVisitContactId] = useState<string | undefined>(undefined);
+  const [scheduleVisitContactId, setScheduleVisitContactId] = useState<
+    string | undefined
+  >(undefined);
 
   // Move deal bottom sheet
   const [moveDealId, setMoveDealId] = useState<string | null>(null);
@@ -189,7 +197,10 @@ export default function PipelinesPage() {
   );
 
   const loadProfiles = useCallback(async () => {
-    const { data } = await supabase.from('profiles').select('*').order('full_name');
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name');
     return (data ?? []) as Profile[];
   }, [supabase]);
 
@@ -201,8 +212,8 @@ export default function PipelinesPage() {
       .eq('id', accountId)
       .single();
     const pct =
-      ((data?.settings as Record<string, unknown> | null)
-        ?.brokerage_pct as number | null) ?? 2;
+      ((data?.settings as Record<string, unknown> | null)?.brokerage_pct as
+        number | null) ?? 2;
     setBrokeragePct(pct);
   }, [accountId, supabase]);
 
@@ -265,7 +276,9 @@ export default function PipelinesPage() {
         setProfiles(profs);
         if (finalPipelines.length > 0) {
           setSelectedPipelineId((prev) =>
-            prev && finalPipelines.some((p) => p.id === prev) ? prev : finalPipelines[0].id
+            prev && finalPipelines.some((p) => p.id === prev)
+              ? prev
+              : finalPipelines[0].id
           );
         } else {
           setSelectedPipelineId('');
@@ -278,7 +291,13 @@ export default function PipelinesPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [loadPipelines, loadProfiles, loadBrokerageSettings, seedDefaultPipeline, accountRole]);
+  }, [
+    loadPipelines,
+    loadProfiles,
+    loadBrokerageSettings,
+    seedDefaultPipeline,
+    accountRole,
+  ]);
 
   // Load stages + deals whenever selected pipeline changes
   useEffect(() => {
@@ -457,7 +476,8 @@ export default function PipelinesPage() {
   const filteredDeals = useMemo(() => {
     return deals.filter((deal) => {
       // 1. Status Filter
-      if (statusFilter === 'open' && deal.status !== 'open' && deal.status) return false;
+      if (statusFilter === 'open' && deal.status !== 'open' && deal.status)
+        return false;
       if (statusFilter === 'won' && deal.status !== 'won') return false;
       if (statusFilter === 'lost' && deal.status !== 'lost') return false;
 
@@ -466,19 +486,29 @@ export default function PipelinesPage() {
         const q = search.toLowerCase().trim();
         const titleMatch = deal.title?.toLowerCase().includes(q);
         const contactNameMatch = deal.contact?.name?.toLowerCase().includes(q);
-        const contactPhoneMatch = deal.contact?.phone?.toLowerCase().includes(q);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const locationMatch = (deal.contact as any)?.lead_details?.location_preference?.toLowerCase().includes(q);
+        const contactPhoneMatch = deal.contact?.phone
+          ?.toLowerCase()
+          .includes(q);
+        const contact = deal.contact as ContactWithLeadDetails | undefined;
+        const locationMatch = contact?.lead_details?.location_preference
+          ?.toLowerCase()
+          .includes(q);
         const notesMatch = deal.notes?.toLowerCase().includes(q);
-        if (!titleMatch && !contactNameMatch && !contactPhoneMatch && !locationMatch && !notesMatch) {
+        if (
+          !titleMatch &&
+          !contactNameMatch &&
+          !contactPhoneMatch &&
+          !locationMatch &&
+          !notesMatch
+        ) {
           return false;
         }
       }
 
       // 3. Source Filter
       if (selectedSource !== 'all') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const src = (deal.contact as any)?.lead_details?.source || 'Manual Entry';
+        const contact = deal.contact as ContactWithLeadDetails | undefined;
+        const src = contact?.lead_details?.source || 'Manual Entry';
         if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
       }
 
@@ -495,14 +525,29 @@ export default function PipelinesPage() {
       if (selectedValueRange !== 'all') {
         const v = Number(deal.value || 0);
         if (selectedValueRange === 'under_50l' && v >= 5000000) return false;
-        if (selectedValueRange === '50l_to_1cr' && (v < 5000000 || v >= 10000000)) return false;
-        if (selectedValueRange === '1cr_to_25cr' && (v < 10000000 || v > 25000000)) return false;
+        if (
+          selectedValueRange === '50l_to_1cr' &&
+          (v < 5000000 || v >= 10000000)
+        )
+          return false;
+        if (
+          selectedValueRange === '1cr_to_25cr' &&
+          (v < 10000000 || v > 25000000)
+        )
+          return false;
         if (selectedValueRange === 'above_25cr' && v <= 25000000) return false;
       }
 
       return true;
     });
-  }, [deals, statusFilter, search, selectedSource, selectedAssignee, selectedValueRange]);
+  }, [
+    deals,
+    statusFilter,
+    search,
+    selectedSource,
+    selectedAssignee,
+    selectedValueRange,
+  ]);
 
   const hasActiveFilters =
     search.trim() !== '' ||
@@ -534,7 +579,10 @@ export default function PipelinesPage() {
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="bg-muted/50 h-20 animate-pulse rounded-xl" />
+            <div
+              key={i}
+              className="bg-muted/50 h-20 animate-pulse rounded-xl"
+            />
           ))}
         </div>
         <div className="flex gap-3">
@@ -552,7 +600,11 @@ export default function PipelinesPage() {
   return (
     <PullToRefresh
       onRefresh={async () => {
-        await Promise.all([refreshPipelines(), refreshStages(), refreshDeals()]);
+        await Promise.all([
+          refreshPipelines(),
+          refreshStages(),
+          refreshDeals(),
+        ]);
       }}
     >
       <div className="space-y-5 pb-20">
@@ -571,7 +623,10 @@ export default function PipelinesPage() {
                   className="border-border bg-popover text-popover-foreground w-64"
                 >
                   {pipelines.length === 0 && (
-                    <DropdownMenuItem disabled className="text-muted-foreground">
+                    <DropdownMenuItem
+                      disabled
+                      className="text-muted-foreground"
+                    >
                       {t('noPipelinesYet')}
                     </DropdownMenuItem>
                   )}
@@ -614,7 +669,7 @@ export default function PipelinesPage() {
                 onClick={() => {
                   window.open('/api/deals/export', '_self');
                 }}
-                className="border-border bg-card text-foreground hover:bg-muted shadow-xs text-xs"
+                className="border-border bg-card text-foreground hover:bg-muted text-xs shadow-xs"
               >
                 <Download className="mr-1 size-3.5" />
                 {t('exportDeals')}
@@ -626,7 +681,7 @@ export default function PipelinesPage() {
                 canAct={canEditSettings}
                 gateReason="create pipelines"
                 onClick={() => setNewPipelineOpen(true)}
-                className="border-border bg-card text-foreground hover:bg-muted shadow-xs text-xs"
+                className="border-border bg-card text-foreground hover:bg-muted text-xs shadow-xs"
               >
                 <Plus className="mr-1 size-3.5" />
                 {t('addPipeline')}
@@ -638,7 +693,7 @@ export default function PipelinesPage() {
                 gateReason="create deals"
                 disabled={!selectedPipelineId || stages.length === 0}
                 onClick={() => handleAddDeal()}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs text-xs"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs shadow-xs"
               >
                 <Plus className="mr-1 size-3.5" />
                 {t('addDeal')}
@@ -659,8 +714,8 @@ export default function PipelinesPage() {
 
         {/* Real Estate Filtering & Omni-Search Toolbar */}
         {pipelines.length > 0 && (
-          <div className="border-border/70 bg-card rounded-xl border p-3 shadow-xs space-y-3">
-            <div className="flex flex-col md:flex-row gap-2.5">
+          <div className="border-border/70 bg-card space-y-3 rounded-xl border p-3 shadow-xs">
+            <div className="flex flex-col gap-2.5 md:flex-row">
               {/* Omni-Search Box */}
               <div className="relative flex-1">
                 <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -668,7 +723,7 @@ export default function PipelinesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t('searchPlaceholder')}
-                  className="bg-muted/40 border-border placeholder:text-muted-foreground w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs focus:ring-primary/30"
+                  className="bg-muted/40 border-border placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs"
                 />
                 {search && (
                   <button
@@ -687,10 +742,15 @@ export default function PipelinesPage() {
                   value={selectedSource}
                   onValueChange={(val) => setSelectedSource(val || 'all')}
                 >
-                  <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
-                    <SelectValue placeholder={t('filterSource')} />
+                  <SelectTrigger
+                    label={t('filterSource')}
+                    className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                  >
+                    <SelectValue placeholder={t('filterAllSources')} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectLabel>{t('filterSource')}</SelectLabel>
+                    <SelectSeparator />
                     <SelectItem value="all">{t('filterAllSources')}</SelectItem>
                     {KNOWN_SOURCES.map((src) => (
                       <SelectItem key={src} value={src}>
@@ -706,12 +766,21 @@ export default function PipelinesPage() {
                     value={selectedAssignee}
                     onValueChange={(val) => setSelectedAssignee(val || 'all')}
                   >
-                    <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
-                      <SelectValue placeholder={t('filterAssignee')} />
+                    <SelectTrigger
+                      label={t('filterAssignee')}
+                      className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                    >
+                      <SelectValue placeholder={t('filterAllAssignees')} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">{t('filterAllAssignees')}</SelectItem>
-                      <SelectItem value="unassigned">{t('filterUnassigned')}</SelectItem>
+                      <SelectLabel>{t('filterAssignee')}</SelectLabel>
+                      <SelectSeparator />
+                      <SelectItem value="all">
+                        {t('filterAllAssignees')}
+                      </SelectItem>
+                      <SelectItem value="unassigned">
+                        {t('filterUnassigned')}
+                      </SelectItem>
                       {profiles.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.full_name || p.email}
@@ -726,15 +795,28 @@ export default function PipelinesPage() {
                   value={selectedValueRange}
                   onValueChange={(val) => setSelectedValueRange(val || 'all')}
                 >
-                  <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
-                    <SelectValue placeholder={t('filterValueRange')} />
+                  <SelectTrigger
+                    label={t('filterValueRange')}
+                    className="bg-muted/40 border-border text-foreground h-8.5 min-w-[150px] text-xs"
+                  >
+                    <SelectValue placeholder={t('filterAllValues')} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectLabel>{t('filterValueRange')}</SelectLabel>
+                    <SelectSeparator />
                     <SelectItem value="all">{t('filterAllValues')}</SelectItem>
-                    <SelectItem value="under_50l">{t('filterUnder50L')}</SelectItem>
-                    <SelectItem value="50l_to_1cr">{t('filter50LTo1Cr')}</SelectItem>
-                    <SelectItem value="1cr_to_25cr">{t('filter1CrTo25Cr')}</SelectItem>
-                    <SelectItem value="above_25cr">{t('filterAbove25Cr')}</SelectItem>
+                    <SelectItem value="under_50l">
+                      {t('filterUnder50L')}
+                    </SelectItem>
+                    <SelectItem value="50l_to_1cr">
+                      {t('filter50LTo1Cr')}
+                    </SelectItem>
+                    <SelectItem value="1cr_to_25cr">
+                      {t('filter1CrTo25Cr')}
+                    </SelectItem>
+                    <SelectItem value="above_25cr">
+                      {t('filterAbove25Cr')}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -744,7 +826,7 @@ export default function PipelinesPage() {
                     variant="ghost"
                     size="sm"
                     onClick={clearAllFilters}
-                    className="text-muted-foreground hover:text-foreground text-xs h-8.5 px-2.5"
+                    className="text-muted-foreground hover:text-foreground h-8.5 px-2.5 text-xs"
                   >
                     <X className="mr-1 size-3.5" />
                     {t('clearFilters')}
@@ -754,7 +836,7 @@ export default function PipelinesPage() {
             </div>
 
             {/* Status Tabs & Desktop View Mode Switcher */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-2.5">
+            <div className="border-border/40 flex flex-wrap items-center justify-between gap-3 border-t pt-2.5">
               {/* Status Filter Tabs */}
               <div className="border-border bg-muted/40 flex gap-1 rounded-lg border p-0.5">
                 {(
@@ -779,7 +861,11 @@ export default function PipelinesPage() {
                       label: t('filterAll'),
                       icon: null,
                     },
-                  ] as { key: StatusFilter; label: string; icon: React.ReactNode }[]
+                  ] as {
+                    key: StatusFilter;
+                    label: string;
+                    icon: React.ReactNode;
+                  }[]
                 ).map(({ key, label, icon }) => (
                   <button
                     key={key}
@@ -787,14 +873,14 @@ export default function PipelinesPage() {
                     onClick={() => setStatusFilter(key)}
                     className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
                       statusFilter === key
-                        ? 'bg-card text-foreground shadow-xs font-semibold'
+                        ? 'bg-card text-foreground font-semibold shadow-xs'
                         : 'text-muted-foreground hover:text-foreground'
                     }`}
                   >
                     {icon}
                     {label}
                     <span
-                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold ${
+                      className={`py-0.2 rounded-full px-1.5 text-[10px] font-semibold ${
                         statusFilter === key
                           ? 'bg-primary/10 text-primary'
                           : 'bg-muted text-muted-foreground'
@@ -807,9 +893,9 @@ export default function PipelinesPage() {
               </div>
 
               {/* View Switcher: Kanban vs Table (desktop) */}
-              <div className="hidden sm:flex items-center gap-1">
+              <div className="hidden items-center gap-1 sm:flex">
                 {hasActiveFilters && (
-                  <span className="text-muted-foreground text-xs mr-2">
+                  <span className="text-muted-foreground mr-2 text-xs">
                     {t('activeFiltersCount', { count: activeFiltersCount })}
                   </span>
                 )}
@@ -821,7 +907,7 @@ export default function PipelinesPage() {
                       title={t('viewKanban')}
                       className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                         viewMode === 'kanban'
-                          ? 'bg-card text-foreground shadow-xs font-semibold'
+                          ? 'bg-card text-foreground font-semibold shadow-xs'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -834,7 +920,7 @@ export default function PipelinesPage() {
                       title={t('viewTable')}
                       className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                         viewMode === 'table'
-                          ? 'bg-card text-foreground shadow-xs font-semibold'
+                          ? 'bg-card text-foreground font-semibold shadow-xs'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -898,7 +984,9 @@ export default function PipelinesPage() {
               </DialogTitle>
             </DialogHeader>
             <div className="py-2">
-              <Label className="text-muted-foreground">{t('pipelineName')}</Label>
+              <Label className="text-muted-foreground">
+                {t('pipelineName')}
+              </Label>
               <Input
                 value={newPipelineName}
                 onChange={(e) => setNewPipelineName(e.target.value)}
@@ -980,7 +1068,9 @@ export default function PipelinesPage() {
             className="bg-popover border-border rounded-t-xl border-t sm:mx-auto sm:max-w-md"
           >
             <SheetHeader className="mb-4">
-              <SheetTitle className="text-left">{tBoard('moveToStage')}</SheetTitle>
+              <SheetTitle className="text-left">
+                {tBoard('moveToStage')}
+              </SheetTitle>
             </SheetHeader>
             <div className="space-y-2">
               {stages.map((stage) => {
