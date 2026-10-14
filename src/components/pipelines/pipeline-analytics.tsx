@@ -1,6 +1,17 @@
 'use client';
 
-import { useMemo } from 'react';
+/**
+ * PipelineAnalytics
+ *
+ * Situational awareness KPI stat cards at the top of the Pipelines page.
+ * Displays real estate sales funnel velocity:
+ *  - Active Deals & Pipeline Value in ₹ INR
+ *  - Average Deal Size & Stage-Weighted Value Forecast
+ *  - Monthly Won Closures and Win Conversion Rate %
+ * Supports 1-click filter switching by clicking on the metric cards.
+ */
+
+import React, { useMemo } from 'react';
 import type { Deal, PipelineStage } from '@/types';
 import {
   IndianRupee,
@@ -8,7 +19,7 @@ import {
   Target,
   BarChart3,
   Trophy,
-  XCircle,
+  Percent,
   Info,
 } from 'lucide-react';
 import {
@@ -24,6 +35,8 @@ import { useTranslations } from 'next-intl';
 interface PipelineAnalyticsProps {
   stages: PipelineStage[];
   deals: Deal[];
+  activeFilter?: 'open' | 'won' | 'lost' | 'all';
+  onFilterChange?: (filter: 'open' | 'won' | 'lost' | 'all') => void;
 }
 
 /**
@@ -46,7 +59,12 @@ function computeStageProbability(
   return 0.1 + t * (0.9 - 0.1);
 }
 
-export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
+export function PipelineAnalytics({
+  stages,
+  deals,
+  activeFilter,
+  onFilterChange,
+}: PipelineAnalyticsProps) {
   const t = useTranslations('Pipelines.analytics');
   const { defaultCurrency } = useAuth();
   const sortedStages = useMemo(
@@ -57,6 +75,8 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
   const stats = useMemo(() => {
     const active = deals.filter((d) => d.status !== 'lost');
     const openDeals = active.filter((d) => d.status !== 'won');
+    const wonDeals = deals.filter((d) => d.status === 'won');
+    const lostDeals = deals.filter((d) => d.status === 'lost');
 
     const totalCount = active.length;
     const totalValue = active.reduce((sum, d) => sum + Number(d.value || 0), 0);
@@ -72,41 +92,47 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    // Use closed_at (migration 129) when available — more reliable than
-    // updated_at which moves on any field edit after close.
     const closedThisMonth = (d: Deal) => {
       const ts = d.closed_at ?? d.updated_at ?? d.created_at;
       return ts ? new Date(ts) >= monthStart : false;
     };
-    const wonThisMonth = deals.filter(
-      (d) => d.status === 'won' && closedThisMonth(d)
-    ).length;
-    const lostThisMonth = deals.filter(
-      (d) => d.status === 'lost' && closedThisMonth(d)
-    ).length;
+
+    const wonThisMonth = wonDeals.filter(closedThisMonth).length;
+    const totalClosed = wonDeals.length + lostDeals.length;
+    const winRate = totalClosed > 0 ? Math.round((wonDeals.length / totalClosed) * 100) : 0;
 
     return {
       totalCount,
+      openCount: openDeals.length,
       totalValue,
       avgValue,
       weightedValue,
       wonThisMonth,
-      lostThisMonth,
+      wonTotal: wonDeals.length,
+      lostTotal: lostDeals.length,
+      winRate,
     };
   }, [deals, sortedStages]);
 
   return (
     <TooltipProvider>
-      <div className="border-border bg-card/60 grid grid-cols-2 gap-3 rounded-xl border p-4 sm:grid-cols-3 xl:grid-cols-6">
-        <Metric
-          icon={<BarChart3 className="text-muted-foreground h-4 w-4" />}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        {/* Total / Active Deals */}
+        <MetricCard
+          icon={<BarChart3 className="text-muted-foreground size-4" />}
           label={t('totalDeals')}
           value={String(stats.totalCount)}
+          subtext={`${stats.openCount} open`}
           tooltip={t('totalDealsTooltip')}
           t={t}
+          isActive={activeFilter === 'open'}
+          onClick={() => onFilterChange?.('open')}
+          accent="hover:border-primary/50"
         />
-        <Metric
-          icon={<IndianRupee className="text-primary h-4 w-4" />}
+
+        {/* Pipeline Value */}
+        <MetricCard
+          icon={<IndianRupee className="text-primary size-4" />}
           label={t('pipelineValue')}
           value={
             defaultCurrency === 'INR'
@@ -115,9 +141,14 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
           }
           tooltip={t('pipelineValueTooltip')}
           t={t}
+          isActive={activeFilter === 'open'}
+          onClick={() => onFilterChange?.('open')}
+          accent="hover:border-primary/50"
         />
-        <Metric
-          icon={<Target className="h-4 w-4 text-blue-400" />}
+
+        {/* Average Deal Size */}
+        <MetricCard
+          icon={<Target className="size-4 text-blue-500" />}
           label={t('avgDealSize')}
           value={
             defaultCurrency === 'INR'
@@ -126,9 +157,12 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
           }
           tooltip={t('avgDealSizeTooltip')}
           t={t}
+          accent="hover:border-blue-500/50"
         />
-        <Metric
-          icon={<TrendingUp className="h-4 w-4 text-purple-400" />}
+
+        {/* Weighted Pipeline Value */}
+        <MetricCard
+          icon={<TrendingUp className="size-4 text-purple-500" />}
           label={t('weightedValue')}
           value={
             defaultCurrency === 'INR'
@@ -137,63 +171,100 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
           }
           tooltip={t('weightedValueTooltip')}
           t={t}
+          accent="hover:border-purple-500/50"
         />
-        <Metric
-          icon={<Trophy className="text-primary h-4 w-4" />}
+
+        {/* Won Closures */}
+        <MetricCard
+          icon={<Trophy className="text-emerald-500 size-4" />}
           label={t('wonThisMonth')}
           value={String(stats.wonThisMonth)}
+          subtext={`${stats.wonTotal} all-time`}
           tooltip={t('wonThisMonthTooltip')}
           t={t}
+          isActive={activeFilter === 'won'}
+          onClick={() => onFilterChange?.('won')}
+          accent="hover:border-emerald-500/50"
         />
-        <Metric
-          icon={<XCircle className="h-4 w-4 text-red-400" />}
-          label={t('lostThisMonth')}
-          value={String(stats.lostThisMonth)}
-          tooltip={t('lostThisMonthTooltip')}
+
+        {/* Win Rate % */}
+        <MetricCard
+          icon={<Percent className="size-4 text-amber-500" />}
+          label={t('winRate')}
+          value={`${stats.winRate}%`}
+          subtext={`${stats.wonTotal}W / ${stats.lostTotal}L`}
+          tooltip={t('winRateTooltip')}
           t={t}
+          isActive={activeFilter === 'lost'}
+          onClick={() => onFilterChange?.('lost')}
+          accent="hover:border-amber-500/50"
         />
       </div>
     </TooltipProvider>
   );
 }
 
-function Metric({
+function MetricCard({
   icon,
   label,
   value,
+  subtext,
   tooltip,
   t,
+  isActive,
+  onClick,
+  accent = '',
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
+  subtext?: string;
   tooltip: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   t: any;
+  isActive?: boolean;
+  onClick?: () => void;
+  accent?: string;
 }) {
   return (
-    <div className="bg-muted/50 rounded-lg p-3">
-      <div className="text-muted-foreground flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase">
-        {icon}
-        <span>{label}</span>
+    <div
+      onClick={onClick}
+      className={`border-border/80 bg-card/80 flex flex-col justify-between rounded-xl border p-3.5 transition-all shadow-xs ${
+        onClick ? 'cursor-pointer ' + accent : ''
+      } ${isActive ? 'ring-2 ring-primary/40 border-primary' : ''}`}
+    >
+      <div className="text-muted-foreground flex items-center justify-between gap-1 text-[11px] font-medium tracking-wide uppercase">
+        <div className="flex items-center gap-1.5 truncate">
+          {icon}
+          <span className="truncate">{label}</span>
+        </div>
         <Tooltip>
           <TooltipTrigger
             render={
               <button
                 type="button"
+                onClick={(e) => e.stopPropagation()}
                 aria-label={t('howCalculated', { label })}
-                className="text-muted-foreground hover:text-foreground ml-auto focus:outline-none"
+                className="text-muted-foreground hover:text-foreground shrink-0 focus:outline-none"
               />
             }
           >
-            <Info className="h-3 w-3" />
+            <Info className="size-3" />
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-xs text-left">
             {tooltip}
           </TooltipContent>
         </Tooltip>
       </div>
-      <p className="text-foreground mt-1 text-base font-semibold">{value}</p>
+
+      <div className="mt-2 flex items-baseline justify-between gap-1">
+        <p className="text-foreground text-xl font-bold tracking-tight">{value}</p>
+        {subtext && (
+          <span className="text-muted-foreground text-[10px] font-medium truncate">
+            {subtext}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

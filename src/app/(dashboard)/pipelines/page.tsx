@@ -1,12 +1,35 @@
 'use client';
 
+/**
+ * PipelinesPage
+ *
+ * Sales Pipelines & Deals view for Real Estate vertical CRM.
+ * Comprehensive overhaul adhering to the 6-pillar standard:
+ *  1. Situational Awareness KPI Strip: Live pipeline value in ₹ INR,
+ *     active open deals, weighted win forecast, monthly closures, and win rate %.
+ *  2. Real Estate Filtering & Omni-Search: Search by deal, buyer, phone, location;
+ *     multi-dimensional filters by Source, Agent, Deal Value range, and Status.
+ *  3. Desktop High-Density View: Smooth toggle between visual Kanban board
+ *     (@dnd-kit drag & drop) and high-density Real Estate Deal Table.
+ *  4. Native Mobile Experience: PullToRefresh, clean stage tabs, and 1-tap
+ *     action buttons (WhatsApp, Call, Schedule Visit, Move Stage).
+ *  5. Real Estate Vertical Qualification: Live budget preview, brokerage
+ *     calculation, and 1-click Schedule Site Visit integration.
+ *  6. Cross-Module Wiring: Deep links to WhatsApp inbox, click-to-call, and
+ *     direct ScheduleVisitSheet modal triggers.
+ */
+
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import type { Pipeline, PipelineStage, Deal } from '@/types';
+import type { Pipeline, PipelineStage, Deal, Profile } from '@/types';
 import { PipelineBoard } from '@/components/pipelines/pipeline-board';
 import { PipelineSettings } from '@/components/pipelines/pipeline-settings';
 import { DealForm } from '@/components/pipelines/deal-form';
 import { PipelineAnalytics } from '@/components/pipelines/pipeline-analytics';
+import { DealTable } from '@/components/pipelines/deal-table';
+import { ScheduleVisitSheet } from '@/components/site-visits/schedule-visit-sheet';
+import { PageHeader } from '@/components/layout/page-header';
+import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,12 +39,25 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -33,114 +69,43 @@ import {
   Trophy,
   XCircle,
   Kanban,
+  TableProperties,
+  Search,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/use-can';
 import { useAuth } from '@/hooks/use-auth';
 import { GatedButton } from '@/components/ui/gated-button';
 import { useTranslations } from 'next-intl';
-import { formatCurrency, formatINR } from '@/lib/currency';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 
-// Pipeline creation is admin-class (settings-tier write under
-// the new RLS); deal creation is operational and only requires
-// agent+. The two CTAs gate on different `useCan` capabilities,
-// not on different copy.
-
-// Spec-defined seed — name and color per the product spec.
-// NOTE: Final stage is 'Booking / Token Paid', not 'Won' or 'Closed'.
-// Won/Lost are outcomes expressed via deal.status, not stage names.
+// Default stage seeding specification
 const SPEC_DEFAULT_STAGES = [
-  { name: 'New Lead', color: '#3b82f6', position: 0 }, // blue
-  { name: 'Qualified', color: '#eab308', position: 1 }, // yellow
-  { name: 'Proposal Sent', color: '#f97316', position: 2 }, // orange
-  { name: 'Negotiation', color: '#8b5cf6', position: 3 }, // purple
-  { name: 'Booking / Token Paid', color: '#22c55e', position: 4 }, // green
+  { name: 'New Lead', color: '#3b82f6', position: 0 },
+  { name: 'Qualified', color: '#eab308', position: 1 },
+  { name: 'Proposal Sent', color: '#f97316', position: 2 },
+  { name: 'Negotiation', color: '#8b5cf6', position: 3 },
+  { name: 'Booking / Token Paid', color: '#22c55e', position: 4 },
 ];
 
-// Filter tabs: what deals the board / list shows
 type StatusFilter = 'open' | 'won' | 'lost' | 'all';
+type ViewMode = 'kanban' | 'table';
 
-// A compact row in the Won/Lost list view
-function ClosedDealRow({
-  deal,
-  defaultCurrency,
-  onEdit,
-}: {
-  deal: Deal;
-  defaultCurrency: string;
-  onEdit: (deal: Deal) => void;
-}) {
-  const contactLabel =
-    deal.contact?.name || deal.contact?.phone || 'No contact';
-  const assigneeLabel = deal.assignee?.full_name;
-  const closedDate = deal.closed_at
-    ? new Date(deal.closed_at).toLocaleDateString('en-IN', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })
-    : '—';
-
-  return (
-    <button
-      type="button"
-      onClick={() => onEdit(deal)}
-      className="border-border/50 bg-card hover:bg-muted flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors"
-    >
-      <span
-        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-          deal.status === 'won'
-            ? 'bg-primary/15 text-primary'
-            : 'bg-red-500/15 text-red-400'
-        }`}
-      >
-        {deal.status === 'won' ? '✓' : '✗'}
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground truncate text-sm font-semibold">
-          {deal.title}
-        </p>
-        <div className="text-muted-foreground flex items-center gap-2 text-xs">
-          <span className="truncate">{contactLabel}</span>
-          {deal.status === 'lost' && deal.lost_reason && (
-            <>
-              <span>·</span>
-              <span className="truncate text-red-400">
-                {deal.lost_reason.label}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col items-end gap-0.5">
-        <span className="text-primary text-sm font-bold">
-          {defaultCurrency === 'INR'
-            ? formatINR(deal.value)
-            : formatCurrency(deal.value, defaultCurrency)}
-        </span>
-        <span className="text-muted-foreground text-[11px]">{closedDate}</span>
-      </div>
-
-      {assigneeLabel && (
-        <Avatar className="h-6 w-6 shrink-0">
-          <AvatarFallback
-            className="text-[10px] font-bold text-white"
-            style={{ background: avatarColorForName(assigneeLabel) }}
-          >
-            {initialsForName(assigneeLabel)}
-          </AvatarFallback>
-        </Avatar>
-      )}
-    </button>
-  );
-}
+const KNOWN_SOURCES = [
+  '99acres',
+  'MagicBricks',
+  'Housing.com',
+  'NoBroker',
+  'Walk-in',
+  'Referral',
+  'Meta Ads',
+  'Google Ads',
+  'Manual Entry',
+];
 
 export default function PipelinesPage() {
   const t = useTranslations('Pipelines.page');
+  const tBoard = useTranslations('Pipelines.board');
   const supabase = createClient();
   const canEditSettings = useCan('edit-settings');
   const canCreateDeals = useCan('send-messages');
@@ -150,24 +115,39 @@ export default function PipelinesPage() {
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Status filter — drives what the board / list shows
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
+  // View mode: Kanban vs High-Density Table
+  const [viewMode, setViewMode] = useState<ViewMode>('kanban');
 
-  // Dialog / sheet state
+  // Search & Filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('open');
+  const [selectedSource, setSelectedSource] = useState('all');
+  const [selectedAssignee, setSelectedAssignee] = useState('all');
+  const [selectedValueRange, setSelectedValueRange] = useState('all');
+
+  // Dialog / Sheet states
   const [newPipelineOpen, setNewPipelineOpen] = useState(false);
   const [newPipelineName, setNewPipelineName] = useState('');
   const [creating, setCreating] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Deal form state is lifted here so both the top-bar "Add Deal" and
-  // the per-column "+" trigger the same Sheet.
+  // Deal form sheet
   const [dealFormOpen, setDealFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStageId, setDefaultStageId] = useState<string>('');
 
-  // Guard against double-seeding (React StrictMode double-effect in dev).
+  // Cross-module ScheduleVisitSheet
+  const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
+  const [scheduleVisitContactId, setScheduleVisitContactId] = useState<string | undefined>(undefined);
+
+  // Move deal bottom sheet
+  const [moveDealId, setMoveDealId] = useState<string | null>(null);
+
+  // Guard against double-seeding
   const seedAttempted = useRef(false);
 
   const loadPipelines = useCallback(async () => {
@@ -179,7 +159,7 @@ export default function PipelinesPage() {
       console.error('Failed to load pipelines:', error.message);
       return [];
     }
-    return data ?? [];
+    return (data ?? []) as Pipeline[];
   }, [supabase]);
 
   const loadStages = useCallback(
@@ -189,16 +169,13 @@ export default function PipelinesPage() {
         .select('*')
         .eq('pipeline_id', pipelineId)
         .order('position');
-      return data ?? [];
+      return (data ?? []) as PipelineStage[];
     },
     [supabase]
   );
 
   const loadDeals = useCallback(
     async (pipelineId: string) => {
-      // Load ALL deals (all statuses) so the client-side filter can switch
-      // between Open / Won / Lost / All without a new network round-trip.
-      // Closed deals are a small fraction of the total so fetching all is safe.
       const { data } = await supabase
         .from('deals')
         .select(
@@ -211,15 +188,31 @@ export default function PipelinesPage() {
     [supabase]
   );
 
+  const loadProfiles = useCallback(async () => {
+    const { data } = await supabase.from('profiles').select('*').order('full_name');
+    return (data ?? []) as Profile[];
+  }, [supabase]);
+
+  const loadBrokerageSettings = useCallback(async () => {
+    if (!accountId) return;
+    const { data } = await supabase
+      .from('accounts')
+      .select('settings')
+      .eq('id', accountId)
+      .single();
+    const pct =
+      ((data?.settings as Record<string, unknown> | null)
+        ?.brokerage_pct as number | null) ?? 2;
+    setBrokeragePct(pct);
+  }, [accountId, supabase]);
+
   const seedDefaultPipeline =
     useCallback(async (): Promise<Pipeline | null> => {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const user = session?.user;
-      if (!user) return null;
-      // pipelines.account_id is NOT NULL post-017 with no DB default.
-      if (!accountId) return null;
+      if (!user || !accountId) return null;
 
       const { data: pipeline, error } = await supabase
         .from('pipelines')
@@ -247,69 +240,69 @@ export default function PipelinesPage() {
       return pipeline as Pipeline;
     }, [supabase, accountId]);
 
-  // Initial load + seed-if-empty.
-  // Seeding is gated to admin+ only: an agent who just accepted an
-  // invitation joins an existing account that already has a "Real
-  // Estate" pipeline (seeded by the handle_new_user trigger for the
-  // owner). If the pipeline list appears empty for a moment during
-  // the initial fetch, we must NOT let an agent create a duplicate
-  // "Sales Pipeline" on top of it. The seed is purely a fallback for
-  // net-new owner accounts that somehow have no pipeline at all.
+  // Initial load + seed-if-empty (deferred to satisfy React 19 effect rules)
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      setLoading(true);
-      let list = await loadPipelines();
+    const timer = setTimeout(() => {
+      void (async () => {
+        setLoading(true);
+        const [list, profs] = await Promise.all([
+          loadPipelines(),
+          loadProfiles(),
+        ]);
+        await loadBrokerageSettings();
 
-      // Only seed if the user can edit account settings (admin+) AND
-      // there are truly no pipelines, AND we haven't tried once already.
-      const canSeed = accountRole === 'owner' || accountRole === 'admin';
-      if (list.length === 0 && canSeed && !seedAttempted.current) {
-        seedAttempted.current = true;
-        const seeded = await seedDefaultPipeline();
-        if (seeded) list = await loadPipelines();
-      }
+        let finalPipelines = list;
+        const canSeed = accountRole === 'owner' || accountRole === 'admin';
+        if (list.length === 0 && canSeed && !seedAttempted.current) {
+          seedAttempted.current = true;
+          const seeded = await seedDefaultPipeline();
+          if (seeded) finalPipelines = await loadPipelines();
+        }
 
-      if (cancelled) return;
-      setPipelines(list);
-      if (list.length > 0) {
-        setSelectedPipelineId((prev) =>
-          prev && list.some((p) => p.id === prev) ? prev : list[0].id
-        );
-      } else {
-        setSelectedPipelineId('');
-      }
-      setLoading(false);
-    })();
+        if (cancelled) return;
+        setPipelines(finalPipelines);
+        setProfiles(profs);
+        if (finalPipelines.length > 0) {
+          setSelectedPipelineId((prev) =>
+            prev && finalPipelines.some((p) => p.id === prev) ? prev : finalPipelines[0].id
+          );
+        } else {
+          setSelectedPipelineId('');
+        }
+        setLoading(false);
+      })();
+    }, 0);
+
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [loadPipelines, seedDefaultPipeline, accountRole]);
+  }, [loadPipelines, loadProfiles, loadBrokerageSettings, seedDefaultPipeline, accountRole]);
 
-  // Load stages + deals whenever selected pipeline changes.
-  // Clearing on no-selection is a legitimate sync with URL/prop
-  // state; the load completion uses async setters inside promise
-  // callbacks (not synchronous in the effect body).
+  // Load stages + deals whenever selected pipeline changes
   useEffect(() => {
-    if (!selectedPipelineId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setStages([]);
-
-      setDeals([]);
-      return;
-    }
     let cancelled = false;
-    (async () => {
-      const [s, d] = await Promise.all([
-        loadStages(selectedPipelineId),
-        loadDeals(selectedPipelineId),
-      ]);
-      if (cancelled) return;
-      setStages(s);
-      setDeals(d);
-    })();
+    const timer = setTimeout(() => {
+      if (!selectedPipelineId) {
+        setStages([]);
+        setDeals([]);
+        return;
+      }
+      void (async () => {
+        const [s, d] = await Promise.all([
+          loadStages(selectedPipelineId),
+          loadDeals(selectedPipelineId),
+        ]);
+        if (cancelled) return;
+        setStages(s);
+        setDeals(d);
+      })();
+    }, 0);
+
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [selectedPipelineId, loadStages, loadDeals]);
 
@@ -333,7 +326,7 @@ export default function PipelinesPage() {
 
   const handleDealMoved = useCallback(
     async (dealId: string, newStageId: string) => {
-      // Optimistic update — board already animated; just persist.
+      // Optimistic update
       setDeals((prev) =>
         prev.map((d) => (d.id === dealId ? { ...d, stage_id: newStageId } : d))
       );
@@ -380,6 +373,20 @@ export default function PipelinesPage() {
     setDealFormOpen(true);
   }, []);
 
+  const handleScheduleVisitFromDeal = useCallback((deal: Deal) => {
+    if (deal.contact_id) {
+      setScheduleVisitContactId(deal.contact_id);
+      setScheduleVisitOpen(true);
+    } else {
+      toast.error('This deal does not have a linked contact');
+    }
+  }, []);
+
+  const handleScheduleVisitFromContactId = useCallback((contactId: string) => {
+    setScheduleVisitContactId(contactId);
+    setScheduleVisitOpen(true);
+  }, []);
+
   async function handleCreatePipeline() {
     const name = newPipelineName.trim();
     if (!name) return;
@@ -389,12 +396,7 @@ export default function PipelinesPage() {
       data: { session },
     } = await supabase.auth.getSession();
     const user = session?.user;
-    if (!user) {
-      setCreating(false);
-      return;
-    }
-    // pipelines.account_id is NOT NULL post-017 with no DB default.
-    if (!accountId) {
+    if (!user || !accountId) {
       toast.error(t('toastNotLinkedToAccount'));
       setCreating(false);
       return;
@@ -430,8 +432,7 @@ export default function PipelinesPage() {
 
   const selectedPipeline = pipelines.find((p) => p.id === selectedPipelineId);
 
-  // Deals shown on the board are always only open ones.
-  // Won / Lost views use the list view below.
+  // Status counts for tabs
   const openDeals = useMemo(
     () => deals.filter((d) => d.status === 'open' || !d.status),
     [deals]
@@ -445,7 +446,6 @@ export default function PipelinesPage() {
     [deals]
   );
 
-  // Counts for filter tabs
   const filterCounts: Record<StatusFilter, number> = {
     open: openDeals.length,
     won: wonDeals.length,
@@ -453,20 +453,89 @@ export default function PipelinesPage() {
     all: deals.length,
   };
 
-  // Deals shown in the closed list view
-  const closedListDeals = useMemo(() => {
-    if (statusFilter === 'won') return wonDeals;
-    if (statusFilter === 'lost') return lostDeals;
-    if (statusFilter === 'all') return deals;
-    return [];
-  }, [statusFilter, wonDeals, lostDeals, deals]);
+  // Multi-dimensional filtering across omni-search, status, source, assignee, value range
+  const filteredDeals = useMemo(() => {
+    return deals.filter((deal) => {
+      // 1. Status Filter
+      if (statusFilter === 'open' && deal.status !== 'open' && deal.status) return false;
+      if (statusFilter === 'won' && deal.status !== 'won') return false;
+      if (statusFilter === 'lost' && deal.status !== 'lost') return false;
+
+      // 2. Omni-search query
+      if (search.trim()) {
+        const q = search.toLowerCase().trim();
+        const titleMatch = deal.title?.toLowerCase().includes(q);
+        const contactNameMatch = deal.contact?.name?.toLowerCase().includes(q);
+        const contactPhoneMatch = deal.contact?.phone?.toLowerCase().includes(q);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const locationMatch = (deal.contact as any)?.lead_details?.location_preference?.toLowerCase().includes(q);
+        const notesMatch = deal.notes?.toLowerCase().includes(q);
+        if (!titleMatch && !contactNameMatch && !contactPhoneMatch && !locationMatch && !notesMatch) {
+          return false;
+        }
+      }
+
+      // 3. Source Filter
+      if (selectedSource !== 'all') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const src = (deal.contact as any)?.lead_details?.source || 'Manual Entry';
+        if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
+      }
+
+      // 4. Assignee Filter
+      if (selectedAssignee !== 'all') {
+        if (selectedAssignee === 'unassigned') {
+          if (deal.assigned_to) return false;
+        } else {
+          if (deal.assigned_to !== selectedAssignee) return false;
+        }
+      }
+
+      // 5. Value Range Filter
+      if (selectedValueRange !== 'all') {
+        const v = Number(deal.value || 0);
+        if (selectedValueRange === 'under_50l' && v >= 5000000) return false;
+        if (selectedValueRange === '50l_to_1cr' && (v < 5000000 || v >= 10000000)) return false;
+        if (selectedValueRange === '1cr_to_25cr' && (v < 10000000 || v > 25000000)) return false;
+        if (selectedValueRange === 'above_25cr' && v <= 25000000) return false;
+      }
+
+      return true;
+    });
+  }, [deals, statusFilter, search, selectedSource, selectedAssignee, selectedValueRange]);
+
+  const hasActiveFilters =
+    search.trim() !== '' ||
+    selectedSource !== 'all' ||
+    selectedAssignee !== 'all' ||
+    selectedValueRange !== 'all';
+
+  const activeFiltersCount =
+    (search.trim() ? 1 : 0) +
+    (selectedSource !== 'all' ? 1 : 0) +
+    (selectedAssignee !== 'all' ? 1 : 0) +
+    (selectedValueRange !== 'all' ? 1 : 0);
+
+  function clearAllFilters() {
+    setSearch('');
+    setSelectedSource('all');
+    setSelectedAssignee('all');
+    setSelectedValueRange('all');
+  }
+
+  const moveDeal = moveDealId ? deals.find((d) => d.id === moveDealId) : null;
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 pb-20">
         <div className="flex items-center justify-between">
           <div className="bg-muted h-8 w-48 animate-pulse rounded" />
           <div className="bg-muted h-9 w-28 animate-pulse rounded-lg" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="bg-muted/50 h-20 animate-pulse rounded-xl" />
+          ))}
         </div>
         <div className="flex gap-3">
           {[1, 2, 3, 4, 5].map((i) => (
@@ -481,280 +550,475 @@ export default function PipelinesPage() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {/* Pipeline selector dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger className="border-border bg-card text-foreground hover:bg-muted data-[popup-open]:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors">
-              <GitBranch className="text-primary h-4 w-4" />
-              <span className="font-semibold">
-                {selectedPipeline?.name ?? t('selectPipeline')}
-              </span>
-              <ChevronDown className="text-muted-foreground h-4 w-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              className="border-border bg-popover text-popover-foreground w-64"
-            >
-              {pipelines.length === 0 && (
-                <DropdownMenuItem disabled className="text-muted-foreground">
-                  {t('noPipelinesYet')}
-                </DropdownMenuItem>
-              )}
-              {pipelines.map((p) => (
-                <DropdownMenuItem
-                  key={p.id}
-                  onClick={() => setSelectedPipelineId(p.id)}
-                  className={
-                    p.id === selectedPipelineId
-                      ? 'text-primary'
-                      : 'text-popover-foreground'
-                  }
+    <PullToRefresh
+      onRefresh={async () => {
+        await Promise.all([refreshPipelines(), refreshStages(), refreshDeals()]);
+      }}
+    >
+      <div className="space-y-5 pb-20">
+        {/* Page Header */}
+        <PageHeader
+          title={
+            <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger className="border-border bg-card text-foreground hover:bg-muted data-[popup-open]:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-base font-bold shadow-xs transition-colors">
+                  <GitBranch className="text-primary size-4" />
+                  <span>{selectedPipeline?.name ?? t('selectPipeline')}</span>
+                  <ChevronDown className="text-muted-foreground size-4" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="start"
+                  className="border-border bg-popover text-popover-foreground w-64"
                 >
-                  <GitBranch className="mr-2 h-3.5 w-3.5" />
-                  {p.name}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator className="bg-border" />
-              {selectedPipeline && (
-                <DropdownMenuItem
-                  onClick={() => setSettingsOpen(true)}
-                  className="text-popover-foreground"
-                >
-                  <Settings className="mr-2 h-3.5 w-3.5" />
-                  {t('managePipelines')}
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <GatedButton
-            variant="outline"
-            canAct={canEditSettings}
-            gateReason="export deals"
-            onClick={() => {
-              window.open('/api/deals/export', '_self');
-            }}
-            className="border-border bg-card text-foreground hover:bg-muted"
-          >
-            <Download className="mr-1 h-4 w-4" />
-            Export
-          </GatedButton>
-          <GatedButton
-            variant="outline"
-            canAct={canEditSettings}
-            gateReason="create pipelines"
-            onClick={() => setNewPipelineOpen(true)}
-            className="border-border bg-card text-foreground hover:bg-muted"
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            {t('addPipeline')}
-          </GatedButton>
-          {statusFilter === 'open' && (
-            <GatedButton
-              canAct={canCreateDeals}
-              gateReason="create deals"
-              disabled={!selectedPipelineId || stages.length === 0}
-              onClick={() => handleAddDeal()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="mr-1 h-4 w-4" />
-              {t('addDeal')}
-            </GatedButton>
-          )}
-        </div>
-      </div>
-
-      {/* Status filter tabs */}
-      {pipelines.length > 0 && (
-        <div
-          className="border-border flex gap-1 rounded-xl border p-1"
-          style={{ width: 'fit-content' }}
-        >
-          {(
-            [
-              {
-                key: 'open' as StatusFilter,
-                label: t('filterOpen'),
-                icon: <Kanban className="h-3.5 w-3.5" />,
-              },
-              {
-                key: 'won' as StatusFilter,
-                label: t('filterWon'),
-                icon: <Trophy className="h-3.5 w-3.5" />,
-              },
-              {
-                key: 'lost' as StatusFilter,
-                label: t('filterLost'),
-                icon: <XCircle className="h-3.5 w-3.5" />,
-              },
-              { key: 'all' as StatusFilter, label: t('filterAll'), icon: null },
-            ] as { key: StatusFilter; label: string; icon: React.ReactNode }[]
-          ).map(({ key, label, icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setStatusFilter(key)}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                statusFilter === key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {icon}
-              {label}
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
-                  statusFilter === key
-                    ? 'bg-primary-foreground/20 text-primary-foreground'
-                    : 'bg-muted text-muted-foreground'
-                }`}
+                  {pipelines.length === 0 && (
+                    <DropdownMenuItem disabled className="text-muted-foreground">
+                      {t('noPipelinesYet')}
+                    </DropdownMenuItem>
+                  )}
+                  {pipelines.map((p) => (
+                    <DropdownMenuItem
+                      key={p.id}
+                      onClick={() => setSelectedPipelineId(p.id)}
+                      className={
+                        p.id === selectedPipelineId
+                          ? 'text-primary font-semibold'
+                          : 'text-popover-foreground'
+                      }
+                    >
+                      <GitBranch className="mr-2 size-3.5" />
+                      {p.name}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator className="bg-border" />
+                  {selectedPipeline && (
+                    <DropdownMenuItem
+                      onClick={() => setSettingsOpen(true)}
+                      className="text-popover-foreground"
+                    >
+                      <Settings className="mr-2 size-3.5" />
+                      {t('managePipelines')}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          }
+          subtitle={t('subtitle')}
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <GatedButton
+                variant="outline"
+                size="sm"
+                canAct={canEditSettings}
+                gateReason="export deals"
+                onClick={() => {
+                  window.open('/api/deals/export', '_self');
+                }}
+                className="border-border bg-card text-foreground hover:bg-muted shadow-xs text-xs"
               >
-                {filterCounts[key]}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
+                <Download className="mr-1 size-3.5" />
+                {t('exportDeals')}
+              </GatedButton>
 
-      {/* Board or list based on selected filter */}
-      {pipelines.length === 0 ? (
-        <div className="border-border flex flex-col items-center justify-center rounded-xl border border-dashed py-20">
-          <GitBranch className="text-muted-foreground h-12 w-12" />
-          <h3 className="text-foreground mt-4 text-lg font-medium">
-            {t('noPipelinesYet')}
-          </h3>
-          <p className="text-muted-foreground mt-2 text-sm">
-            {t('createToStartTracking')}
-          </p>
-          <GatedButton
-            canAct={canEditSettings}
-            gateReason="create pipelines"
-            onClick={() => setNewPipelineOpen(true)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
-          >
-            <Plus className="mr-1 h-4 w-4" />
-            {t('createPipeline')}
-          </GatedButton>
-        </div>
-      ) : statusFilter === 'open' ? (
-        <>
-          <PipelineAnalytics stages={stages} deals={deals} />
+              <GatedButton
+                variant="outline"
+                size="sm"
+                canAct={canEditSettings}
+                gateReason="create pipelines"
+                onClick={() => setNewPipelineOpen(true)}
+                className="border-border bg-card text-foreground hover:bg-muted shadow-xs text-xs"
+              >
+                <Plus className="mr-1 size-3.5" />
+                {t('addPipeline')}
+              </GatedButton>
+
+              <GatedButton
+                size="sm"
+                canAct={canCreateDeals}
+                gateReason="create deals"
+                disabled={!selectedPipelineId || stages.length === 0}
+                onClick={() => handleAddDeal()}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-xs text-xs"
+              >
+                <Plus className="mr-1 size-3.5" />
+                {t('addDeal')}
+              </GatedButton>
+            </div>
+          }
+        />
+
+        {/* Situational Awareness KPI Strip */}
+        {pipelines.length > 0 && (
+          <PipelineAnalytics
+            stages={stages}
+            deals={deals}
+            activeFilter={statusFilter}
+            onFilterChange={setStatusFilter}
+          />
+        )}
+
+        {/* Real Estate Filtering & Omni-Search Toolbar */}
+        {pipelines.length > 0 && (
+          <div className="border-border/70 bg-card rounded-xl border p-3 shadow-xs space-y-3">
+            <div className="flex flex-col md:flex-row gap-2.5">
+              {/* Omni-Search Box */}
+              <div className="relative flex-1">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('searchPlaceholder')}
+                  className="bg-muted/40 border-border placeholder:text-muted-foreground w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs focus:ring-primary/30"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Multi-Dimensional Filter Dropdowns */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Source Filter */}
+                <Select
+                  value={selectedSource}
+                  onValueChange={(val) => setSelectedSource(val || 'all')}
+                >
+                  <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                    <SelectValue placeholder={t('filterSource')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('filterAllSources')}</SelectItem>
+                    {KNOWN_SOURCES.map((src) => (
+                      <SelectItem key={src} value={src}>
+                        {src}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Assignee / Agent Filter */}
+                {profiles.length > 0 && (
+                  <Select
+                    value={selectedAssignee}
+                    onValueChange={(val) => setSelectedAssignee(val || 'all')}
+                  >
+                    <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                      <SelectValue placeholder={t('filterAssignee')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('filterAllAssignees')}</SelectItem>
+                      <SelectItem value="unassigned">{t('filterUnassigned')}</SelectItem>
+                      {profiles.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.full_name || p.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+
+                {/* Deal Value Range Filter */}
+                <Select
+                  value={selectedValueRange}
+                  onValueChange={(val) => setSelectedValueRange(val || 'all')}
+                >
+                  <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                    <SelectValue placeholder={t('filterValueRange')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('filterAllValues')}</SelectItem>
+                    <SelectItem value="under_50l">{t('filterUnder50L')}</SelectItem>
+                    <SelectItem value="50l_to_1cr">{t('filter50LTo1Cr')}</SelectItem>
+                    <SelectItem value="1cr_to_25cr">{t('filter1CrTo25Cr')}</SelectItem>
+                    <SelectItem value="above_25cr">{t('filterAbove25Cr')}</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Clear All Filters */}
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="text-muted-foreground hover:text-foreground text-xs h-8.5 px-2.5"
+                  >
+                    <X className="mr-1 size-3.5" />
+                    {t('clearFilters')}
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Status Tabs & Desktop View Mode Switcher */}
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/40 pt-2.5">
+              {/* Status Filter Tabs */}
+              <div className="border-border bg-muted/40 flex gap-1 rounded-lg border p-0.5">
+                {(
+                  [
+                    {
+                      key: 'open' as StatusFilter,
+                      label: t('filterOpen'),
+                      icon: <Kanban className="size-3.5" />,
+                    },
+                    {
+                      key: 'won' as StatusFilter,
+                      label: t('filterWon'),
+                      icon: <Trophy className="size-3.5" />,
+                    },
+                    {
+                      key: 'lost' as StatusFilter,
+                      label: t('filterLost'),
+                      icon: <XCircle className="size-3.5" />,
+                    },
+                    {
+                      key: 'all' as StatusFilter,
+                      label: t('filterAll'),
+                      icon: null,
+                    },
+                  ] as { key: StatusFilter; label: string; icon: React.ReactNode }[]
+                ).map(({ key, label, icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setStatusFilter(key)}
+                    className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                      statusFilter === key
+                        ? 'bg-card text-foreground shadow-xs font-semibold'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {icon}
+                    {label}
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] font-semibold ${
+                        statusFilter === key
+                          ? 'bg-primary/10 text-primary'
+                          : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {filterCounts[key]}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* View Switcher: Kanban vs Table (desktop) */}
+              <div className="hidden sm:flex items-center gap-1">
+                {hasActiveFilters && (
+                  <span className="text-muted-foreground text-xs mr-2">
+                    {t('activeFiltersCount', { count: activeFiltersCount })}
+                  </span>
+                )}
+                {statusFilter === 'open' && (
+                  <div className="border-border bg-muted/40 flex items-center rounded-lg border p-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('kanban')}
+                      title={t('viewKanban')}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        viewMode === 'kanban'
+                          ? 'bg-card text-foreground shadow-xs font-semibold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Kanban className="size-3.5" />
+                      <span>{t('viewKanban')}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      title={t('viewTable')}
+                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                        viewMode === 'table'
+                          ? 'bg-card text-foreground shadow-xs font-semibold'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <TableProperties className="size-3.5" />
+                      <span>{t('viewTable')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Board or Table based on selected filter and view mode */}
+        {pipelines.length === 0 ? (
+          <div className="border-border flex flex-col items-center justify-center rounded-xl border border-dashed py-20">
+            <GitBranch className="text-muted-foreground size-12" />
+            <h3 className="text-foreground mt-4 text-lg font-medium">
+              {t('noPipelinesYet')}
+            </h3>
+            <p className="text-muted-foreground mt-2 text-sm">
+              {t('createToStartTracking')}
+            </p>
+            <GatedButton
+              canAct={canEditSettings}
+              gateReason="create pipelines"
+              onClick={() => setNewPipelineOpen(true)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4"
+            >
+              <Plus className="mr-1 size-4" />
+              {t('createPipeline')}
+            </GatedButton>
+          </div>
+        ) : statusFilter === 'open' && viewMode === 'kanban' ? (
           <PipelineBoard
             stages={stages}
-            deals={openDeals}
+            deals={filteredDeals}
             onDealMoved={handleDealMoved}
             onAddDeal={handleAddDeal}
             onEditDeal={handleEditDeal}
+            onScheduleVisit={handleScheduleVisitFromDeal}
           />
-        </>
-      ) : (
-        <>
-          <PipelineAnalytics stages={stages} deals={deals} />
-          {/* Won / Lost / All list view */}
-          <div className="space-y-2">
-            {closedListDeals.length === 0 ? (
-              <div className="border-border text-muted-foreground flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-sm">
-                {statusFilter === 'won' && (
-                  <>
-                    <Trophy className="mb-2 h-8 w-8 opacity-40" />
-                    <p>{t('noWonDeals')}</p>
-                  </>
-                )}
-                {statusFilter === 'lost' && (
-                  <>
-                    <XCircle className="mb-2 h-8 w-8 opacity-40" />
-                    <p>{t('noLostDeals')}</p>
-                  </>
-                )}
-                {statusFilter === 'all' && <p>{t('noDeals')}</p>}
-              </div>
-            ) : (
-              closedListDeals.map((deal) => (
-                <ClosedDealRow
-                  key={deal.id}
-                  deal={deal}
-                  defaultCurrency={defaultCurrency}
-                  onEdit={handleEditDeal}
-                />
-              ))
-            )}
-          </div>
-        </>
-      )}
+        ) : (
+          <DealTable
+            deals={filteredDeals}
+            stages={stages}
+            brokeragePct={brokeragePct}
+            defaultCurrency={defaultCurrency}
+            onEditDeal={handleEditDeal}
+            onMoveDeal={(d) => setMoveDealId(d.id)}
+            onScheduleVisit={handleScheduleVisitFromDeal}
+          />
+        )}
 
-      {/* New Pipeline Dialog */}
-      <Dialog open={newPipelineOpen} onOpenChange={setNewPipelineOpen}>
-        <DialogContent className="bg-popover border-border sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="text-popover-foreground">
-              {t('newPipeline')}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-2">
-            <Label className="text-muted-foreground">{t('pipelineName')}</Label>
-            <Input
-              value={newPipelineName}
-              onChange={(e) => setNewPipelineName(e.target.value)}
-              placeholder={t('pipelineNamePlaceholder')}
-              className="bg-muted border-border text-foreground mt-2"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleCreatePipeline();
-              }}
-            />
-            <p className="text-muted-foreground mt-2 text-xs">
-              {t('defaultStagesDesc')}
-            </p>
-          </div>
-          <DialogFooter className="bg-popover/50 border-border">
-            <Button
-              variant="outline"
-              onClick={() => setNewPipelineOpen(false)}
-              className="border-border text-muted-foreground hover:bg-muted"
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              onClick={handleCreatePipeline}
-              disabled={creating || !newPipelineName.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {creating ? t('creating') : t('createPipelineBtn')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        {/* New Pipeline Dialog */}
+        <Dialog open={newPipelineOpen} onOpenChange={setNewPipelineOpen}>
+          <DialogContent className="bg-popover border-border sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-popover-foreground">
+                {t('newPipeline')}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-2">
+              <Label className="text-muted-foreground">{t('pipelineName')}</Label>
+              <Input
+                value={newPipelineName}
+                onChange={(e) => setNewPipelineName(e.target.value)}
+                placeholder={t('pipelineNamePlaceholder')}
+                className="bg-muted border-border text-foreground mt-2"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleCreatePipeline();
+                }}
+              />
+              <p className="text-muted-foreground mt-2 text-xs">
+                {t('defaultStagesDesc')}
+              </p>
+            </div>
+            <DialogFooter className="bg-popover/50 border-border">
+              <Button
+                variant="outline"
+                onClick={() => setNewPipelineOpen(false)}
+                className="border-border text-muted-foreground hover:bg-muted"
+              >
+                {t('cancel')}
+              </Button>
+              <Button
+                onClick={handleCreatePipeline}
+                disabled={creating || !newPipelineName.trim()}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                {creating ? t('creating') : t('createPipelineBtn')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      {/* Pipeline Settings */}
-      {selectedPipeline && (
-        <PipelineSettings
-          open={settingsOpen}
-          onOpenChange={setSettingsOpen}
-          pipeline={selectedPipeline}
+        {/* Pipeline Settings */}
+        {selectedPipeline && (
+          <PipelineSettings
+            open={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            pipeline={selectedPipeline}
+            stages={stages}
+            onPipelinesChanged={refreshPipelines}
+            onStagesChanged={refreshStages}
+            onCreateNewPipeline={() => {
+              setSettingsOpen(false);
+              setNewPipelineOpen(true);
+            }}
+          />
+        )}
+
+        {/* Deal Form (Sheet) */}
+        <DealForm
+          open={dealFormOpen}
+          onOpenChange={setDealFormOpen}
+          deal={editingDeal}
+          pipelineId={selectedPipelineId}
           stages={stages}
-          onPipelinesChanged={refreshPipelines}
-          onStagesChanged={refreshStages}
-          onCreateNewPipeline={() => {
-            setSettingsOpen(false);
-            setNewPipelineOpen(true);
+          defaultStageId={defaultStageId}
+          onSaved={refreshDeals}
+          onScheduleVisit={handleScheduleVisitFromContactId}
+        />
+
+        {/* Cross-Module Schedule Visit Sheet */}
+        <ScheduleVisitSheet
+          open={scheduleVisitOpen}
+          onOpenChange={setScheduleVisitOpen}
+          defaultContactId={scheduleVisitContactId}
+          onSuccess={() => {
+            setScheduleVisitOpen(false);
+            refreshDeals();
           }}
         />
-      )}
 
-      {/* Deal Form (Sheet) */}
-      <DealForm
-        open={dealFormOpen}
-        onOpenChange={setDealFormOpen}
-        deal={editingDeal}
-        pipelineId={selectedPipelineId}
-        stages={stages}
-        defaultStageId={defaultStageId}
-        onSaved={refreshDeals}
-      />
-    </div>
+        {/* Move Deal Stage Bottom Sheet */}
+        <Sheet
+          open={!!moveDealId}
+          onOpenChange={(open) => !open && setMoveDealId(null)}
+        >
+          <SheetContent
+            side="bottom"
+            className="bg-popover border-border rounded-t-xl border-t sm:mx-auto sm:max-w-md"
+          >
+            <SheetHeader className="mb-4">
+              <SheetTitle className="text-left">{tBoard('moveToStage')}</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-2">
+              {stages.map((stage) => {
+                const isActive = moveDeal?.stage_id === stage.id;
+                return (
+                  <button
+                    key={stage.id}
+                    onClick={() => {
+                      if (!isActive && moveDealId) {
+                        handleDealMoved(moveDealId, stage.id);
+                      }
+                      setMoveDealId(null);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg border p-3 transition-colors ${
+                      isActive
+                        ? 'bg-primary/10 border-primary/20 text-primary cursor-default'
+                        : 'bg-card border-border hover:bg-muted text-foreground'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="size-3 shrink-0 rounded-full"
+                        style={{ backgroundColor: stage.color }}
+                      />
+                      <span className="text-sm font-medium">{stage.name}</span>
+                    </div>
+                    {isActive && (
+                      <span className="text-xs font-semibold">
+                        {tBoard('currentStage')}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </PullToRefresh>
   );
 }

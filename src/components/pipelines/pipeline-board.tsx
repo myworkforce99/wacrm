@@ -34,6 +34,7 @@ interface PipelineBoardProps {
   onDealMoved: (dealId: string, newStageId: string) => void;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
+  onScheduleVisit?: (deal: Deal) => void;
 }
 
 export function PipelineBoard({
@@ -42,6 +43,7 @@ export function PipelineBoard({
   onDealMoved,
   onAddDeal,
   onEditDeal,
+  onScheduleVisit,
 }: PipelineBoardProps) {
   const { accountId, defaultCurrency } = useAuth();
   const t = useTranslations('Pipelines.board');
@@ -148,6 +150,7 @@ export function PipelineBoard({
                 onAddDeal={onAddDeal}
                 onEditDeal={onEditDeal}
                 onMoveDeal={(d) => setMoveDealId(d.id)}
+                onScheduleVisit={onScheduleVisit}
               />
             );
           })}
@@ -208,6 +211,7 @@ export function PipelineBoard({
                           stage={stage}
                           onEdit={onEditDeal}
                           onMove={() => setMoveDealId(deal.id)}
+                          onScheduleVisit={onScheduleVisit}
                           brokeragePct={brokeragePct}
                         />
                       ))}
@@ -350,6 +354,7 @@ function StageColumn({
   onAddDeal,
   onEditDeal,
   onMoveDeal,
+  onScheduleVisit,
 }: {
   stage: PipelineStage;
   deals: Deal[];
@@ -359,6 +364,7 @@ function StageColumn({
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
   onMoveDeal: (deal: Deal) => void;
+  onScheduleVisit?: (deal: Deal) => void;
 }) {
   const t = useTranslations('Pipelines.board');
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
@@ -417,6 +423,7 @@ function StageColumn({
               brokeragePct={brokeragePct}
               onEdit={onEditDeal}
               onMove={onMoveDeal}
+              onScheduleVisit={onScheduleVisit}
             />
           ))
         )}
@@ -441,12 +448,14 @@ function DraggableDealCard({
   brokeragePct,
   onEdit,
   onMove,
+  onScheduleVisit,
 }: {
   deal: Deal;
   stage: PipelineStage;
   brokeragePct?: number | null;
   onEdit: (deal: Deal) => void;
   onMove: (deal: Deal) => void;
+  onScheduleVisit?: (deal: Deal) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
@@ -464,6 +473,7 @@ function DraggableDealCard({
         stage={stage}
         onEdit={onEdit}
         onMove={onMove}
+        onScheduleVisit={onScheduleVisit}
         brokeragePct={brokeragePct}
       />
     </div>

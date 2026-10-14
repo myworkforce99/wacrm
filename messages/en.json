@@ -639,7 +639,41 @@
       "filterAll": "All",
       "noWonDeals": "No won deals yet",
       "noLostDeals": "No lost deals yet",
-      "noDeals": "No deals found"
+      "noDeals": "No deals found",
+      "subtitle": "Track deals through sales stages, forecast commission, and monitor conversion velocity",
+      "viewKanban": "Kanban",
+      "viewTable": "Table",
+      "searchPlaceholder": "Search by deal, buyer, phone, location...",
+      "filterSource": "Source",
+      "filterAllSources": "All Sources",
+      "filterAssignee": "Agent",
+      "filterAllAssignees": "All Agents",
+      "filterUnassigned": "Unassigned",
+      "filterValueRange": "Deal Value",
+      "filterAllValues": "All Values",
+      "filterUnder50L": "Under ₹50 L",
+      "filter50LTo1Cr": "₹50 L – ₹1 Cr",
+      "filter1CrTo25Cr": "₹1 Cr – ₹2.5 Cr",
+      "filterAbove25Cr": "Above ₹2.5 Cr",
+      "clearFilters": "Clear all",
+      "activeFiltersCount": "{count} active filters",
+      "scheduleVisit": "Schedule Visit",
+      "chatOnWhatsApp": "WhatsApp",
+      "callBuyer": "Call",
+      "exportDeals": "Export"
+    },
+    "table": {
+      "deal": "Deal & Details",
+      "contact": "Buyer / Contact",
+      "stage": "Stage",
+      "value": "Value & Brokerage",
+      "expectedClose": "Expected Close",
+      "assignee": "Assignee",
+      "actions": "Actions",
+      "noDealsMatch": "No deals match your search and filter criteria.",
+      "clearFiltersToSee": "Try clearing some filters to view all deals.",
+      "overdue": "Overdue",
+      "today": "Today"
     },
     "board": {
       "dropDealHere": "Drop a deal here",
@@ -651,7 +685,12 @@
     "card": {
       "noContact": "No contact",
       "won": "Won",
-      "lost": "Lost"
+      "lost": "Lost",
+      "scheduleVisitTooltip": "Schedule Site Visit",
+      "chatWhatsAppTooltip": "Chat on WhatsApp",
+      "callTooltip": "Call Buyer",
+      "moveStageTooltip": "Move Stage",
+      "noPhone": "No phone"
     },
     "form": {
       "editDeal": "Edit Deal",
@@ -697,7 +736,12 @@
       "toastReopened": "Deal reopened",
       "toastFailedDelete": "Failed to delete deal",
       "toastDeleted": "Deal deleted",
-      "undo": "Undo"
+      "undo": "Undo",
+      "livePreview": "Live Preview",
+      "estBrokerage": "Est. Brokerage ({pct}%): {amount}",
+      "scheduleVisitForBuyer": "Schedule Site Visit for this Buyer",
+      "buyerPhone": "Phone",
+      "buyerLocation": "Location Preference"
     },
     "lostModal": {
       "title": "Mark as Lost",
@@ -749,7 +793,13 @@
       "wonThisMonthTooltip": "Deals marked as Won since the first day of the current month.",
       "lostThisMonth": "Lost This Month",
       "lostThisMonthTooltip": "Deals marked as Lost since the first day of the current month.",
-      "howCalculated": "How {label} is calculated"
+      "howCalculated": "How {label} is calculated",
+      "activeDeals": "Active Deals",
+      "activeDealsTooltip": "Total open deals currently progressing in the pipeline.",
+      "winRate": "Win Rate",
+      "winRateTooltip": "Percentage of closed deals won: Won / (Won + Lost).",
+      "expectedClosures": "Closures This Month",
+      "expectedClosuresTooltip": "Deals expected to close or successfully won this month."
     }
   },
   "Broadcasts": {

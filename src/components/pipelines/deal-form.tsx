@@ -1,10 +1,23 @@
 'use client';
 
+/**
+ * DealForm
+ *
+ * Side Sheet for creating and editing deals.
+ * Real estate enhancements:
+ *  - Contact card showing buyer phone and location preference
+ *  - 1-click Schedule Site Visit for the selected buyer
+ *  - Live ₹ INR formatting preview and brokerage commission preview
+ *  - Supports text budget parsing via parseBudget()
+ *  - Status actions: Mark as Won (with 6s undo), Mark as Lost (via LostReasonModal), Reopen
+ */
+
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { CURRENCIES } from '@/lib/currency';
+import { CURRENCIES, formatCurrency, formatINR } from '@/lib/currency';
+import { parseBudget } from '@/lib/contacts/parse-budget';
 import type {
   Contact,
   Conversation,
@@ -27,14 +40,21 @@ import {
   Check,
   X,
   Trash2,
-  MessageSquare,
+  MessageCircle,
   IndianRupee,
   Loader2,
   RotateCcw,
+  CalendarPlus,
+  Phone,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { LostReasonModal } from '@/components/pipelines/lost-reason-modal';
+
+type ExtendedContact = Contact & {
+  lead_details?: { location_preference?: string; source?: string } | null;
+};
 
 interface DealFormProps {
   open: boolean;
@@ -44,6 +64,7 @@ interface DealFormProps {
   stages: PipelineStage[];
   defaultStageId?: string;
   onSaved: () => void;
+  onScheduleVisit?: (contactId: string) => void;
 }
 
 export function DealForm({
@@ -54,6 +75,7 @@ export function DealForm({
   stages,
   defaultStageId,
   onSaved,
+  onScheduleVisit,
 }: DealFormProps) {
   const t = useTranslations('Pipelines.form');
   const supabase = createClient();
@@ -67,8 +89,9 @@ export function DealForm({
   const [assignedTo, setAssignedTo] = useState('');
   const [expectedCloseDate, setExpectedCloseDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
 
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<ExtendedContact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [linkedConversation, setLinkedConversation] =
     useState<Conversation | null>(null);
@@ -82,9 +105,7 @@ export function DealForm({
   const [lostModalOpen, setLostModalOpen] = useState(false);
   const [lostLoading, setLostLoading] = useState(false);
 
-  // Reset the form fields every time the sheet opens or its input
-  // props change. This is a legitimate prop-driven sync; the rule is
-  // over-cautious here, hence the block-level disable.
+  // Reset the form fields every time the sheet opens or its input props change
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
@@ -93,8 +114,6 @@ export function DealForm({
       setTitle(deal.title);
       setValue(String(deal.value ?? ''));
       setCurrency(deal.currency || defaultCurrency);
-      // contact_id is nullable when the contact has been deleted
-      // (migration 004: ON DELETE SET NULL). "" means "no selection".
       setContactId(deal.contact_id ?? '');
       setStageId(deal.stage_id);
       setAssignedTo(deal.assigned_to ?? '');
@@ -113,27 +132,50 @@ export function DealForm({
   }, [open, deal, defaultStageId, stages, defaultCurrency]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // Load account settings (brokerage %)
+  useEffect(() => {
+    if (!accountId) return;
+    const timer = setTimeout(() => {
+      void (async () => {
+        const { data: accountRow } = await supabase
+          .from('accounts')
+          .select('settings')
+          .eq('id', accountId)
+          .single();
+        const pct =
+          ((accountRow?.settings as Record<string, unknown> | null)
+            ?.brokerage_pct as number | null) ?? 2;
+        setBrokeragePct(pct);
+      })();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [accountId, supabase]);
+
   // Load supporting data once the sheet is open
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    (async () => {
-      const [c, p] = await Promise.all([
-        supabase.from('contacts').select('*').order('name'),
-        supabase.from('profiles').select('*').order('full_name'),
-      ]);
-      if (cancelled) return;
-      setContacts((c.data ?? []) as Contact[]);
-      setProfiles((p.data ?? []) as Profile[]);
-    })();
+    const timer = setTimeout(() => {
+      void (async () => {
+        const [c, p] = await Promise.all([
+          supabase
+            .from('contacts')
+            .select('*, lead_details(*)')
+            .order('name'),
+          supabase.from('profiles').select('*').order('full_name'),
+        ]);
+        if (cancelled) return;
+        setContacts((c.data ?? []) as ExtendedContact[]);
+        setProfiles((p.data ?? []) as Profile[]);
+      })();
+    }, 0);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [open, supabase]);
 
-  // Fetch linked conversation for the selected contact (newest open one).
-  // Clearing on no-selection is sync with prop state; the populated
-  // case runs setLinkedConversation inside the async fetch callback.
+  // Fetch linked conversation for the selected contact
   useEffect(() => {
     if (!open || !contactId) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -141,21 +183,40 @@ export function DealForm({
       return;
     }
     let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('contact_id', contactId)
-        .order('last_message_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (cancelled) return;
-      setLinkedConversation((data as Conversation | null) ?? null);
-    })();
+    const timer = setTimeout(() => {
+      void (async () => {
+        const { data } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('contact_id', contactId)
+          .order('last_message_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        setLinkedConversation((data as Conversation | null) ?? null);
+      })();
+    }, 0);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
   }, [open, contactId, supabase]);
+
+  const selectedContact = contacts.find((c) => c.id === contactId);
+
+  // Parse budget / value for live preview
+  const parsedNumericVal = (() => {
+    if (!value) return 0;
+    const b = parseBudget(value);
+    if (b !== null && !isNaN(b)) return b;
+    const f = parseFloat(value);
+    return isNaN(f) ? 0 : f;
+  })();
+
+  const estimatedBrokerage =
+    parsedNumericVal > 0 && brokeragePct && brokeragePct > 0
+      ? Math.round((parsedNumericVal * brokeragePct) / 100)
+      : null;
 
   async function handleSave() {
     if (!title.trim() || !contactId || !stageId) {
@@ -166,7 +227,7 @@ export function DealForm({
 
     const payload = {
       title: title.trim(),
-      value: parseFloat(value) || 0,
+      value: parsedNumericVal,
       currency,
       contact_id: contactId,
       pipeline_id: pipelineId,
@@ -227,9 +288,6 @@ export function DealForm({
     onSaved();
   }
 
-  /**
-   * Mark as Won — no modal needed, just confirm immediately and show undo.
-   */
   async function handleMarkWon() {
     if (!deal) return;
     setStatusAction('won');
@@ -252,7 +310,6 @@ export function DealForm({
     onOpenChange(false);
     onSaved();
 
-    // Undo toast: re-open the deal within 6 seconds
     toast.success(t('toastMarkedWon'), {
       duration: 6000,
       action: {
@@ -262,10 +319,6 @@ export function DealForm({
     });
   }
 
-  /**
-   * Mark as Lost — opens the LostReasonModal first so the agent
-   * must supply a reason before the API is called.
-   */
   function handleMarkLostClick() {
     setLostModalOpen(true);
   }
@@ -297,7 +350,6 @@ export function DealForm({
     onOpenChange(false);
     onSaved();
 
-    // Undo toast: re-open the deal within 6 seconds
     toast.success(t('toastMarkedLost'), {
       duration: 6000,
       action: {
@@ -307,11 +359,6 @@ export function DealForm({
     });
   }
 
-  /**
-   * Reopen — either from the undo toast callback or from the Reopen button
-   * inside the sheet. dealId may be passed directly from the toast closure
-   * so it doesn't depend on the 'deal' prop being still in scope.
-   */
   async function handleReopen(dealId?: string) {
     const id = dealId ?? deal?.id;
     if (!id) return;
@@ -398,6 +445,7 @@ export function DealForm({
                 </div>
               )}
 
+              {/* Title */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('title')}</Label>
                 <Input
@@ -408,6 +456,7 @@ export function DealForm({
                 />
               </div>
 
+              {/* Contact */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('contact')}</Label>
                 <select
@@ -423,49 +472,116 @@ export function DealForm({
                   ))}
                 </select>
 
-                {linkedConversation && (
-                  <Link
-                    href="/inbox"
-                    className="bg-primary/10 text-primary hover:bg-primary/20 mt-1 inline-flex items-center gap-1.5 self-start rounded-md px-2 py-1 text-xs"
-                  >
-                    <MessageSquare className="h-3 w-3" />
-                    {t('linkToConversation')}
-                  </Link>
+                {/* Selected Contact Card with 1-click actions */}
+                {selectedContact && (
+                  <div className="bg-muted/40 border-border/70 mt-1 flex flex-col gap-1.5 rounded-lg border p-2.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground font-semibold">
+                        {selectedContact.name || selectedContact.phone}
+                      </span>
+                      {selectedContact.phone && (
+                        <a
+                          href={`tel:${selectedContact.phone}`}
+                          className="text-primary hover:underline font-mono inline-flex items-center gap-1 text-[11px]"
+                        >
+                          <Phone className="size-3" />
+                          {selectedContact.phone}
+                        </a>
+                      )}
+                    </div>
+                    {selectedContact.lead_details?.location_preference && (
+                      <span className="text-muted-foreground text-[11px]">
+                        📍 {t('buyerLocation')}:{' '}
+                        {selectedContact.lead_details.location_preference}
+                      </span>
+                    )}
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
+                      {linkedConversation && (
+                        <Link
+                          href={`/inbox?contactId=${contactId}`}
+                          className="bg-primary/10 text-primary hover:bg-primary/20 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium"
+                        >
+                          <MessageCircle className="size-3" />
+                          {t('linkToConversation')}
+                        </Link>
+                      )}
+                      {onScheduleVisit && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onScheduleVisit(contactId)}
+                          className="border-border text-xs h-7 gap-1"
+                        >
+                          <CalendarPlus className="size-3 text-primary" />
+                          {t('scheduleVisitForBuyer')}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <div className="grid grid-cols-[1fr_110px] gap-3">
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">{t('value')}</Label>
-                  <div className="relative">
-                    <IndianRupee className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
-                    <Input
-                      type="number"
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                      placeholder="0"
-                      className="border-border bg-muted text-foreground pl-7"
-                    />
+              {/* Value with Live INR and Brokerage Preview */}
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-[1fr_110px] gap-3">
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">{t('value')}</Label>
+                    <div className="relative">
+                      <IndianRupee className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+                      <Input
+                        type="text"
+                        value={value}
+                        onChange={(e) => setValue(e.target.value)}
+                        placeholder="e.g. 1.5 Cr or 8500000"
+                        className="border-border bg-muted text-foreground pl-8 text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">
+                      {t('currency')}
+                    </Label>
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
+                    >
+                      {CURRENCIES.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.code}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">
-                    {t('currency')}
-                  </Label>
-                  <select
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
-                    className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
-                  >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.code}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+
+                {/* Live Preview Chips */}
+                {parsedNumericVal > 0 && (
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold">
+                      <Sparkles className="size-3" />
+                      {t('livePreview')}:{' '}
+                      {currency === 'INR'
+                        ? formatINR(parsedNumericVal)
+                        : formatCurrency(parsedNumericVal, currency)}
+                    </span>
+                    {estimatedBrokerage !== null && (
+                      <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-md px-2 py-0.5 text-xs font-medium">
+                        {t('estBrokerage', {
+                          pct: brokeragePct ?? 2,
+                          amount:
+                            currency === 'INR'
+                              ? formatINR(estimatedBrokerage)
+                              : formatCurrency(estimatedBrokerage, currency),
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
 
+              {/* Expected Close Date */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">
                   {t('expectedCloseDate')}
@@ -478,6 +594,7 @@ export function DealForm({
                 />
               </div>
 
+              {/* Stage */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('stage')}</Label>
                 <select
@@ -493,6 +610,7 @@ export function DealForm({
                 </select>
               </div>
 
+              {/* Assigned To */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">
                   {t('assignedTo')}
@@ -511,13 +629,14 @@ export function DealForm({
                 </select>
               </div>
 
+              {/* Notes */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('notes')}</Label>
                 <Textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   placeholder={t('notesPlaceholder')}
-                  className="border-border bg-muted text-foreground min-h-[100px]"
+                  className="border-border bg-muted text-foreground min-h-[90px]"
                 />
               </div>
 
@@ -579,6 +698,7 @@ export function DealForm({
               )}
             </div>
 
+            {/* Sheet Footer */}
             <div className="border-border/50 bg-popover/80 border-t p-4">
               <div className="flex gap-2">
                 <Button
@@ -639,7 +759,7 @@ export function DealForm({
         </SheetContent>
       </Sheet>
 
-      {/* Lost reason modal — shown instead of immediately calling the API */}
+      {/* Lost reason modal */}
       <LostReasonModal
         open={lostModalOpen}
         onOpenChange={setLostModalOpen}
