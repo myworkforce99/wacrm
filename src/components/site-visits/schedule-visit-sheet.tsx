@@ -46,6 +46,8 @@ interface Props {
   onSuccess: () => void;
   /** When provided, the sheet runs in edit mode. */
   visit?: SiteVisit & { contact: Contact | null; property: Property | null };
+  /** Pre-selected contact ID when scheduling a visit for a specific lead */
+  defaultContactId?: string;
 }
 
 export function ScheduleVisitSheet({
@@ -53,6 +55,7 @@ export function ScheduleVisitSheet({
   onOpenChange,
   onSuccess,
   visit,
+  defaultContactId,
 }: Props) {
   const t = useTranslations('SiteVisits.schedule');
   const supabase = createClient();
@@ -128,7 +131,7 @@ export function ScheduleVisitSheet({
       setPickupLocation(visit.pickup_location ?? '');
     } else {
       setContactSearch('');
-      setSelectedContactId('');
+      setSelectedContactId(defaultContactId ?? '');
       setSelectedPropertyId('');
       setAssignedAgentId('');
       setScheduledAt('');
@@ -138,7 +141,7 @@ export function ScheduleVisitSheet({
       setPickupLocation('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, visit?.id]);
+  }, [open, visit?.id, defaultContactId]);
 
   // Live-filtered contact list
   const filteredContacts = useMemo(() => {

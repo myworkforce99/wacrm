@@ -24,6 +24,8 @@ import {
 } from '@/components/inbox/template-picker';
 import { CostSheetModal } from '@/components/contacts/cost-sheet-modal';
 import { TasksWidget } from '@/components/dashboard/tasks-widget';
+import { ScheduleVisitSheet } from '@/components/site-visits/schedule-visit-sheet';
+import Link from 'next/link';
 import {
   Sheet,
   SheetContent,
@@ -66,6 +68,8 @@ import {
   User,
   Send,
   Zap,
+  Calendar,
+  MessageCircle,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
@@ -131,6 +135,7 @@ export function ContactDetailView({
 
   // Cost Sheet modal
   const [costSheetModalOpen, setCostSheetModalOpen] = useState(false);
+  const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
 
   // Details tab
   const [editName, setEditName] = useState('');
@@ -1254,7 +1259,36 @@ export function ContactDetailView({
                     )}
                   </div>
                 </div>
-                <div className="mt-3 flex gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setScheduleVisitOpen(true)}
+                    className="border-border text-foreground hover:bg-muted"
+                  >
+                    <Calendar className="mr-1.5 size-3.5 text-primary" />
+                    {t('scheduleVisitBtn') || 'Schedule Visit'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    render={<Link href={`/inbox?contact=${contact.id}`} />}
+                    className="border-border text-foreground hover:bg-muted"
+                  >
+                    <MessageCircle className="mr-1.5 size-3.5 text-emerald-600" />
+                    {t('chatInInboxBtn') || 'Chat in Inbox'}
+                  </Button>
+                  {contact.phone && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      render={<a href={`tel:${contact.phone}`} />}
+                      className="border-border text-foreground hover:bg-muted"
+                    >
+                      <Phone className="mr-1.5 size-3.5 text-blue-600" />
+                      {t('callBtn') || 'Call'}
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     onClick={() => setTemplatePickerOpen(true)}
@@ -1525,6 +1559,14 @@ export function ContactDetailView({
         open={costSheetModalOpen}
         onOpenChange={setCostSheetModalOpen}
         contactId={contactId || undefined}
+      />
+      <ScheduleVisitSheet
+        open={scheduleVisitOpen}
+        onOpenChange={setScheduleVisitOpen}
+        defaultContactId={contact?.id}
+        onSuccess={() => {
+          onUpdated();
+        }}
       />
     </>
   );

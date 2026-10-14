@@ -1,12 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+/**
+ * Contacts / Leads Page
+ *
+ * Full-featured B2B Real Estate Leads management view:
+ *  - Situational awareness stats overview (Total Leads, Fresh/New, Hot Leads, Active Deals, Pending Reply)
+ *  - Multi-dimensional filters (Search, Source, Deal Stage/Status, Tags, Assignee)
+ *  - Desktop Table with refined hierarchy, SourceBadge, StatusBadge, Location, Budget (INR),
+ *    and quick inline actions (Direct WhatsApp chat, 1-click Call, Schedule Visit, More menu)
+ *  - Modern Mobile Cards layout with 1-tap Call, WhatsApp, Schedule Visit, and Detail actions
+ *  - Complete integration with ScheduleVisitSheet, ContactForm, ContactDetailView, and bulk operations
+ *  - Full i18n support, dark & light mode styling, and responsive layout
+ */
+
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { toast } from 'sonner';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { vibrate } from '@/lib/utils/vibrate';
-import type { Contact, Tag } from '@/types';
+import type { Contact, Tag, Profile } from '@/types';
 import { Skeleton } from '@/components/dashboard/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +53,13 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Search,
   Plus,
   Upload,
@@ -55,9 +75,19 @@ import {
   SlidersHorizontal,
   Filter,
   X,
+  Phone,
+  MessageCircle,
+  Calendar,
+  MapPin,
+  IndianRupee,
+  Flame,
+  Sparkles,
+  TrendingUp,
+  UserCheck,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
+import { ScheduleVisitSheet } from '@/components/site-visits/schedule-visit-sheet';
 import { useRouter } from 'next/navigation';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
 import { BulkReassignModal } from '@/components/contacts/bulk-reassign-modal';
@@ -71,10 +101,31 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageCircle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const PAGE_SIZE = 25;
+
+const KNOWN_SOURCES = [
+  '99acres',
+  'MagicBricks',
+  'Housing.com',
+  'NoBroker',
+  'Walk-in',
+  'Referral',
+  'Meta Ads',
+  'Google Ads',
+  'Manual Entry',
+];
+
+const KNOWN_STAGES = [
+  'New',
+  'Contacted',
+  'Site Visit',
+  'Negotiation',
+  'Booking / Token Paid',
+  'Won',
+  'Lost',
+];
 
 function formatRelativeDate(isoString: string | null | undefined): string {
   if (!isoString) return '-';
@@ -96,6 +147,19 @@ function formatRelativeDate(isoString: string | null | undefined): string {
   return `${Math.floor(diffInDays / 365)}y ago`;
 }
 
+function formatBudgetDisplay(
+  min: number | null | undefined,
+  max: number | null | undefined,
+  currency = 'INR'
+): string {
+  if (!min && !max) return '-';
+  const format = (v: number) =>
+    currency === 'INR' ? formatINR(v) : formatCurrency(v, currency);
+  if (min && !max) return format(min);
+  if (!min && max) return format(max);
+  return `${format(min as number)} – ${format(max as number)}`;
+}
+
 interface ContactWithTags extends Contact {
   tags?: Tag[];
   first_unanswered_at?: string | null;
@@ -105,8 +169,11 @@ interface ContactWithTags extends Contact {
     location_preference?: string;
     budget_min?: number;
     budget_max?: number;
+    configuration_preference?: string[];
+    possession_preference?: string;
   } | null;
   deals?: {
+    id?: string;
     assigned_to?: string | null;
     status?: string;
     pipeline_stages?: {
@@ -128,31 +195,34 @@ export default function ContactsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  // Tag filter — contacts shown must have ANY of these tags (OR).
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  // Modals
+  // Filters
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedSource, setSelectedSource] = useState<string>('all');
+  const [selectedStage, setSelectedStage] = useState<string>('all');
+  const [selectedAssignee, setSelectedAssignee] = useState<string>('all');
+
+  // Modals & Sheets
   const [formOpen, setFormOpen] = useState(false);
   const [editContact, setEditContact] = useState<Contact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailContactId, setDetailContactId] = useState<string | null>(null);
+  const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
+  const [scheduleVisitContactId, setScheduleVisitContactId] = useState<string | undefined>(undefined);
   const [customFieldsOpen, setCustomFieldsOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Bulk selection (page-scoped — only the loaded rows are selectable)
+  // Bulk selection
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
 
-  // All tags for display
+  // Reference data
   const [tagsMap, setTagsMap] = useState<Record<string, Tag>>({});
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
-  // Guards against out-of-order fetch responses: each fetchContacts run
-  // claims a sequence number and only the latest is allowed to commit its
-  // results. Without this, rapidly toggling tag filters could let a slower
-  // earlier request resolve last and render stale rows.
   const fetchSeq = useRef(0);
 
   const fetchTags = useCallback(async () => {
@@ -161,8 +231,6 @@ export default function ContactsPage() {
       const map: Record<string, Tag> = {};
       data.forEach((t) => (map[t.id] = t));
       setTagsMap(map);
-      // Drop any filter selections whose tag no longer exists (e.g. a tag
-      // deleted elsewhere) so it can't linger invisibly in the query.
       setSelectedTagIds((prev) => {
         const pruned = prev.filter((id) => map[id]);
         return pruned.length === prev.length ? prev : pruned;
@@ -170,12 +238,17 @@ export default function ContactsPage() {
     }
   }, [supabase]);
 
+  const fetchProfiles = useCallback(async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, user_id, full_name, email, account_role')
+      .order('full_name');
+    if (data) setProfiles(data as Profile[]);
+  }, [supabase]);
+
   const fetchContacts = useCallback(async () => {
     const seq = ++fetchSeq.current;
     setLoading(true);
-    // The visible rows are about to change — drop any selection that
-    // referred to the old page/search results so the bulk bar can't
-    // act on rows the user can no longer see.
     setSelected(new Set());
 
     const from = page * PAGE_SIZE;
@@ -186,12 +259,6 @@ export default function ContactsPage() {
     let count: number;
 
     if (selectedTagIds.length > 0) {
-      // Tag filter active — resolve it server-side (join + distinct +
-      // windowed total count + pagination) so a tag covering many
-      // contacts can't silently truncate the result or overflow an IN
-      // clause. See migration 025_filter_contacts_by_tags.
-      // p_agent_user_id (migration 125): restrict results to the agent's
-      // own contacts when the caller is an agent, NULL = no restriction.
       const { data, error } = await supabase.rpc('filter_contacts_by_tags', {
         p_tag_ids: selectedTagIds,
         p_search: term || null,
@@ -199,7 +266,7 @@ export default function ContactsPage() {
         p_offset: from,
         p_agent_user_id: accountRole === 'agent' && user?.id ? user.id : null,
       });
-      if (seq !== fetchSeq.current) return; // superseded by a newer fetch
+      if (seq !== fetchSeq.current) return;
       if (error) {
         toast.error(t('toastFailedLoad'));
         setLoading(false);
@@ -209,11 +276,10 @@ export default function ContactsPage() {
 
       const ids = rows.map((r) => r.contact.id);
       if (ids.length > 0) {
-        // Fetch the missing relations that the RPC drops
         const { data: relations } = await supabase
           .from('contacts')
           .select(
-            'id, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))'
+            'id, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))'
           )
           .in('id', ids)
           .order('created_at', { referencedTable: 'deals', ascending: false });
@@ -229,26 +295,6 @@ export default function ContactsPage() {
       }
       count = rows.length > 0 ? Number(rows[0].total_count) : 0;
     } else if (accountRole === 'agent' && user?.id) {
-      // ----------------------------------------------------------------
-      // Agent-scoped path: show contacts where this agent is involved.
-      //
-      // We intentionally do NOT use `conversations!inner` here — that
-      // approach only surfaces contacts with an active WhatsApp
-      // conversation assigned to the agent, which silently hides:
-      //   - leads created manually (no conversation yet)
-      //   - leads assigned via deals.assigned_to but with no conversation
-      //   - leads imported via CSV before a conversation was opened
-      //
-      // Correct B2B logic: an agent owns a lead if they are either the
-      // original creator (user_id) OR have an open deal assigned to them
-      // for that contact. We collect both sets, union them, then page.
-      //
-      // IMPORTANT: deals.assigned_to stores profiles.id (the profiles
-      // table PK), NOT user_id (the auth UUID). Use profile.id here.
-      // ----------------------------------------------------------------
-
-      // Step 1: collect contact IDs where agent has a deal assigned.
-      // profile.id is the profiles table PK which deals.assigned_to references.
       const profileId = profile?.id;
       const { data: agentDeals } = profileId
         ? await supabase
@@ -262,11 +308,10 @@ export default function ContactsPage() {
         ?.map((d) => d.contact_id)
         .filter(Boolean) ?? []) as string[];
 
-      // Step 2: query contacts — either created by agent OR in dealContactIds
       let agentQuery = supabase
         .from('contacts')
         .select(
-          '*, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
+          '*, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
           {
             count: 'exact',
           }
@@ -276,12 +321,10 @@ export default function ContactsPage() {
         .range(from, to);
 
       if (dealContactIds.length > 0) {
-        // OR: created by this agent OR assigned a deal to this agent
         agentQuery = agentQuery.or(
           `user_id.eq.${user.id},id.in.(${dealContactIds.join(',')})`
         );
       } else {
-        // No deals assigned yet — show only contacts this agent created
         agentQuery = agentQuery.eq('user_id', user.id);
       }
 
@@ -302,11 +345,10 @@ export default function ContactsPage() {
       contactRows = (data as unknown as Contact[]) ?? [];
       count = exactCount ?? 0;
     } else {
-      // Admin / owner path: see all contacts in the account
       let query = supabase
         .from('contacts')
         .select(
-          '*, lead_details(*), deals(status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
+          '*, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
           {
             count: 'exact',
           }
@@ -341,7 +383,6 @@ export default function ContactsPage() {
       return;
     }
 
-    // Fetch tags for these contacts
     const contactIds = contactRows.map((c) => c.id);
     const { data: contactTags } = await supabase
       .from('contact_tags')
@@ -353,16 +394,10 @@ export default function ContactsPage() {
       .select('contact_id, first_unanswered_at, assigned_agent_id')
       .in('contact_id', contactIds);
 
-    // Collect all agent IDs we need profiles for.
-    // NOTE: two different ID spaces are in play here:
-    //   - conversations.assigned_agent_id stores user_id (auth UUID)
-    //   - deals.assigned_to stores profiles.id (profiles table PK)
-    // We build separate lookups for each.
     const convAssigneeIds = (convData
       ?.map((c) => c.assigned_agent_id)
       .filter(Boolean) ?? []) as string[];
 
-    // Extract deal assignees (profiles.id) from already-fetched contactRows
     type ContactRowWithDeals = Contact & {
       deals?: { assigned_to?: string | null }[];
     };
@@ -370,9 +405,7 @@ export default function ContactsPage() {
       .flatMap((c) => c.deals?.map((d) => d.assigned_to) ?? [])
       .filter(Boolean) as string[];
 
-    // Map keyed by user_id — for conversation assignee display
-    const agentsByUserId: Record<string, { id: string; full_name: string }> =
-      {};
+    const agentsByUserId: Record<string, { id: string; full_name: string }> = {};
     if (convAssigneeIds.length > 0) {
       const { data: convProfiles } = await supabase
         .from('profiles')
@@ -383,9 +416,7 @@ export default function ContactsPage() {
       });
     }
 
-    // Map keyed by profiles.id — for deal assignee display
-    const agentsByProfileId: Record<string, { id: string; full_name: string }> =
-      {};
+    const agentsByProfileId: Record<string, { id: string; full_name: string }> = {};
     if (dealAssigneeProfileIds.length > 0) {
       const { data: dealProfiles } = await supabase
         .from('profiles')
@@ -396,7 +427,7 @@ export default function ContactsPage() {
       });
     }
 
-    if (seq !== fetchSeq.current) return; // superseded by a newer fetch
+    if (seq !== fetchSeq.current) return;
 
     const tagsByContact: Record<string, string[]> = {};
     contactTags?.forEach((ct) => {
@@ -415,7 +446,6 @@ export default function ContactsPage() {
       };
     });
 
-    // Build a map of contact_id → deal assignee profiles.id
     const dealAssigneeByContact: Record<string, string | null> = {};
     (contactRows as ContactRowWithDeals[]).forEach((c) => {
       const firstDealWithAssignee = c.deals?.find((d) => d.assigned_to);
@@ -426,8 +456,6 @@ export default function ContactsPage() {
 
     const enriched: ContactWithTags[] = contactRows.map((c) => {
       const conv = convByContact[c.id];
-      // Prefer conversation assignee (real-time, user_id space);
-      // fall back to deal assignee (profiles.id space)
       const convAgentId = conv?.assigned_agent_id ?? null;
       const dealProfileId = dealAssigneeByContact[c.id] ?? null;
       const assignee =
@@ -458,18 +486,19 @@ export default function ContactsPage() {
     accountRole,
   ]);
 
-  // Load-once-on-mount-ish data fetches. Each setter inside runs
-  // inside an async promise completion (Supabase await), not
-  // synchronously in the effect body, so the cascade the lint rule
-  // warns about doesn't apply here.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchTags();
-  }, [fetchTags]);
+    const timer = setTimeout(() => {
+      void fetchTags();
+      void fetchProfiles();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [fetchTags, fetchProfiles]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchContacts();
+    const timer = setTimeout(() => {
+      void fetchContacts();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchContacts]);
 
   function openAddForm() {
@@ -480,6 +509,11 @@ export default function ContactsPage() {
   function openDetail(contactId: string) {
     setDetailContactId(contactId);
     setDetailOpen(true);
+  }
+
+  function handleScheduleVisit(contactId: string) {
+    setScheduleVisitContactId(contactId);
+    setScheduleVisitOpen(true);
   }
 
   function confirmDelete(contact: Contact) {
@@ -553,30 +587,83 @@ export default function ContactsPage() {
     setBulkDeleteOpen(false);
   }
 
+  // Multi-dimensional filtering across source, stage, and assignee
+  const filteredContacts = useMemo(() => {
+    return contacts.filter((c) => {
+      if (selectedSource !== 'all') {
+        const src = c.lead_details?.source || 'Manual Entry';
+        if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
+      }
+      if (selectedStage !== 'all') {
+        const stageName = c.deals?.[0]?.pipeline_stages?.name;
+        if (!stageName || stageName.toLowerCase() !== selectedStage.toLowerCase()) {
+          return false;
+        }
+      }
+      if (selectedAssignee !== 'all') {
+        if (selectedAssignee === 'unassigned') {
+          if (c.assignee) return false;
+        } else {
+          if (c.assignee?.id !== selectedAssignee) return false;
+        }
+      }
+      return true;
+    });
+  }, [contacts, selectedSource, selectedStage, selectedAssignee]);
+
+  // Lead statistics for summary metrics bar
+  const stats = useMemo(() => {
+    const total = totalCount;
+    const hotCount = contacts.filter((c) =>
+      c.tags?.some((t) => t.name.toLowerCase().includes('hot'))
+    ).length;
+    const dealsCount = contacts.filter((c) =>
+      c.deals?.some((d) => d.status === 'open')
+    ).length;
+    const attentionCount = contacts.filter((c) => Boolean(c.first_unanswered_at)).length;
+    const freshCount = contacts.filter(
+      (c) =>
+        c.deals?.[0]?.pipeline_stages?.name === 'New' ||
+        !c.deals ||
+        c.deals.length === 0
+    ).length;
+
+    return { total, hot: hotCount, deals: dealsCount, attention: attentionCount, fresh: freshCount };
+  }, [contacts, totalCount]);
+
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasNext = page < totalPages - 1;
   const hasPrev = page > 0;
 
-  // Tag filter helpers. Every change resets to page 0 — the result set
-  // shrinks/grows so page N may no longer be valid (mirrors the search box).
   const allTags = Object.values(tagsMap).sort((a, b) =>
     a.name.localeCompare(b.name)
   );
+
   const hasActiveFilters =
-    search.trim().length > 0 || selectedTagIds.length > 0;
+    search.trim().length > 0 ||
+    selectedTagIds.length > 0 ||
+    selectedSource !== 'all' ||
+    selectedStage !== 'all' ||
+    selectedAssignee !== 'all';
 
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
     setPage(0);
   }
 
-  function clearTagFilters() {
+  function clearAllFilters() {
+    setSearch('');
     setSelectedTagIds([]);
+    setSelectedSource('all');
+    setSelectedStage('all');
+    setSelectedAssignee('all');
     setPage(0);
+  }
+
+  function isHotLead(contact: ContactWithTags) {
+    return contact.tags?.some((t) => t.name.toLowerCase().includes('hot'));
   }
 
   return (
@@ -585,7 +672,7 @@ export default function ContactsPage() {
         {/* Header */}
         <PageHeader
           title="Leads"
-          subtitle={`${totalCount} total leads in your pipeline`}
+          subtitle={t('subtitle', { count: totalCount }) || `${totalCount} total leads in your pipeline`}
           action={
             <div className="flex items-center gap-2">
               {/* Desktop Actions */}
@@ -598,7 +685,7 @@ export default function ContactsPage() {
                   }}
                   className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
                 >
-                  <Download className="mr-1 size-4" />
+                  <Download className="mr-1.5 size-4" />
                   {t('exportBtn') || 'Export'}
                 </Button>
               )}
@@ -608,7 +695,7 @@ export default function ContactsPage() {
                   onClick={() => setCustomFieldsOpen(true)}
                   className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
                 >
-                  <SlidersHorizontal className="mr-1 size-4" />
+                  <SlidersHorizontal className="mr-1.5 size-4" />
                   {t('customFieldsBtn')}
                 </Button>
               )}
@@ -619,7 +706,7 @@ export default function ContactsPage() {
                 onClick={() => router.push('/contacts/import')}
                 className="border-border text-muted-foreground hover:bg-muted hidden rounded-full sm:flex"
               >
-                <Upload className="mr-1 size-4" />
+                <Upload className="mr-1.5 size-4" />
                 {t('importBtn')}
               </GatedButton>
 
@@ -627,7 +714,7 @@ export default function ContactsPage() {
               {canEditSettings && (
                 <div className="flex sm:hidden">
                   <DropdownMenu>
-                    <DropdownMenuTrigger className="border-border text-muted-foreground hover:bg-muted focus-visible:ring-ring flex h-9 w-9 items-center justify-center rounded-full border bg-transparent shadow-sm focus-visible:ring-1 focus-visible:outline-none">
+                    <DropdownMenuTrigger className="border-border text-muted-foreground hover:bg-muted focus-visible:ring-ring flex h-9 w-9 items-center justify-center rounded-full border bg-transparent shadow-xs focus-visible:ring-1 focus-visible:outline-none">
                       <MoreVertical className="size-4" />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -640,15 +727,11 @@ export default function ContactsPage() {
                         <Download className="mr-2 size-4" />
                         {t('exportBtn') || 'Export'}
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setCustomFieldsOpen(true)}
-                      >
+                      <DropdownMenuItem onClick={() => setCustomFieldsOpen(true)}>
                         <SlidersHorizontal className="mr-2 size-4" />
                         {t('customFieldsBtn')}
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => router.push('/contacts/import')}
-                      >
+                      <DropdownMenuItem onClick={() => router.push('/contacts/import')}>
                         <Upload className="mr-2 size-4" />
                         {t('importBtn')}
                       </DropdownMenuItem>
@@ -661,7 +744,7 @@ export default function ContactsPage() {
                 canAct={canEdit}
                 gateReason="add or import contacts"
                 onClick={openAddForm}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-2 text-sm font-medium shadow-sm"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-2 text-sm font-medium shadow-xs"
               >
                 <Plus className="size-4 sm:mr-1" />
                 <span className="hidden sm:inline">{t('addContactBtn')}</span>
@@ -670,10 +753,73 @@ export default function ContactsPage() {
           }
         />
 
-        {/* Search + tag filter */}
-        <div className="bg-background/95 sticky top-0 z-10 -mx-4 space-y-2 px-4 py-2 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:px-0 sm:py-0">
-          <div className="mb-4 flex items-center gap-3">
-            <div className="relative max-w-sm flex-1">
+        {/* Stats Overview Metric Cards */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div
+            onClick={() => {
+              setSelectedStage('all');
+              setSelectedSource('all');
+            }}
+            className="bg-card border-border/80 hover:border-primary/50 cursor-pointer rounded-xl border p-3.5 transition-all shadow-xs"
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-medium">{t('statsTotal') || 'Total Leads'}</span>
+              <Users className="size-4 text-primary" />
+            </div>
+            <p className="text-foreground mt-1.5 text-2xl font-bold tracking-tight">
+              {stats.total}
+            </p>
+          </div>
+
+          <div
+            onClick={() => setSelectedStage(selectedStage === 'New' ? 'all' : 'New')}
+            className={`bg-card border-border/80 hover:border-blue-500/50 cursor-pointer rounded-xl border p-3.5 transition-all shadow-xs ${
+              selectedStage === 'New' ? 'ring-2 ring-blue-500/30 border-blue-500' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-medium">{t('statsNew') || 'Fresh / New'}</span>
+              <Sparkles className="size-4 text-blue-500" />
+            </div>
+            <p className="text-foreground mt-1.5 text-2xl font-bold tracking-tight">
+              {stats.fresh}
+            </p>
+          </div>
+
+          <div
+            onClick={() => {
+              const hotTag = allTags.find((t) => t.name.toLowerCase().includes('hot'));
+              if (hotTag) toggleTagFilter(hotTag.id);
+            }}
+            className="bg-card border-border/80 hover:border-red-500/50 cursor-pointer rounded-xl border p-3.5 transition-all shadow-xs"
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-medium">{t('statsHot') || 'Hot Leads'}</span>
+              <Flame className="size-4 text-red-500" />
+            </div>
+            <p className="text-foreground mt-1.5 text-2xl font-bold tracking-tight">
+              {stats.hot}
+            </p>
+          </div>
+
+          <div
+            className="bg-card border-border/80 rounded-xl border p-3.5 transition-all shadow-xs"
+          >
+            <div className="flex items-center justify-between text-muted-foreground">
+              <span className="text-xs font-medium">{t('statsDeals') || 'Active Pipeline'}</span>
+              <TrendingUp className="size-4 text-emerald-500" />
+            </div>
+            <p className="text-foreground mt-1.5 text-2xl font-bold tracking-tight">
+              {stats.deals}
+            </p>
+          </div>
+        </div>
+
+        {/* Search & Real Estate Filter Toolbar */}
+        <div className="bg-card border-border/70 rounded-xl border p-3 shadow-xs space-y-3">
+          <div className="flex flex-col md:flex-row gap-3">
+            {/* Search Box */}
+            <div className="relative flex-1">
               <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
               <Input
                 value={search}
@@ -681,76 +827,152 @@ export default function ContactsPage() {
                   setSearch(e.target.value);
                   setPage(0);
                 }}
-                placeholder="Search leads..."
-                className="border-border bg-card placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+                placeholder={t('searchPlaceholder') || 'Search by name, phone, email, location...'}
+                className="bg-muted/40 border-border placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs focus:ring-2 focus:outline-none"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch('')}
+                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
+                >
+                  <X className="size-3.5" />
+                </button>
+              )}
             </div>
 
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    variant="outline"
-                    className="border-border text-muted-foreground hover:bg-muted shrink-0"
-                  />
-                }
-              >
-                <Filter className="size-4" />
-                {t('filterByTags')}
-                {selectedTagIds.length > 0 && (
-                  <span className="bg-primary text-primary-foreground ml-1 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold">
-                    {selectedTagIds.length}
-                  </span>
-                )}
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-64 p-0">
-                <div className="border-border flex items-center justify-between border-b px-3 py-2">
-                  <span className="text-popover-foreground text-sm font-medium">
-                    {t('filterByTags')}
-                  </span>
+            {/* Quick Filters Group */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Source Filter */}
+              <Select value={selectedSource} onValueChange={(val) => setSelectedSource(val || 'all')}>
+                <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                  <SelectValue placeholder={t('filterSource') || 'Source'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('filterAllSources') || 'All Sources'}</SelectItem>
+                  {KNOWN_SOURCES.map((src) => (
+                    <SelectItem key={src} value={src}>
+                      {src}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Deal Stage / Status Filter */}
+              <Select value={selectedStage} onValueChange={(val) => setSelectedStage(val || 'all')}>
+                <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                  <SelectValue placeholder={t('filterStage') || 'Stage'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t('filterAllStages') || 'All Stages'}</SelectItem>
+                  {KNOWN_STAGES.map((stg) => (
+                    <SelectItem key={stg} value={stg}>
+                      {stg}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Tag Filter Popover */}
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      className="border-border text-muted-foreground hover:bg-muted text-xs h-8.5 shrink-0"
+                    />
+                  }
+                >
+                  <Filter className="size-3.5 mr-1" />
+                  {t('filterByTags')}
                   {selectedTagIds.length > 0 && (
-                    <button
-                      onClick={clearTagFilters}
-                      className="text-muted-foreground hover:text-foreground text-xs"
-                    >
-                      {t('clearAll')}
-                    </button>
+                    <span className="bg-primary text-primary-foreground ml-1.5 inline-flex items-center justify-center rounded-full px-1.5 text-[10px] font-semibold">
+                      {selectedTagIds.length}
+                    </span>
                   )}
-                </div>
-                {allTags.length === 0 ? (
-                  <p className="text-muted-foreground px-3 py-4 text-center text-sm">
-                    {t('noTagsYet')}
-                  </p>
-                ) : (
-                  <div className="max-h-64 overflow-y-auto py-1">
-                    {allTags.map((tag) => (
-                      <label
-                        key={tag.id}
-                        className="hover:bg-muted/50 flex cursor-pointer items-center gap-2.5 px-3 py-1.5"
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-64 p-0">
+                  <div className="border-border flex items-center justify-between border-b px-3 py-2">
+                    <span className="text-popover-foreground text-xs font-semibold">
+                      {t('filterByTags')}
+                    </span>
+                    {selectedTagIds.length > 0 && (
+                      <button
+                        onClick={() => setSelectedTagIds([])}
+                        className="text-muted-foreground hover:text-foreground text-xs cursor-pointer"
                       >
-                        <Checkbox
-                          checked={selectedTagIds.includes(tag.id)}
-                          onCheckedChange={() => toggleTagFilter(tag.id)}
-                          aria-label={`Filter by ${tag.name}`}
-                        />
-                        <span
-                          className="size-2.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: tag.color }}
-                        />
-                        <span className="text-popover-foreground truncate text-sm">
-                          {tag.name}
-                        </span>
-                      </label>
-                    ))}
+                        {t('clearAll')}
+                      </button>
+                    )}
                   </div>
-                )}
-              </PopoverContent>
-            </Popover>
+                  {allTags.length === 0 ? (
+                    <p className="text-muted-foreground px-3 py-4 text-center text-xs">
+                      {t('noTagsYet')}
+                    </p>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto py-1">
+                      {allTags.map((tag) => (
+                        <label
+                          key={tag.id}
+                          className="hover:bg-muted/50 flex cursor-pointer items-center gap-2.5 px-3 py-1.5"
+                        >
+                          <Checkbox
+                            checked={selectedTagIds.includes(tag.id)}
+                            onCheckedChange={() => toggleTagFilter(tag.id)}
+                            aria-label={`Filter by ${tag.name}`}
+                          />
+                          <span
+                            className="size-2.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          <span className="text-popover-foreground truncate text-xs">
+                            {tag.name}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+
+              {/* Assignee Filter (for managers / admins) */}
+              {profiles.length > 0 && (
+                <Select value={selectedAssignee} onValueChange={(val) => setSelectedAssignee(val || 'all')}>
+                  <SelectTrigger className="bg-muted/40 border-border text-foreground text-xs h-8.5 min-w-[130px]">
+                    <SelectValue placeholder={t('filterAssignee') || 'Assignee'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t('filterAllAssignees') || 'All Agents'}</SelectItem>
+                    <SelectItem value="unassigned">{t('filterUnassigned') || 'Unassigned'}</SelectItem>
+                    {profiles.map((p) => (
+                      <SelectItem key={p.id} value={p.user_id}>
+                        {p.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Clear All Filters */}
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-muted-foreground hover:text-foreground text-xs h-8.5 px-2"
+                >
+                  <X className="mr-1 size-3.5" />
+                  {t('clearAll')}
+                </Button>
+              )}
+            </div>
           </div>
 
-          {/* Active tag-filter chips */}
+          {/* Active Tag Filter Pills */}
           {selectedTagIds.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              <span className="text-muted-foreground text-[11px] font-medium mr-1">
+                Active tags:
+              </span>
               {selectedTagIds.map((id) => {
                 const tag = tagsMap[id];
                 if (!tag) return null;
@@ -767,27 +989,21 @@ export default function ContactsPage() {
                     <button
                       onClick={() => toggleTagFilter(id)}
                       aria-label={`Remove ${tag.name} filter`}
-                      className="hover:opacity-70"
+                      className="hover:opacity-70 cursor-pointer"
                     >
                       <X className="size-3" />
                     </button>
                   </span>
                 );
               })}
-              <button
-                onClick={clearTagFilters}
-                className="text-muted-foreground hover:text-foreground px-1 text-xs"
-              >
-                {t('clearAll')}
-              </button>
             </div>
           )}
         </div>
 
-        {/* Bulk action bar */}
+        {/* Bulk Action Bar */}
         {selected.size > 0 && (
-          <div className="border-border bg-muted/40 flex items-center justify-between gap-4 rounded-lg border px-4 py-2">
-            <p className="text-foreground text-sm">
+          <div className="border-border bg-muted/60 flex items-center justify-between gap-4 rounded-xl border px-4 py-2.5 shadow-xs">
+            <p className="text-foreground text-xs font-semibold">
               {t('selectedCount', { count: selected.size })}
             </p>
             <div className="flex items-center gap-2">
@@ -795,7 +1011,7 @@ export default function ContactsPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setSelected(new Set())}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground text-xs"
               >
                 {t('clearSelection')}
               </Button>
@@ -805,8 +1021,9 @@ export default function ContactsPage() {
                 canAct={canEdit}
                 gateReason="delete contacts"
                 onClick={() => setBulkDeleteOpen(true)}
+                className="text-xs"
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-3.5 mr-1" />
                 {t('deleteSelected')}
               </GatedButton>
               <GatedButton
@@ -815,7 +1032,9 @@ export default function ContactsPage() {
                 canAct={canEditSettings}
                 gateReason="reassign contacts"
                 onClick={() => setBulkReassignOpen(true)}
+                className="text-xs"
               >
+                <UserCheck className="size-3.5 mr-1" />
                 Reassign
               </GatedButton>
             </div>
@@ -832,22 +1051,25 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* Mobile List View */}
+        {/* Mobile View: Dedicated Real Estate Lead Cards */}
         <div className="space-y-3 md:hidden">
           {loading ? (
             <div className="flex flex-col gap-3 py-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-[60%]" />
-                    <Skeleton className="h-3 w-[40%]" />
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-card border-border rounded-xl border p-4 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="size-10 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-4 w-1/2" />
+                      <Skeleton className="h-3 w-1/3" />
+                    </div>
                   </div>
+                  <Skeleton className="h-12 w-full rounded-lg" />
                 </div>
               ))}
             </div>
-          ) : contacts.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-12">
+          ) : filteredContacts.length === 0 ? (
+            <div className="bg-card border-border rounded-xl border flex flex-col items-center gap-2 py-12 px-4 text-center">
               <Users className="text-muted-foreground size-8" />
               <p className="text-muted-foreground text-sm">
                 {hasActiveFilters ? t('noContactsMatch') : t('noContactsYet')}
@@ -861,103 +1083,164 @@ export default function ContactsPage() {
                   onClick={openAddForm}
                   className="border-border text-muted-foreground hover:bg-muted mt-2"
                 >
-                  <Plus className="size-3.5" />
+                  <Plus className="size-3.5 mr-1" />
                   {t('addFirstContact')}
                 </GatedButton>
               )}
             </div>
           ) : (
-            contacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="border-border bg-card relative overflow-hidden rounded-lg border"
-              >
+            filteredContacts.map((contact) => {
+              const dealStage = contact.deals?.[0]?.pipeline_stages?.name;
+              return (
                 <div
-                  className="flex w-full snap-x snap-mandatory overflow-x-auto [&::-webkit-scrollbar]:hidden"
-                  style={{ scrollbarWidth: 'none' }}
+                  key={contact.id}
+                  className="bg-card border-border/80 hover:border-border rounded-xl border p-4 shadow-xs space-y-3 transition-colors"
                 >
-                  {/* Main Content */}
-                  <div
-                    className="bg-card flex w-full flex-none cursor-pointer snap-start items-center gap-3 p-3"
-                    onClick={() => openDetail(contact.id)}
-                  >
-                    <Checkbox
-                      checked={selected.has(contact.id)}
-                      onCheckedChange={() => toggleSelect(contact.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      aria-label={`Select ${contact.name || contact.phone}`}
-                    />
-                    <div className="bg-muted border-border flex size-10 shrink-0 items-center justify-center rounded-full border">
-                      <span className="text-primary text-xs font-medium">
-                        {(contact.name || '?').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-foreground truncate text-sm font-medium">
-                        {contact.name || (
-                          <span className="text-muted-foreground italic">
-                            {t('unnamed')}
+                  {/* Top: Avatar, Name, Phone, StatusBadge */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className="flex items-center gap-3 min-w-0 cursor-pointer flex-1"
+                      onClick={() => openDetail(contact.id)}
+                    >
+                      <Checkbox
+                        checked={selected.has(contact.id)}
+                        onCheckedChange={() => toggleSelect(contact.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label={`Select ${contact.name || contact.phone}`}
+                      />
+                      <Avatar className="size-10 shrink-0">
+                        <AvatarFallback
+                          className="text-sm font-semibold text-white"
+                          style={{ background: avatarColorForName(contact.name) }}
+                        >
+                          {initialsForName(contact.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-foreground text-sm font-semibold truncate">
+                            {contact.name || t('unnamed')}
                           </span>
-                        )}
-                      </p>
-                      <p className="text-muted-foreground truncate text-xs">
-                        {contact.phone}
-                      </p>
-                      {contact.tags && contact.tags.length > 0 && (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {contact.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium"
-                              style={{
-                                backgroundColor: tag.color + '20',
-                                color: tag.color,
-                              }}
-                            >
-                              {tag.name}
+                          {isHotLead(contact) && (
+                            <span className="bg-red-500/10 text-red-600 dark:bg-red-950/60 dark:text-red-400 text-[10px] font-bold px-1.5 py-0.2 rounded-sm uppercase tracking-wide">
+                              HOT
                             </span>
-                          ))}
+                          )}
                         </div>
+                        <p className="text-muted-foreground text-xs mt-0.5">{contact.phone}</p>
+                      </div>
+                    </div>
+                    {dealStage && <StatusBadge status={dealStage} />}
+                  </div>
+
+                  {/* Real Estate Info Block */}
+                  <div className="bg-muted/40 rounded-lg p-2.5 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1 text-muted-foreground truncate">
+                        <MapPin className="size-3 text-primary shrink-0" />
+                        <span className="truncate">
+                          {contact.lead_details?.location_preference || 'Location not specified'}
+                        </span>
+                      </div>
+                      {contact.lead_details?.source && (
+                        <SourceBadge source={contact.lead_details.source} />
                       )}
                     </div>
-                    <div className="mt-1 flex flex-col items-start gap-1">
-                      {contact.first_unanswered_at && (
-                        <SlaBadge
-                          firstUnansweredAt={contact.first_unanswered_at}
-                        />
-                      )}
+
+                    <div className="flex items-center justify-between gap-2 text-muted-foreground">
+                      <div className="flex items-center gap-1 font-medium text-foreground">
+                        <IndianRupee className="size-3 text-primary shrink-0" />
+                        <span>
+                          {formatBudgetDisplay(
+                            contact.lead_details?.budget_min,
+                            contact.lead_details?.budget_max,
+                            defaultCurrency
+                          )}
+                        </span>
+                      </div>
                       {contact.assignee && (
-                        <span className="text-muted-foreground bg-muted border-border inline-flex items-center rounded border px-1.5 py-0.5 text-[10px]">
+                        <span className="text-[11px] text-muted-foreground bg-card px-1.5 py-0.5 rounded border border-border">
                           {contact.assignee.full_name}
                         </span>
                       )}
                     </div>
                   </div>
-                  {/* Swipe Actions */}
-                  <div className="divide-border flex flex-none snap-end divide-x">
-                    <button
-                      onClick={() => openDetail(contact.id)}
-                      className="bg-muted hover:bg-muted/80 flex items-center justify-center px-4 transition-colors"
-                      aria-label="View details"
+
+                  {/* Tags & SLA Badge */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap pt-0.5">
+                    <div className="flex flex-wrap gap-1">
+                      {contact.tags && contact.tags.length > 0 ? (
+                        contact.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag.id}
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                            style={{
+                              backgroundColor: tag.color + '20',
+                              color: tag.color,
+                            }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
+                      {(contact.tags?.length ?? 0) > 3 && (
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          +{contact.tags!.length - 3}
+                        </span>
+                      )}
+                    </div>
+                    {contact.first_unanswered_at && (
+                      <SlaBadge firstUnansweredAt={contact.first_unanswered_at} />
+                    )}
+                  </div>
+
+                  {/* 4-Column Quick Action Bar */}
+                  <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border/60">
+                    <a
+                      href={`tel:${contact.phone}`}
+                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition-colors"
+                      title={t('callAction') || 'Call lead'}
                     >
-                      <ExternalLink className="text-foreground size-4" />
+                      <Phone className="size-3.5 text-blue-600" />
+                      <span>{t('callAction') || 'Call'}</span>
+                    </a>
+                    <Link
+                      href={`/inbox?contact=${contact.id}`}
+                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium transition-colors"
+                      title={t('whatsappAction') || 'Chat on WhatsApp'}
+                    >
+                      <MessageCircle className="size-3.5" />
+                      <span>Chat</span>
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleScheduleVisit(contact.id)}
+                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-xs font-medium transition-colors cursor-pointer"
+                      title={t('scheduleVisitAction') || 'Schedule visit'}
+                    >
+                      <Calendar className="size-3.5" />
+                      <span>Visit</span>
                     </button>
                     <button
-                      onClick={() => confirmDelete(contact)}
-                      className="bg-destructive/10 hover:bg-destructive/20 flex items-center justify-center px-4 transition-colors"
-                      aria-label={t('deleteAction')}
+                      type="button"
+                      onClick={() => openDetail(contact.id)}
+                      className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-muted hover:bg-muted/80 text-foreground text-xs font-medium transition-colors cursor-pointer"
+                      title={t('viewDetailsAction') || 'View details'}
                     >
-                      <Trash2 className="text-destructive size-4" />
+                      <Pencil className="size-3.5 text-muted-foreground" />
+                      <span>Edit</span>
                     </button>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Desktop Table View */}
-        <div className="border-border hidden overflow-hidden rounded-lg border md:block">
+        <div className="border-border hidden overflow-hidden rounded-xl border bg-card shadow-xs md:block">
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
@@ -970,90 +1253,78 @@ export default function ContactsPage() {
                     aria-label={t('selectAllOnPage')}
                   />
                 </TableHead>
-                <TableHead className="text-muted-foreground font-medium">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   LEAD
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   SOURCE
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   LOCATION
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   BUDGET
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   STATUS
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  SLA
-                </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
-                  ASSIGNEE
-                </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium md:table-cell">
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
                   TAGS
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  UPDATED
+                <TableHead className="text-muted-foreground font-semibold text-xs tracking-wider uppercase">
+                  LAST CONTACT
                 </TableHead>
-                <TableHead className="text-muted-foreground hidden font-medium lg:table-cell">
-                  CREATED
-                </TableHead>
-                <TableHead className="text-muted-foreground w-[100px] font-medium">
+                <TableHead className="text-muted-foreground w-[120px] font-semibold text-xs tracking-wider uppercase text-right pr-4">
                   ACTIONS
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                Array.from({ length: 10 }).map((_, i) => (
+                Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
                     <TableCell className="w-10">
-                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="size-4" />
                     </TableCell>
                     <TableCell>
-                      <Skeleton className="h-5 w-[150px]" />
+                      <div className="flex items-center gap-2.5">
+                        <Skeleton className="size-9 rounded-full" />
+                        <div className="space-y-1.5">
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-4 w-[120px]" />
+                    <TableCell>
+                      <Skeleton className="h-5 w-20 rounded-full" />
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <Skeleton className="h-5 w-[100px]" />
+                    <TableCell>
+                      <Skeleton className="h-4 w-24" />
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell">
-                      <Skeleton className="h-5 w-[100px]" />
+                    <TableCell>
+                      <Skeleton className="h-4 w-20" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-16" />
+                    <TableCell>
+                      <Skeleton className="h-5 w-16 rounded-full" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-20" />
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Skeleton className="h-5 w-[120px]" />
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-[100px]" />
+                    <TableCell className="text-right pr-4">
+                      <Skeleton className="h-7 w-20 ml-auto" />
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-[100px]" />
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <Skeleton className="h-4 w-[100px]" />
-                    </TableCell>
-                    <TableCell />
                   </TableRow>
                 ))
-              ) : contacts.length === 0 ? (
+              ) : filteredContacts.length === 0 ? (
                 <TableRow className="border-border">
-                  <TableCell colSpan={12} className="py-12 text-center">
+                  <TableCell colSpan={9} className="py-12 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <Users className="text-muted-foreground size-8" />
                       <p className="text-muted-foreground text-sm">
-                        {hasActiveFilters
-                          ? t('noContactsMatch')
-                          : t('noContactsYet')}
+                        {hasActiveFilters ? t('noContactsMatch') : t('noContactsYet')}
                       </p>
                       {!hasActiveFilters && (
                         <GatedButton
@@ -1064,7 +1335,7 @@ export default function ContactsPage() {
                           onClick={openAddForm}
                           className="border-border text-muted-foreground hover:bg-muted mt-2"
                         >
-                          <Plus className="size-3.5" />
+                          <Plus className="size-3.5 mr-1" />
                           {t('addFirstContact')}
                         </GatedButton>
                       )}
@@ -1072,198 +1343,226 @@ export default function ContactsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                contacts.map((contact) => (
-                  <TableRow
-                    key={contact.id}
-                    className="border-border hover:bg-muted/50 cursor-pointer"
-                    onClick={() => openDetail(contact.id)}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={selected.has(contact.id)}
-                        onCheckedChange={() => toggleSelect(contact.id)}
-                        aria-label={`Select ${contact.name || contact.phone}`}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 shrink-0">
-                          <AvatarFallback
-                            className="text-sm font-medium text-white"
-                            style={{
-                              background: avatarColorForName(contact.name),
+                filteredContacts.map((contact) => {
+                  const dealStage = contact.deals?.[0]?.pipeline_stages?.name;
+                  return (
+                    <TableRow
+                      key={contact.id}
+                      className="border-border hover:bg-muted/40 cursor-pointer transition-colors"
+                      onClick={() => openDetail(contact.id)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                          checked={selected.has(contact.id)}
+                          onCheckedChange={() => toggleSelect(contact.id)}
+                          aria-label={`Select ${contact.name || contact.phone}`}
+                        />
+                      </TableCell>
+
+                      {/* LEAD Cell */}
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="size-9 shrink-0">
+                            <AvatarFallback
+                              className="text-xs font-semibold text-white"
+                              style={{
+                                background: avatarColorForName(contact.name),
+                              }}
+                            >
+                              {initialsForName(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 max-w-[200px]">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-foreground truncate text-sm font-semibold">
+                                {contact.name || 'Unknown'}
+                              </span>
+                              {isHotLead(contact) && (
+                                <span className="bg-red-500/10 text-red-600 dark:bg-red-950/60 dark:text-red-400 text-[9px] font-bold px-1.5 py-0.2 rounded-sm uppercase tracking-wide">
+                                  HOT
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                              <span>{contact.phone}</span>
+                              {contact.assignee && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    {contact.assignee.full_name}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                            {contact.first_unanswered_at && (
+                              <div className="mt-1">
+                                <SlaBadge firstUnansweredAt={contact.first_unanswered_at} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+
+                      {/* SOURCE Cell */}
+                      <TableCell>
+                        {contact.lead_details?.source ? (
+                          <SourceBadge source={contact.lead_details.source} />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* LOCATION Cell */}
+                      <TableCell className="text-foreground text-xs">
+                        {contact.lead_details?.location_preference ? (
+                          <div className="flex items-center gap-1 truncate max-w-[150px]">
+                            <MapPin className="size-3 text-primary shrink-0" />
+                            <span className="truncate">{contact.lead_details.location_preference}</span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* BUDGET Cell */}
+                      <TableCell className="text-foreground text-xs font-medium">
+                        {formatBudgetDisplay(
+                          contact.lead_details?.budget_min,
+                          contact.lead_details?.budget_max,
+                          defaultCurrency
+                        )}
+                      </TableCell>
+
+                      {/* STATUS Cell */}
+                      <TableCell>
+                        {dealStage ? (
+                          <StatusBadge status={dealStage} />
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* TAGS Cell */}
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {contact.tags && contact.tags.length > 0 ? (
+                            contact.tags.slice(0, 2).map((tag) => (
+                              <span
+                                key={tag.id}
+                                className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: tag.color + '20',
+                                  color: tag.color,
+                                }}
+                              >
+                                {tag.name}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
+                          )}
+                          {contact.tags && contact.tags.length > 2 && (
+                            <span className="text-muted-foreground text-[10px] font-medium self-center">
+                              +{contact.tags.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+
+                      {/* LAST CONTACT Cell */}
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatRelativeDate(contact.updated_at)}
+                      </TableCell>
+
+                      {/* ACTIONS Cell */}
+                      <TableCell onClick={(e) => e.stopPropagation()} className="text-right pr-4">
+                        <div className="flex items-center justify-end gap-1">
+                          {/* Direct WhatsApp in Inbox */}
+                          <Link
+                            href={`/inbox?contact=${contact.id}`}
+                            className="hover:bg-muted text-muted-foreground hover:text-emerald-600 rounded-lg p-1.5 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                            title={t('whatsappAction') || 'Chat on WhatsApp'}
+                          >
+                            <MessageCircle className="size-4" />
+                          </Link>
+
+                          {/* 1-Click Call */}
+                          <a
+                            href={`tel:${contact.phone}`}
+                            className="hover:bg-muted text-muted-foreground hover:text-blue-600 rounded-lg p-1.5 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                            title={t('callAction') || 'Call lead'}
+                          >
+                            <Phone className="size-4" />
+                          </a>
+
+                          {/* Quick Schedule Site Visit */}
+                          <button
+                            type="button"
+                            className="hover:bg-muted text-muted-foreground hover:text-primary rounded-lg p-1.5 transition-colors cursor-pointer"
+                            title={t('scheduleVisitAction') || 'Schedule Site Visit'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleScheduleVisit(contact.id);
                             }}
                           >
-                            {initialsForName(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-foreground truncate text-sm font-medium">
-                            {contact.name || 'Unknown'}
-                          </p>
-                          <p className="text-muted-foreground truncate text-xs">
-                            {contact.phone}
-                          </p>
+                            <Calendar className="size-4" />
+                          </button>
+
+                          {/* More Options Menu */}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5 transition-colors focus:outline-none"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="size-4" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDetail(contact.id);
+                                }}
+                              >
+                                <Pencil className="mr-2 size-4" />
+                                {t('viewDetailsAction') || 'View Details / Edit'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleScheduleVisit(contact.id);
+                                }}
+                              >
+                                <Calendar className="mr-2 size-4" />
+                                {t('scheduleVisitAction') || 'Schedule Visit'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmDelete(contact);
+                                }}
+                              >
+                                <Trash2 className="mr-2 size-4" />
+                                {t('deleteAction') || 'Delete Lead'}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {contact.lead_details?.source ? (
-                        <SourceBadge source={contact.lead_details.source} />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {contact.lead_details?.location_preference || '-'}
-                    </TableCell>
-                    <TableCell className="text-foreground hidden text-sm md:table-cell">
-                      {(() => {
-                        const min = contact.lead_details?.budget_min;
-                        const max = contact.lead_details?.budget_max;
-                        if (!min && !max) return '-';
-
-                        const format = (v: number) =>
-                          defaultCurrency === 'INR'
-                            ? formatINR(v)
-                            : formatCurrency(v, defaultCurrency);
-
-                        if (min && !max) return format(min);
-                        if (!min && max) return format(max);
-                        return `${format(min as number)} - ${format(max as number)}`;
-                      })()}
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {contact.deals &&
-                      contact.deals.length > 0 &&
-                      contact.deals[0]?.pipeline_stages?.name ? (
-                        <StatusBadge
-                          status={contact.deals[0].pipeline_stages.name}
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {contact.first_unanswered_at ? (
-                        <SlaBadge
-                          firstUnansweredAt={contact.first_unanswered_at}
-                        />
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {contact.assignee ? (
-                        <span className="text-muted-foreground bg-muted border-border inline-flex items-center rounded border px-2 py-1 text-xs">
-                          {contact.assignee.full_name}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <div className="flex flex-wrap gap-1">
-                        {contact.tags && contact.tags.length > 0 ? (
-                          contact.tags.slice(0, 3).map((tag) => (
-                            <span
-                              key={tag.id}
-                              className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
-                              style={{
-                                backgroundColor: tag.color + '20',
-                                color: tag.color,
-                              }}
-                            >
-                              {tag.name}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            -
-                          </span>
-                        )}
-                        {contact.tags && contact.tags.length > 3 && (
-                          <span className="text-muted-foreground text-[10px]">
-                            +{contact.tags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
-                      {formatRelativeDate(contact.updated_at)}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground hidden text-xs lg:table-cell">
-                      {new Date(contact.created_at).toLocaleDateString(
-                        'en-US',
-                        {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        }
-                      )}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className="flex items-center gap-1">
-                        <Link
-                          href={`/inbox?contact=${contact.id}`}
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          onClick={(e) => e.stopPropagation()}
-                          title="Open in Inbox"
-                        >
-                          <MessageCircle className="size-4" />
-                        </Link>
-                        <button
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                          title="Edit lead"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openDetail(contact.id);
-                          }}
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger
-                            className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="size-4" />
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openDetail(contact.id);
-                              }}
-                            >
-                              <ExternalLink className="mr-2 size-4" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive focus:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                confirmDelete(contact);
-                              }}
-                            >
-                              <Trash2 className="mr-2 size-4" />
-                              Delete Lead
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Controls */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pt-2">
             <p className="text-muted-foreground text-xs">
               {t('showingPagination', {
                 start: page * PAGE_SIZE + 1,
@@ -1297,7 +1596,7 @@ export default function ContactsPage() {
           </div>
         )}
 
-        {/* Contact Form Dialog — used only for new lead creation */}
+        {/* Modals & Sheets */}
         <ContactForm
           open={formOpen}
           onOpenChange={setFormOpen}
@@ -1313,7 +1612,6 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* Contact Detail Sheet */}
         <ContactDetailView
           open={detailOpen}
           onOpenChange={setDetailOpen}
@@ -1321,7 +1619,15 @@ export default function ContactsPage() {
           onUpdated={fetchContacts}
         />
 
-        {/* Custom Fields Manager (admin+) */}
+        <ScheduleVisitSheet
+          open={scheduleVisitOpen}
+          onOpenChange={setScheduleVisitOpen}
+          defaultContactId={scheduleVisitContactId}
+          onSuccess={() => {
+            fetchContacts();
+          }}
+        />
+
         {canEditSettings && (
           <CustomFieldsManager
             open={customFieldsOpen}
@@ -1329,14 +1635,14 @@ export default function ContactsPage() {
           />
         )}
 
-        {/* Delete Confirmation */}
+        {/* Delete Confirmation Dialog */}
         <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
           <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-popover-foreground">
                 {t('deleteContactTitle')}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription className="text-muted-foreground text-xs">
                 {t('deleteContactDesc', {
                   name: deleteTarget?.name || deleteTarget?.phone || '',
                 })}
@@ -1355,21 +1661,21 @@ export default function ContactsPage() {
                 onClick={handleDelete}
                 disabled={deleting}
               >
-                {deleting && <Loader2 className="size-4 animate-spin" />}
+                {deleting && <Loader2 className="size-4 animate-spin mr-1.5" />}
                 {t('deleteBtn')}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* Bulk Delete Confirmation */}
+        {/* Bulk Delete Confirmation Dialog */}
         <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
           <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
             <DialogHeader>
               <DialogTitle className="text-popover-foreground">
                 {t('deleteBulkTitle')}
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
+              <DialogDescription className="text-muted-foreground text-xs">
                 {t('deleteBulkDesc', { count: selected.size })}
               </DialogDescription>
             </DialogHeader>
@@ -1386,7 +1692,7 @@ export default function ContactsPage() {
                 onClick={handleBulkDelete}
                 disabled={deleting}
               >
-                {deleting && <Loader2 className="size-4 animate-spin" />}
+                {deleting && <Loader2 className="size-4 animate-spin mr-1.5" />}
                 {t('deleteBtn')}
               </Button>
             </DialogFooter>
