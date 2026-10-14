@@ -87,8 +87,8 @@ export function DealCard({
       }}
       className={`group border-border/60 bg-card hover:bg-muted/40 relative w-full cursor-pointer rounded-xl border py-3 pr-3 pl-4 text-left shadow-xs transition-all ${
         isOverlay
-          ? 'shadow-xl rotate-1 scale-102 ring-2 ring-primary'
-          : 'hover:border-border hover:-translate-y-0.5 hover:shadow-md'
+          ? 'ring-primary/80 bg-card shadow-2xl ring-2'
+          : 'hover:border-border hover:shadow-md'
       }`}
     >
       {/* Stage color strip */}
@@ -103,7 +103,7 @@ export function DealCard({
         <h4 className="text-foreground flex-1 text-sm leading-snug font-semibold break-words">
           {deal.title}
         </h4>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex shrink-0 items-center gap-1.5">
           {deal.status === 'won' && (
             <span className="bg-primary/15 text-primary inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold">
               <Check className="h-3 w-3" />
@@ -138,7 +138,7 @@ export function DealCard({
         <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-xs">
           {(deal.contact as ExtendedContact)?.lead_details
             ?.location_preference && (
-            <span className="truncate max-w-[140px]">
+            <span className="max-w-[140px] truncate">
               📍{' '}
               {
                 (deal.contact as ExtendedContact).lead_details
@@ -169,7 +169,7 @@ export function DealCard({
         {deal.expected_close_date && (
           <span
             className={`flex items-center gap-1 text-[11px] ${
-              isOverdue ? 'text-red-500 font-semibold' : 'text-muted-foreground'
+              isOverdue ? 'font-semibold text-red-500' : 'text-muted-foreground'
             }`}
           >
             {isOverdue ? (
@@ -183,7 +183,7 @@ export function DealCard({
       </div>
 
       {/* Footer: Assignee & 1-Click Action Buttons */}
-      <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-2">
+      <div className="border-border/40 mt-3 flex items-center justify-between border-t pt-2">
         <div className="flex items-center gap-1.5">
           {assigneeLabel ? (
             <div className="flex items-center gap-1" title={assigneeLabel}>
@@ -195,23 +195,29 @@ export function DealCard({
                   {initialsForName(assigneeLabel)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-muted-foreground text-[11px] truncate max-w-[75px]">
+              <span className="text-muted-foreground max-w-[75px] truncate text-[11px]">
                 {assigneeLabel.split(' ')[0]}
               </span>
             </div>
           ) : (
-            <span className="text-muted-foreground text-[10px] italic">Unassigned</span>
+            <span className="text-muted-foreground text-[10px] italic">
+              Unassigned
+            </span>
           )}
         </div>
 
         {/* 1-click action buttons */}
         {!isOverlay && (
-          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             {deal.contact?.id && (
               <Link
                 href={`/inbox?contactId=${deal.contact.id}`}
                 title={t('chatWhatsAppTooltip')}
-                className="text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 rounded-md p-1 transition-colors"
+                className="text-muted-foreground rounded-md p-1 transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
               >
                 <MessageCircle className="h-3.5 w-3.5" />
               </Link>
@@ -232,7 +238,7 @@ export function DealCard({
                 type="button"
                 onClick={() => onScheduleVisit(deal)}
                 title={t('scheduleVisitTooltip')}
-                className="text-muted-foreground hover:text-blue-500 hover:bg-blue-500/10 rounded-md p-1 transition-colors"
+                className="text-muted-foreground rounded-md p-1 transition-colors hover:bg-blue-500/10 hover:text-blue-500"
               >
                 <CalendarPlus className="h-3.5 w-3.5" />
               </button>

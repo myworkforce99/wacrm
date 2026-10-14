@@ -84,7 +84,7 @@ export function PullToRefresh({
         </div>
       )}
       <div
-        style={{ transform: `translateY(${isPulling ? pullProgress : 0}px)` }}
+        style={isPulling ? { transform: `translateY(${pullProgress}px)` } : undefined}
         className={isPulling ? '' : 'transition-transform duration-300'}
       >
         {children}

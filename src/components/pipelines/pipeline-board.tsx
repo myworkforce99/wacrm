@@ -1,5 +1,15 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
+
+const noopSubscribe = () => () => {};
+function useIsClient() {
+  return useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false
+  );
+}
 import {
   DndContext,
   DragOverlay,
@@ -10,6 +20,9 @@ import {
   useDroppable,
   useDraggable,
   closestCorners,
+  pointerWithin,
+  rectIntersection,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
@@ -52,6 +65,7 @@ export function PipelineBoard({
   const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
+  const isClient = useIsClient();
 
   useEffect(() => {
     if (!accountId) return;
@@ -99,13 +113,35 @@ export function PipelineBoard({
     : null;
 
   const moveDeal = moveDealId ? deals.find((d) => d.id === moveDealId) : null;
+  const isDraggingRef = useRef(false);
+
+  // Smart Kanban collision detection:
+  // 1. Pointer inside a stage column -> immediate match
+  // 2. Rect intersection -> intersecting column
+  // 3. Fallback -> closest corners
+  const collisionDetectionStrategy: CollisionDetection = (args) => {
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    const rectCollisions = rectIntersection(args);
+    if (rectCollisions.length > 0) {
+      return rectCollisions;
+    }
+    return closestCorners(args);
+  };
 
   function handleDragStart(event: DragStartEvent) {
+    isDraggingRef.current = true;
     setActiveDealId(String(event.active.id));
   }
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveDealId(null);
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 150);
+
     const { active, over } = event;
     if (!over) return;
     const dealId = String(active.id);
@@ -120,13 +156,21 @@ export function PipelineBoard({
 
   function handleDragCancel() {
     setActiveDealId(null);
+    setTimeout(() => {
+      isDraggingRef.current = false;
+    }, 150);
   }
+
+  const handleEditDealSafe = (deal: Deal) => {
+    if (isDraggingRef.current) return;
+    onEditDeal(deal);
+  };
 
   return (
     <>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetectionStrategy}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
@@ -148,7 +192,7 @@ export function PipelineBoard({
                 currency={defaultCurrency}
                 brokeragePct={brokeragePct}
                 onAddDeal={onAddDeal}
-                onEditDeal={onEditDeal}
+                onEditDeal={handleEditDealSafe}
                 onMoveDeal={(d) => setMoveDealId(d.id)}
                 onScheduleVisit={onScheduleVisit}
               />
@@ -233,26 +277,31 @@ export function PipelineBoard({
           </Tabs>
         </div>
 
-        <DragOverlay
-          dropAnimation={{
-            duration: 200,
-            easing: 'cubic-bezier(0.2, 0, 0, 1)',
-          }}
-        >
-          {activeDeal ? (
-            <div className="opacity-90">
-              <DealCard
-                deal={activeDeal}
-                stage={
-                  sortedStages.find((s) => s.id === activeDeal.stage_id) ?? null
-                }
-                onEdit={() => {}}
-                isOverlay
-                brokeragePct={brokeragePct}
-              />
-            </div>
-          ) : null}
-        </DragOverlay>
+        {isClient && typeof document !== 'undefined'
+          ? createPortal(
+              <DragOverlay
+                dropAnimation={{
+                  duration: 200,
+                  easing: 'cubic-bezier(0.2, 0, 0, 1)',
+                }}
+              >
+                {activeDeal ? (
+                  <div className="opacity-95 cursor-grabbing pointer-events-none select-none">
+                    <DealCard
+                      deal={activeDeal}
+                      stage={
+                        sortedStages.find((s) => s.id === activeDeal.stage_id) ?? null
+                      }
+                      onEdit={() => {}}
+                      isOverlay
+                      brokeragePct={brokeragePct}
+                    />
+                  </div>
+                ) : null}
+              </DragOverlay>,
+              document.body
+            )
+          : null}
       </DndContext>
 
       <Sheet
@@ -370,13 +419,14 @@ function StageColumn({
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
 
   return (
-    // On mobile each column is `w-[85vw]` (with a reasonable min/max)
-    // so the next column's edge peeks in — a "there's more here" hint.
-    // snap-start lands each column cleanly when swiping. On lg+ we
-    // restore the flex-1 share-the-row behavior. The droppable ref is
-    // on the inner messages region below — intentionally NOT here, so
-    // a drag over the column header doesn't highlight the whole column.
-    <div className="border-border bg-card/60 flex w-[85vw] max-w-[320px] min-w-[260px] shrink-0 snap-start flex-col rounded-xl border p-4 lg:w-auto lg:max-w-none lg:flex-1 lg:shrink lg:basis-[260px] lg:snap-none">
+    <div
+      ref={setNodeRef}
+      className={`border-border bg-card/60 flex w-[85vw] max-w-[320px] min-w-[260px] shrink-0 snap-start flex-col rounded-xl border p-4 transition-all min-h-[460px] lg:w-auto lg:max-w-none lg:flex-1 lg:shrink lg:basis-[260px] lg:snap-none ${
+        isOver
+          ? 'ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary/50'
+          : ''
+      }`}
+    >
       {/* 3px colored top border — sits above the column's padding */}
       <div
         className="-mx-4 -mt-4 h-[3px] rounded-t-xl"
@@ -402,16 +452,13 @@ function StageColumn({
           : formatCurrency(totalValue, currency)}
       </p>
 
-      <div
-        ref={setNodeRef}
-        className={`mt-3 flex flex-1 flex-col gap-2 rounded-lg transition-all ${
-          isOver
-            ? 'bg-primary/5 outline-primary outline outline-2 outline-offset-2 outline-dashed'
-            : ''
-        }`}
-      >
+      <div className="mt-3 flex flex-1 flex-col gap-2 rounded-lg transition-all">
         {deals.length === 0 ? (
-          <div className="border-border text-muted-foreground flex flex-1 items-center justify-center rounded-lg border-2 border-dashed py-10 text-xs">
+          <div
+            className={`border-border text-muted-foreground flex flex-1 items-center justify-center rounded-lg border-2 border-dashed py-10 text-xs transition-colors ${
+              isOver ? 'border-primary bg-primary/10 text-primary font-medium' : ''
+            }`}
+          >
             {t('dropDealHere')}
           </div>
         ) : (
@@ -466,6 +513,7 @@ function DraggableDealCard({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
+      className="cursor-grab active:cursor-grabbing select-none"
       style={{ opacity: isDragging ? 0.3 : 1, touchAction: 'none' }}
     >
       <DealCard
