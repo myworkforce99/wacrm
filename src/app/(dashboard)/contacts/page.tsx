@@ -663,6 +663,13 @@ export default function ContactsPage() {
     selectedStage !== 'all' ||
     selectedAssignee !== 'all';
 
+  const activeFiltersCount =
+    (search.trim().length > 0 ? 1 : 0) +
+    selectedTagIds.length +
+    (selectedSource !== 'all' ? 1 : 0) +
+    (selectedStage !== 'all' ? 1 : 0) +
+    (selectedAssignee !== 'all' ? 1 : 0);
+
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((prev) =>
       prev.includes(tagId)
@@ -855,34 +862,34 @@ export default function ContactsPage() {
 
         {/* Search & Real Estate Filter Toolbar */}
         <div className="bg-card border-border/70 space-y-3 rounded-xl border p-3 shadow-xs">
-          <div className="flex flex-col gap-3 md:flex-row">
-            {/* Search Box */}
-            <div className="relative flex-1">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
-                placeholder={
-                  t('searchPlaceholder') ||
-                  'Search by name, phone, email, location...'
-                }
-                className="bg-muted/40 border-border placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs focus:ring-2 focus:outline-none"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch('')}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            {/* Filter Group: Search + Dropdowns (Left-aligned, rock-solid stable positions) */}
+            <div className="flex flex-1 flex-wrap items-center gap-2">
+              {/* Search Box */}
+              <div className="relative w-full sm:w-72">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(0);
+                  }}
+                  placeholder={
+                    t('searchPlaceholder') ||
+                    'Search by name, phone, email, location...'
+                  }
+                  className="bg-muted/40 border-border placeholder:text-muted-foreground focus:ring-primary/30 w-full rounded-lg border py-1.5 pr-8 pl-9 text-xs focus:ring-2 focus:outline-none"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
 
-            {/* Quick Filters Group */}
-            <div className="flex flex-wrap items-center gap-2">
               {/* Source Filter */}
               <Select
                 value={selectedSource}
@@ -962,8 +969,9 @@ export default function ContactsPage() {
                     </span>
                     {selectedTagIds.length > 0 && (
                       <button
+                        type="button"
                         onClick={() => setSelectedTagIds([])}
-                        className="text-muted-foreground hover:text-foreground cursor-pointer text-xs"
+                        className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 rounded px-1.5 py-0.5 text-[11px] font-medium transition-colors cursor-pointer"
                       >
                         {t('clearAll')}
                       </button>
@@ -1032,20 +1040,20 @@ export default function ContactsPage() {
                   </SelectContent>
                 </Select>
               )}
-
-              {/* Clear All Filters */}
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearAllFilters}
-                  className="text-muted-foreground hover:text-foreground h-8.5 px-2 text-xs"
-                >
-                  <X className="mr-1 size-3.5" />
-                  {t('clearAll')}
-                </Button>
-              )}
             </div>
+
+            {/* Clear All Filters (Anchored on the right, prevents layout shift on dropdowns) */}
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearAllFilters}
+                className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-8.5 shrink-0 gap-1 self-end px-2.5 text-xs font-medium transition-colors shadow-2xs md:self-auto"
+              >
+                <X className="size-3.5" />
+                {t('clearAll')} ({activeFiltersCount})
+              </Button>
+            )}
           </div>
 
           {/* Active Tag Filter Pills */}

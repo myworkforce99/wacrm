@@ -54,7 +54,7 @@ export function TeamDashboardClient() {
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [workloadFilter, setWorkloadFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   // Modal state
   const [targetModalOpen, setTargetModalOpen] = useState(false);
@@ -224,6 +224,12 @@ export function TeamDashboardClient() {
     roleFilter !== 'all' ||
     workloadFilter !== 'all';
 
+  const activeFiltersCount =
+    (search.trim().length > 0 ? 1 : 0) +
+    (availabilityFilter !== 'all' ? 1 : 0) +
+    (roleFilter !== 'all' ? 1 : 0) +
+    (workloadFilter !== 'all' ? 1 : 0);
+
   const clearAllFilters = () => {
     setSearch('');
     setAvailabilityFilter('all');
@@ -387,28 +393,28 @@ export function TeamDashboardClient() {
         {/* Multi-Dimensional Real Estate Filters Toolbar */}
         {!isPrint && (
           <div className="border-border bg-card flex flex-col gap-3 rounded-xl border p-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-            {/* Search Input */}
-            <div className="relative flex-1 sm:max-w-xs">
-              <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
-                placeholder={tFilters('searchPlaceholder')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-9 pl-9 text-xs"
-              />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Dropdowns & View Mode */}
+            {/* Filter Dropdowns Group (Left-aligned, stable positions) */}
             <div className="flex flex-wrap items-center gap-2">
+              {/* Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <Input
+                  placeholder={tFilters('searchPlaceholder')}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-9 pl-9 text-xs"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+
               {/* Availability Filter */}
               <Select
                 value={availabilityFilter}
@@ -482,35 +488,24 @@ export function TeamDashboardClient() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+            </div>
 
-              {/* Reset Filters Chip */}
+            {/* Actions: Clear Filters & View Mode (Anchored right, zero layout shift on dropdowns) */}
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:ml-0">
               {hasActiveFilters && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearAllFilters}
-                  className="text-muted-foreground hover:text-foreground h-9 gap-1 px-2 text-xs"
+                  className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-9 gap-1 px-2.5 text-xs font-medium transition-colors shadow-2xs"
                 >
                   <X className="size-3.5" />
-                  {tFilters('clearFilters')}
+                  {tFilters('clearFilters')} ({activeFiltersCount})
                 </Button>
               )}
 
-              {/* View Mode Toggle (Grid vs Table) */}
+              {/* View Mode Toggle (Table vs Grid) */}
               <div className="border-border bg-muted/40 hidden items-center rounded-lg border p-0.5 sm:flex">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-all ${
-                    viewMode === 'grid'
-                      ? 'bg-card text-foreground shadow-xs'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                  title={tFilters('viewGrid')}
-                >
-                  <LayoutGrid className="size-3.5" />
-                  <span>{tFilters('viewGrid')}</span>
-                </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
@@ -523,6 +518,19 @@ export function TeamDashboardClient() {
                 >
                   <TableProperties className="size-3.5" />
                   <span>{tFilters('viewTable')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-all ${
+                    viewMode === 'grid'
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={tFilters('viewGrid')}
+                >
+                  <LayoutGrid className="size-3.5" />
+                  <span>{tFilters('viewGrid')}</span>
                 </button>
               </div>
             </div>
@@ -549,12 +557,13 @@ export function TeamDashboardClient() {
             </p>
             {hasActiveFilters && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={clearAllFilters}
-                className="mt-4 text-xs"
+                className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 mt-4 gap-1 text-xs font-medium transition-colors shadow-2xs"
               >
-                {tFilters('clearFilters')}
+                <X className="size-3.5" />
+                {tFilters('clearFilters')} ({activeFiltersCount})
               </Button>
             )}
           </div>

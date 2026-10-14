@@ -508,8 +508,19 @@ export default function PropertiesPage() {
               )}
             </div>
 
-            {/* View Mode Toggle (Table vs Grid) */}
-            <div className="flex items-center gap-1 self-end md:self-auto">
+            {/* Actions: Clear Filters & View Mode Toggle */}
+            <div className="flex shrink-0 items-center gap-2 self-end md:self-auto">
+              {activeFiltersCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-8 gap-1 px-2.5 text-xs font-medium transition-colors shadow-2xs"
+                >
+                  <X className="size-3.5" />
+                  {t('clearFilters')} ({activeFiltersCount})
+                </Button>
+              )}
               <Button
                 variant={viewMode === 'table' ? 'secondary' : 'ghost'}
                 size="sm"
@@ -531,8 +542,8 @@ export default function PropertiesPage() {
             </div>
           </div>
 
-          {/* Filter dropdowns row */}
-          <div className="border-border/50 flex flex-wrap items-center gap-2 border-t pt-1">
+          {/* Filter dropdowns row (Fixed width, zero layout shift) */}
+          <div className="border-border/50 flex flex-wrap items-center gap-2 border-t pt-2">
             {/* BHK / Config */}
             <Select
               value={configFilter}
@@ -540,7 +551,7 @@ export default function PropertiesPage() {
             >
               <SelectTrigger
                 label={t('filterConfig')}
-                className="bg-card h-8 min-w-[140px] text-xs"
+                className="bg-card h-9 min-w-[140px] text-xs"
               >
                 <SelectValue placeholder={t('allConfigs')} />
               </SelectTrigger>
@@ -646,19 +657,6 @@ export default function PropertiesPage() {
                 </SelectItem>
               </SelectContent>
             </Select>
-
-            {/* Clear All Filters Button */}
-            {activeFiltersCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClearFilters}
-                className="text-muted-foreground hover:text-foreground h-8 gap-1 px-2 text-xs"
-              >
-                <X className="size-3" />
-                {t('clearFilters')} ({activeFiltersCount})
-              </Button>
-            )}
           </div>
         </div>
 
@@ -682,12 +680,13 @@ export default function PropertiesPage() {
             </div>
             {activeFiltersCount > 0 ? (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleClearFilters}
-                className="mt-2 text-xs"
+                className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 mt-2 gap-1 text-xs font-medium transition-colors shadow-2xs"
               >
-                {t('clearFilters')}
+                <X className="size-3.5" />
+                {t('clearFilters')} ({activeFiltersCount})
               </Button>
             ) : (
               canEdit && (

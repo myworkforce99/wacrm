@@ -205,6 +205,9 @@ export function ConversationList({
   const hasContactFilters =
     selectedTagIds.length > 0 || selectedCompany !== null;
 
+  const activeFiltersCount =
+    selectedTagIds.length + (selectedCompany !== null ? 1 : 0);
+
   const handleSearchChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setSearch(e.target.value);
@@ -389,10 +392,12 @@ export function ConversationList({
               </button>
             )}
             <button
+              type="button"
               onClick={clearContactFilters}
-              className="text-muted-foreground hover:text-foreground px-1 text-[11px]"
+              className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium transition-colors shadow-2xs"
             >
-              {t('clearAll')}
+              <X className="size-3" />
+              {t('clearAll')} ({activeFiltersCount})
             </button>
           </div>
         )}

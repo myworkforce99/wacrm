@@ -2471,7 +2471,7 @@
       "viewMode": "View Mode",
       "viewGrid": "Card Grid",
       "viewTable": "Table View",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear all"
     },
     "table": {
       "colAgent": "Agent",

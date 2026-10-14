@@ -717,7 +717,7 @@ export default function PipelinesPage() {
           <div className="border-border/70 bg-card space-y-3 rounded-xl border p-3 shadow-xs">
             <div className="flex flex-col gap-2.5 md:flex-row">
               {/* Omni-Search Box */}
-              <div className="relative flex-1">
+              <div className="relative w-84">
                 <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                 <Input
                   value={search}
@@ -819,19 +819,6 @@ export default function PipelinesPage() {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-
-                {/* Clear All Filters */}
-                {hasActiveFilters && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="text-muted-foreground hover:text-foreground h-8.5 px-2.5 text-xs"
-                  >
-                    <X className="mr-1 size-3.5" />
-                    {t('clearFilters')}
-                  </Button>
-                )}
               </div>
             </div>
 
@@ -892,15 +879,23 @@ export default function PipelinesPage() {
                 ))}
               </div>
 
-              {/* View Switcher: Kanban vs Table (desktop) */}
-              <div className="hidden items-center gap-1 sm:flex">
+              {/* Active Filter Pill & View Switcher */}
+              <div className="flex items-center gap-2">
                 {hasActiveFilters && (
-                  <span className="text-muted-foreground mr-2 text-xs">
-                    {t('activeFiltersCount', { count: activeFiltersCount })}
-                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAllFilters}
+                    className="bg-red-50 text-red-600 border border-red-200/60 hover:bg-red-100 hover:text-red-700 hover:border-red-300 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 dark:hover:bg-red-900/50 dark:hover:text-red-300 dark:hover:border-red-800 h-8 gap-1 px-2.5 text-xs font-medium transition-colors shadow-2xs"
+                  >
+                    <X className="size-3.5" />
+                    {t('clearFilters')} ({activeFiltersCount})
+                  </Button>
                 )}
+
+                {/* View Switcher: Kanban vs Table (desktop) */}
                 {statusFilter === 'open' && (
-                  <div className="border-border bg-muted/40 flex items-center rounded-lg border p-0.5">
+                  <div className="border-border bg-muted/40 hidden items-center rounded-lg border p-0.5 sm:flex">
                     <button
                       type="button"
                       onClick={() => setViewMode('kanban')}

@@ -2471,7 +2471,7 @@
       "viewMode": "Modo de vista",
       "viewGrid": "Cuadrícula de tarjetas",
       "viewTable": "Vista de tabla",
-      "clearFilters": "Borrar filtros"
+      "clearFilters": "Borrar todo"
     },
     "table": {
       "colAgent": "Agente",

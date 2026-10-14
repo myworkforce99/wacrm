@@ -2471,7 +2471,7 @@
       "viewMode": "보기 모드",
       "viewGrid": "카드 격자",
       "viewTable": "테이블 보기",
-      "clearFilters": "필터 초기화"
+      "clearFilters": "모두 지우기"
     },
     "table": {
       "colAgent": "상담원",
