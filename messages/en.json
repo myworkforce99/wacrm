@@ -2377,5 +2377,118 @@
         "instructions": "1. Log in to your NoBroker partner dashboard.\n2. Go to Settings > Alerts.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       }
     }
+  },
+  "Team": {
+    "dashboard": {
+      "title": "Manager Command Center",
+      "subtitle": "Monitor response times, agent capacity, and pipeline funnel across your team.",
+      "printReport": "Print Report",
+      "emptySearchTitle": "No agents found",
+      "emptySearchDesc": "Try adjusting your search or filters to see team members."
+    },
+    "kpis": {
+      "teamStrength": "Team Strength",
+      "activeCount": "{active} Available",
+      "onLeaveCount": "{onLeave} On Leave",
+      "totalHeadcount": "{total} Total Agents",
+      "openLeads": "Active Workload",
+      "avgCapacity": "{capacity}% Avg Capacity",
+      "totalLeadsCount": "{count} open leads assigned",
+      "monthlyVisits": "Monthly Site Visits",
+      "targetProgress": "{actual} of {target} target ({percent}%)",
+      "noTarget": "{actual} visits completed",
+      "teamSla": "Team Avg Response",
+      "slaMinutes": "{minutes}m avg first reply",
+      "slaNotAvailable": "--",
+      "staleAttention": "{count} stale leads need attention"
+    },
+    "filters": {
+      "searchPlaceholder": "Search agent by name or role...",
+      "availability": "Availability",
+      "availabilityAll": "All Availability",
+      "available": "Available Only",
+      "onLeave": "On Leave",
+      "role": "Role",
+      "roleAll": "All Roles",
+      "roleAgent": "Agents",
+      "roleAdmin": "Admins",
+      "roleOwner": "Owners",
+      "workload": "Workload & Status",
+      "workloadAll": "All Workloads",
+      "workloadOverloaded": "High Workload (≥80%)",
+      "workloadStale": "Has Stale Leads",
+      "workloadTargetMet": "Visits Target Achieved",
+      "viewMode": "View Mode",
+      "viewGrid": "Card Grid",
+      "viewTable": "Table View",
+      "clearFilters": "Clear filters"
+    },
+    "table": {
+      "colAgent": "Agent",
+      "colAvailability": "Available",
+      "colCapacity": "Leads & Capacity",
+      "colVisitsTarget": "Visits This Month",
+      "colResponseTime": "Avg Response",
+      "colVisitsStats": "Visits / No-Show",
+      "colConversion": "Conversion",
+      "colActions": "Actions",
+      "openLeadsCount": "{count} leads",
+      "capacityMax": "{count} / 20",
+      "staleBadge": "{count} stale",
+      "viewLeads": "View Leads",
+      "setTarget": "Set Targets",
+      "noTargetSet": "No target set",
+      "availableToggle": "Toggle availability status"
+    },
+    "agentCard": {
+      "openLeads": "{count} open leads",
+      "capacity": "Capacity",
+      "visitsThisMonth": "Visits This Month",
+      "avgResponse": "Avg Response",
+      "leadsWorked": "Leads Worked",
+      "visitsNoShow": "Visits / No-Show",
+      "conversion": "Conversion",
+      "staleBadge": "⚠️ {count} stale",
+      "available": "Available",
+      "onLeave": "On Leave",
+      "viewLeadsBtn": "View Leads",
+      "setTargetBtn": "Set Targets",
+      "targetProgress": "{actual} / {target}",
+      "toastAvailabilityUpdated": "Availability updated for {name}",
+      "toastAvailabilityFailed": "Failed to update availability"
+    },
+    "targetModal": {
+      "title": "Set Monthly Targets",
+      "description": "Configure performance goals for {name} for this month.",
+      "periodLabel": "Target Period",
+      "currentMonth": "Current Month",
+      "visitsLabel": "Site Visits Target",
+      "visitsPlaceholder": "e.g. 15",
+      "bookingsLabel": "Deals / Bookings Target",
+      "bookingsPlaceholder": "e.g. 3",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "save": "Save Targets",
+      "toastSuccess": "Targets updated for {name}",
+      "toastFailed": "Failed to update targets"
+    },
+    "unassignedPool": {
+      "title": "Unassigned Leads Pool",
+      "badge": "{count} unassigned leads",
+      "viewAll": "View All",
+      "assignBtn": "Assign",
+      "sheetTitle": "Assign Lead to Agent",
+      "openLeads": "{count} open leads",
+      "noAgents": "No available agents.",
+      "sourceUnknown": "Direct Lead",
+      "toastSuccess": "Lead assigned successfully",
+      "toastError": "Failed to assign lead"
+    },
+    "funnel": {
+      "title": "Pipeline Funnel",
+      "description": "Total open leads across all stages for your team",
+      "loading": "Loading funnel data...",
+      "dealsCount": "{count} open leads"
+    }
   }
 }

@@ -2377,5 +2377,118 @@
         "instructions": "1. Log in to your NoBroker partner dashboard.\n2. Go to Settings > Alerts.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       }
     }
+  },
+  "Team": {
+    "dashboard": {
+      "title": "Centro de comando del administrador",
+      "subtitle": "Supervise los tiempos de respuesta, la capacidad de los agentes y el embudo de ventas en su equipo.",
+      "printReport": "Imprimir informe",
+      "emptySearchTitle": "No se encontraron agentes",
+      "emptySearchDesc": "Intente ajustar su búsqueda o filtros para ver a los miembros del equipo."
+    },
+    "kpis": {
+      "teamStrength": "Fuerza del equipo",
+      "activeCount": "{active} disponibles",
+      "onLeaveCount": "{onLeave} ausentes",
+      "totalHeadcount": "{total} agentes totales",
+      "openLeads": "Carga activa",
+      "avgCapacity": "{capacity}% capacidad prom.",
+      "totalLeadsCount": "{count} prospectos abiertos asignados",
+      "monthlyVisits": "Visitas mensuales",
+      "targetProgress": "{actual} de {target} objetivo ({percent}%)",
+      "noTarget": "{actual} visitas completadas",
+      "teamSla": "Respuesta prom. del equipo",
+      "slaMinutes": "{minutes}m primera respuesta prom.",
+      "slaNotAvailable": "--",
+      "staleAttention": "{count} prospectos inactivos requieren atención"
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar agente por nombre o rol...",
+      "availability": "Disponibilidad",
+      "availabilityAll": "Toda disponibilidad",
+      "available": "Solo disponibles",
+      "onLeave": "Ausente",
+      "role": "Rol",
+      "roleAll": "Todos los roles",
+      "roleAgent": "Agentes",
+      "roleAdmin": "Administradores",
+      "roleOwner": "Propietarios",
+      "workload": "Carga y estado",
+      "workloadAll": "Todas las cargas",
+      "workloadOverloaded": "Alta carga (≥80%)",
+      "workloadStale": "Tiene prospectos inactivos",
+      "workloadTargetMet": "Objetivo de visitas alcanzado",
+      "viewMode": "Modo de vista",
+      "viewGrid": "Cuadrícula de tarjetas",
+      "viewTable": "Vista de tabla",
+      "clearFilters": "Borrar filtros"
+    },
+    "table": {
+      "colAgent": "Agente",
+      "colAvailability": "Disponible",
+      "colCapacity": "Prospectos y capacidad",
+      "colVisitsTarget": "Visitas este mes",
+      "colResponseTime": "Respuesta prom.",
+      "colVisitsStats": "Visitas / Sin asistencia",
+      "colConversion": "Conversión",
+      "colActions": "Acciones",
+      "openLeadsCount": "{count} prospectos",
+      "capacityMax": "{count} / 20",
+      "staleBadge": "{count} inactivos",
+      "viewLeads": "Ver prospectos",
+      "setTarget": "Fijar objetivos",
+      "noTargetSet": "Sin objetivo fijado",
+      "availableToggle": "Alternar estado de disponibilidad"
+    },
+    "agentCard": {
+      "openLeads": "{count} prospectos abiertos",
+      "capacity": "Capacidad",
+      "visitsThisMonth": "Visitas este mes",
+      "avgResponse": "Respuesta prom.",
+      "leadsWorked": "Prospectos trabajados",
+      "visitsNoShow": "Visitas / Sin asistencia",
+      "conversion": "Conversión",
+      "staleBadge": "⚠️ {count} inactivos",
+      "available": "Disponible",
+      "onLeave": "Ausente",
+      "viewLeadsBtn": "Ver prospectos",
+      "setTargetBtn": "Fijar objetivos",
+      "targetProgress": "{actual} / {target}",
+      "toastAvailabilityUpdated": "Disponibilidad actualizada para {name}",
+      "toastAvailabilityFailed": "Error al actualizar disponibilidad"
+    },
+    "targetModal": {
+      "title": "Fijar objetivos mensuales",
+      "description": "Configure las metas de rendimiento para {name} este mes.",
+      "periodLabel": "Período objetivo",
+      "currentMonth": "Mes actual",
+      "visitsLabel": "Objetivo de visitas",
+      "visitsPlaceholder": "ej. 15",
+      "bookingsLabel": "Objetivo de acuerdos / reservas",
+      "bookingsPlaceholder": "ej. 3",
+      "cancel": "Cancelar",
+      "saving": "Guardando...",
+      "save": "Guardar objetivos",
+      "toastSuccess": "Objetivos actualizados para {name}",
+      "toastFailed": "Error al actualizar objetivos"
+    },
+    "unassignedPool": {
+      "title": "Grupo de prospectos no asignados",
+      "badge": "{count} prospectos sin asignar",
+      "viewAll": "Ver todos",
+      "assignBtn": "Asignar",
+      "sheetTitle": "Asignar prospecto a agente",
+      "openLeads": "{count} prospectos abiertos",
+      "noAgents": "No hay agentes disponibles.",
+      "sourceUnknown": "Prospecto directo",
+      "toastSuccess": "Prospecto asignado correctamente",
+      "toastError": "Error al asignar prospecto"
+    },
+    "funnel": {
+      "title": "Embudo de ventas",
+      "description": "Total de prospectos abiertos en todas las etapas del equipo",
+      "loading": "Cargando embudo...",
+      "dealsCount": "{count} prospectos abiertos"
+    }
   }
 }

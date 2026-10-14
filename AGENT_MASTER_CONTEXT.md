@@ -1,4 +1,5 @@
 # WaCRM: Master Agent Architecture, Guardrails & Context Guide
+
 > **TARGET AUDIENCE:** Any AI Agent, LLM, or Engineer working on this repository in a fresh or existing session.
 > **HOW TO USE:** Attach or include this document at the start of any new agent conversation. It contains the verified architectural ground truth, database conventions, component invariants, and definition-of-done checklists required to write zero-regression code.
 
@@ -9,6 +10,7 @@
 **WaCRM** is a multi-tenant, WhatsApp-first **B2B Real Estate Vertical CRM** built for Indian and global property developers, brokerages, and sales teams (typically 10–50+ agents managed by team owners/managers).
 
 ### Core Functional Modules:
+
 1. **Shared WhatsApp Inbox:** Multi-agent conversation management, template dispatch, media rendering, and AI auto-replies.
 2. **Contacts & Leads:** Lead capture from portals (99acres, MagicBricks, Housing.com, NoBroker, Meta Ads), lead qualification (budget in INR, BHK configurations, location preferences), SLA badges, and auto-routing.
 3. **Deals & Pipelines:** Drag-and-drop Kanban board (`@dnd-kit`), strict deal lifecycle tracking (Won/Lost states, `lost_reasons` lookup, re-engagement dates, frozen close timestamps).
@@ -23,18 +25,18 @@
 
 Do NOT guess dependencies or framework versions. The repository relies on specific versions with strict rules:
 
-| Layer | Exact Technology & Version | Critical Agent Invariants |
-| :--- | :--- | :--- |
-| **Framework** | Next.js 16.3.5 (App Router, Turbopack) | Use `useRouter().push()` in event handlers. **NEVER use `window.location.href = ...`** for internal routing. |
-| **UI Runtime** | React 19.2.4 | **React 19 Effect Rule:** Synchronous `setState` in `useEffect` triggers cascading render errors. Defer initial fetches with `const timer = setTimeout(() => { void fetchData(); }, 0); return () => clearTimeout(timer);`. |
-| **Language** | TypeScript ^6 (`tsc --noEmit`) | Strict type checking. Zero `any` where types are available in `src/types/index.ts`. |
-| **Styling** | Tailwind CSS v4 (`@tailwindcss/postcss`) | Use existing CSS variables defined in `src/app/globals.css`. Do not introduce parallel token frameworks. |
-| **Components** | shadcn based on **`@base-ui/react`** | **CRITICAL: NEVER IMPORT FROM `@radix-ui/*`**. All primitives in `src/components/ui/*.tsx` wrap `@base-ui/react`. Always inspect the target `components/ui/` file for exact prop signatures. |
-| **Icons** | `lucide-react` | Exclusive icon library. Small WhatsApp icons use clean inline SVG or `MessageCircle`. |
-| **Toasts** | `sonner` via `components/themed-toaster.tsx` | Use `toast.success()`, `toast.error()`, or `toast.info()`. |
-| **Database** | Supabase (`@supabase/ssr`, `@supabase/supabase-js`) | Human auth uses cookie sessions; Public API (`/api/v1`) uses `requireApiKey`. |
-| **i18n** | `next-intl` | **MANDATORY.** Zero hardcoded English strings in JSX. Strict parity across 4 locales (`en`, `es`, `ko`, `pt`). |
-| **Testing** | Vitest (`vitest run`) | 89+ test suites with 1,024+ tests must all pass without failures. |
+| Layer          | Exact Technology & Version                          | Critical Agent Invariants                                                                                                                                                                                                   |
+| :------------- | :-------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**  | Next.js 16.3.5 (App Router, Turbopack)              | Use `useRouter().push()` in event handlers. **NEVER use `window.location.href = ...`** for internal routing.                                                                                                                |
+| **UI Runtime** | React 19.2.4                                        | **React 19 Effect Rule:** Synchronous `setState` in `useEffect` triggers cascading render errors. Defer initial fetches with `const timer = setTimeout(() => { void fetchData(); }, 0); return () => clearTimeout(timer);`. |
+| **Language**   | TypeScript ^6 (`tsc --noEmit`)                      | Strict type checking. Zero `any` where types are available in `src/types/index.ts`.                                                                                                                                         |
+| **Styling**    | Tailwind CSS v4 (`@tailwindcss/postcss`)            | Use existing CSS variables defined in `src/app/globals.css`. Do not introduce parallel token frameworks.                                                                                                                    |
+| **Components** | shadcn based on **`@base-ui/react`**                | **CRITICAL: NEVER IMPORT FROM `@radix-ui/*`**. All primitives in `src/components/ui/*.tsx` wrap `@base-ui/react`. Always inspect the target `components/ui/` file for exact prop signatures.                                |
+| **Icons**      | `lucide-react`                                      | Exclusive icon library. Small WhatsApp icons use clean inline SVG or `MessageCircle`.                                                                                                                                       |
+| **Toasts**     | `sonner` via `components/themed-toaster.tsx`        | Use `toast.success()`, `toast.error()`, or `toast.info()`.                                                                                                                                                                  |
+| **Database**   | Supabase (`@supabase/ssr`, `@supabase/supabase-js`) | Human auth uses cookie sessions; Public API (`/api/v1`) uses `requireApiKey`.                                                                                                                                               |
+| **i18n**       | `next-intl`                                         | **MANDATORY.** Zero hardcoded English strings in JSX. Strict parity across 4 locales (`en`, `es`, `ko`, `pt`).                                                                                                              |
+| **Testing**    | Vitest (`vitest run`)                               | 89+ test suites with 1,024+ tests must all pass without failures.                                                                                                                                                           |
 
 ---
 
@@ -82,6 +84,7 @@ wacrm/
 ## 4. DATABASE INVARIANTS, ID SPACES & RLS
 
 ### A. The 3 Distinct ID Spaces (DO NOT CONFUSE)
+
 1. **`accounts.id` (UUID):** The multi-tenant root. Every organization/brokerage has one `account_id`.
    - In `/api/v1/*` routes, the service-role client **must explicitly filter every query by `ctx.accountId`** because service-role bypasses RLS.
 2. **`profiles.id` (UUID):** The primary key of the `profiles` table.
@@ -91,6 +94,7 @@ wacrm/
    - **Agent Rule:** When resolving agent names for assignees across contacts, conversations, and deals, always maintain dual lookup maps (`profilesById` and `profilesByUserId`).
 
 ### B. Role-Based Access Control (RBAC)
+
 - Roles in order of rank: `"owner" > "admin" > "agent" > "viewer"`.
 - Column: `profiles.account_role` (migration 017). The old `profiles.role` column is dead legacy code; never read it.
 - **Rule:** **NEVER compare role strings inline** (e.g. `role === 'admin'`). Always call the predicates in `src/lib/auth/roles.ts`:
@@ -101,11 +105,13 @@ wacrm/
   - In React components, use `const isViewOnly = useCan('view-only');`.
 
 ### C. Row Level Security (RLS)
+
 - Every account-scoped table enforces tenant isolation via the Postgres helper function:
   `is_account_member(account_id, min_role?)`
 - **Rule:** Never loosen, bypass, or delete an existing RLS policy.
 
 ### D. Migration Rules
+
 - Existing migrations `001_*.sql` through `129_*.sql` are **IMMUTABLE**. Never edit, renumber, or delete them.
 - Any future schema change requires a strictly incremented migration file (`130_*.sql` onwards) and must update `docs/agent/SCHEMA_REFERENCE.md`.
 
@@ -114,6 +120,7 @@ wacrm/
 ## 5. REAL ESTATE DOMAIN & DATA SHAPES
 
 ### A. Indian Real Estate Fields
+
 - **Budgets & Prices:** Must always be formatted using `formatINR()` from `@/lib/currency.ts` (e.g. `₹50 L`, `₹1.5 Cr`, `₹2.25 Cr`).
 - **Text Budget Parsing:** Use `parseBudget(input)` from `@/lib/contacts/parse-budget.ts` which handles strings like `"1.5 cr"`, `"85 lac"`, `"50L"`, or raw numbers.
 - **Configurations:** Use `PROPERTY_CONFIGURATIONS` from `@/types` (`1BHK`, `2BHK`, `3BHK`, `4BHK`, `Studio`, `Villa`, `Plot`, `Commercial`).
@@ -122,6 +129,7 @@ wacrm/
 - **Facing Directions:** `'East' | 'North' | 'North-East' | 'West' | 'South' | 'North-West' | 'South-East' | 'South-West'`.
 
 ### B. Key Table Extensions
+
 - `lead_details`: 1-to-1 extension of `contacts` with `source`, `location_preference`, `budget_min`, `budget_max`, `configuration_preference` (array), `possession_preference`.
 - `properties`: Inventory listings with `title`, `project_name`, `builder_name`, `location`, `price`, `property_type`, `bedrooms`, `configuration`, `carpet_area`, `facing`, `rera_id`, `possession_status`, `possession_date`, `tags`.
 - `site_visits`: Scheduled visits with `contact_id`, `property_id`, `scheduled_at`, `status` (`pending`, `confirmed`, `completed`, `no_show`, `rescheduled`), `pickup_required`, `pickup_location`, `notes`.
@@ -132,12 +140,14 @@ wacrm/
 ## 6. STRICT 4-LOCALE i18n RULES (ZERO-DRIFT GUARANTEE)
 
 The repository uses `next-intl`. A dedicated test suite (`src/i18n/messages.test.ts`) enforces strict parity across all 4 locales on every commit:
+
 - `messages/en.json` (English - source of truth)
 - `messages/es.json` (Spanish)
 - `messages/pt.json` (Portuguese)
 - `messages/ko.json` (Korean)
 
 ### Mandatory Invariants:
+
 1. **No Hardcoded English in JSX:** Always route strings through `const t = useTranslations('Namespace');`.
 2. **Exact Key Hierarchy Parity:** If you add a key `Properties.page.filterConfig` in `en.json`, you **MUST** simultaneously add `Properties.page.filterConfig` in `es.json`, `pt.json`, and `ko.json`.
 3. **Identical ICU Token Signatures:** Every ICU placeholder argument must be identical across all 4 files. If `en.json` uses `{count}` or `{title}` or `{formatted}`, translations must preserve `{count}`, `{title}`, `{formatted}` without renaming.

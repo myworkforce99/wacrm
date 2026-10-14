@@ -2377,5 +2377,118 @@
         "instructions": "1. Log in to your NoBroker partner dashboard.\n2. Go to Settings > Alerts.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       }
     }
+  },
+  "Team": {
+    "dashboard": {
+      "title": "Centro de Comando do Gestor",
+      "subtitle": "Monitore tempos de resposta, capacidade dos agentes e funil de vendas em sua equipe.",
+      "printReport": "Imprimir Relatório",
+      "emptySearchTitle": "Nenhum agente encontrado",
+      "emptySearchDesc": "Tente ajustar sua busca ou filtros para ver os membros da equipe."
+    },
+    "kpis": {
+      "teamStrength": "Força da Equipe",
+      "activeCount": "{active} Disponíveis",
+      "onLeaveCount": "{onLeave} Ausentes",
+      "totalHeadcount": "{total} Total de Agentes",
+      "openLeads": "Carga Ativa",
+      "avgCapacity": "{capacity}% Capacidade Média",
+      "totalLeadsCount": "{count} leads abertos atribuídos",
+      "monthlyVisits": "Visitas Mensais",
+      "targetProgress": "{actual} de {target} meta ({percent}%)",
+      "noTarget": "{actual} visitas concluídas",
+      "teamSla": "Resposta Média da Equipe",
+      "slaMinutes": "{minutes}m primeira resposta média",
+      "slaNotAvailable": "--",
+      "staleAttention": "{count} leads estagnados precisam de atenção"
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar agente por nome ou função...",
+      "availability": "Disponibilidade",
+      "availabilityAll": "Toda Disponibilidade",
+      "available": "Apenas Disponíveis",
+      "onLeave": "Ausente",
+      "role": "Função",
+      "roleAll": "Todas as Funções",
+      "roleAgent": "Agentes",
+      "roleAdmin": "Administradores",
+      "roleOwner": "Proprietários",
+      "workload": "Carga e Status",
+      "workloadAll": "Todas as Cargas",
+      "workloadOverloaded": "Alta Carga (≥80%)",
+      "workloadStale": "Possui Leads Estagnados",
+      "workloadTargetMet": "Meta de Visitas Atingida",
+      "viewMode": "Modo de Visualização",
+      "viewGrid": "Grade de Cartões",
+      "viewTable": "Visualização em Tabela",
+      "clearFilters": "Limpar filtros"
+    },
+    "table": {
+      "colAgent": "Agente",
+      "colAvailability": "Disponível",
+      "colCapacity": "Leads e Capacidade",
+      "colVisitsTarget": "Visitas Este Mês",
+      "colResponseTime": "Resposta Média",
+      "colVisitsStats": "Visitas / Não Comparecimento",
+      "colConversion": "Conversão",
+      "colActions": "Ações",
+      "openLeadsCount": "{count} leads",
+      "capacityMax": "{count} / 20",
+      "staleBadge": "{count} estagnados",
+      "viewLeads": "Ver Leads",
+      "setTarget": "Definir Metas",
+      "noTargetSet": "Nenhuma meta definida",
+      "availableToggle": "Alternar status de disponibilidade"
+    },
+    "agentCard": {
+      "openLeads": "{count} leads abertos",
+      "capacity": "Capacidade",
+      "visitsThisMonth": "Visitas Este Mês",
+      "avgResponse": "Resposta Média",
+      "leadsWorked": "Leads Trabalhados",
+      "visitsNoShow": "Visitas / Não Comparecimento",
+      "conversion": "Conversão",
+      "staleBadge": "⚠️ {count} estagnados",
+      "available": "Disponível",
+      "onLeave": "Ausente",
+      "viewLeadsBtn": "Ver Leads",
+      "setTargetBtn": "Definir Metas",
+      "targetProgress": "{actual} / {target}",
+      "toastAvailabilityUpdated": "Disponibilidade atualizada para {name}",
+      "toastAvailabilityFailed": "Falha ao atualizar disponibilidade"
+    },
+    "targetModal": {
+      "title": "Definir Metas Mensais",
+      "description": "Configure as metas de desempenho para {name} este mês.",
+      "periodLabel": "Período da Meta",
+      "currentMonth": "Mês Atual",
+      "visitsLabel": "Meta de Visitas",
+      "visitsPlaceholder": "ex: 15",
+      "bookingsLabel": "Meta de Acordos / Reservas",
+      "bookingsPlaceholder": "ex: 3",
+      "cancel": "Cancelar",
+      "saving": "Salvando...",
+      "save": "Salvar Metas",
+      "toastSuccess": "Metas atualizadas para {name}",
+      "toastFailed": "Falha ao atualizar metas"
+    },
+    "unassignedPool": {
+      "title": "Fila de Leads Não Atribuídos",
+      "badge": "{count} leads não atribuídos",
+      "viewAll": "Ver Todos",
+      "assignBtn": "Atribuir",
+      "sheetTitle": "Atribuir Lead a um Agente",
+      "openLeads": "{count} leads abertos",
+      "noAgents": "Nenhum agente disponível.",
+      "sourceUnknown": "Lead Direto",
+      "toastSuccess": "Lead atribuído com sucesso",
+      "toastError": "Falha ao atribuir lead"
+    },
+    "funnel": {
+      "title": "Funil de Vendas",
+      "description": "Total de leads abertos em todas as etapas para sua equipe",
+      "loading": "Carregando funil...",
+      "dealsCount": "{count} leads abertos"
+    }
   }
 }

@@ -657,15 +657,20 @@ export async function loadTeamPerformance(
     .split('T')[0];
   const { data: targetsRes } = await db
     .from('agent_targets')
-    .select('agent_id, target_visits')
+    .select('agent_id, target_visits, target_bookings')
     .eq('period_start', firstDayOfMonth);
 
   const targetsByAgent = new Map<string, number>();
+  const targetsBookingsByAgent = new Map<string, number>();
   for (const t of (targetsRes ?? []) as {
     agent_id: string;
     target_visits: number;
+    target_bookings?: number;
   }[]) {
     targetsByAgent.set(t.agent_id, t.target_visits);
+    if (typeof t.target_bookings === 'number') {
+      targetsBookingsByAgent.set(t.agent_id, t.target_bookings);
+    }
   }
 
   // Assemble the result
@@ -703,6 +708,7 @@ export async function loadTeamPerformance(
       isAvailable: agent.is_available ?? true,
       staleLeadCount: staleLeadsByAgent.get(agent.user_id) ?? 0,
       targetVisits: targetsByAgent.get(agent.user_id) ?? null,
+      targetBookings: targetsBookingsByAgent.get(agent.user_id) ?? null,
       actualVisitsThisMonth: visits.completed, // NOTE: this might need date filtering to strictly 'this month' if visitsCompleted covers rangeDays
     };
   });

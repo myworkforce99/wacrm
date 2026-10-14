@@ -2377,5 +2377,118 @@
         "instructions": "1. Log in to your NoBroker partner dashboard.\n2. Go to Settings > Alerts.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
       }
     }
+  },
+  "Team": {
+    "dashboard": {
+      "title": "관리자 커맨드 센터",
+      "subtitle": "팀 전체의 응답 시간, 상담원 가용 용량 및 파이프라인 퍼널을 모니터링합니다.",
+      "printReport": "보고서 인쇄",
+      "emptySearchTitle": "상담원을 찾을 수 없습니다",
+      "emptySearchDesc": "검색어 또는 필터를 조정하여 팀원을 확인해 보세요."
+    },
+    "kpis": {
+      "teamStrength": "팀 현황",
+      "activeCount": "{active} 가용 가능",
+      "onLeaveCount": "{onLeave} 부재중",
+      "totalHeadcount": "{total} 총 상담원",
+      "openLeads": "진행 중인 업무량",
+      "avgCapacity": "{capacity}% 평균 가용량",
+      "totalLeadsCount": "{count} 할당된 오픈 리드",
+      "monthlyVisits": "이달의 현장 방문",
+      "targetProgress": "목표 {target} 중 {actual} ({percent}%)",
+      "noTarget": "{actual} 방문 완료",
+      "teamSla": "팀 평균 응답 시간",
+      "slaMinutes": "{minutes}분 평균 첫 응답",
+      "slaNotAvailable": "--",
+      "staleAttention": "{count}개의 방치된 리드 주의 필요"
+    },
+    "filters": {
+      "searchPlaceholder": "상담원 이름 또는 역할로 검색...",
+      "availability": "가용 상태",
+      "availabilityAll": "전체 상태",
+      "available": "가용 가능만",
+      "onLeave": "부재중",
+      "role": "역할",
+      "roleAll": "모든 역할",
+      "roleAgent": "상담원",
+      "roleAdmin": "관리자",
+      "roleOwner": "소유자",
+      "workload": "업무량 및 상태",
+      "workloadAll": "모든 업무량",
+      "workloadOverloaded": "높은 업무량 (≥80%)",
+      "workloadStale": "방치된 리드 있음",
+      "workloadTargetMet": "방문 목표 달성",
+      "viewMode": "보기 모드",
+      "viewGrid": "카드 격자",
+      "viewTable": "테이블 보기",
+      "clearFilters": "필터 초기화"
+    },
+    "table": {
+      "colAgent": "상담원",
+      "colAvailability": "가용 상태",
+      "colCapacity": "리드 및 가용량",
+      "colVisitsTarget": "이번 달 방문",
+      "colResponseTime": "평균 응답",
+      "colVisitsStats": "방문 / 불참",
+      "colConversion": "전환율",
+      "colActions": "작업",
+      "openLeadsCount": "{count}개 리드",
+      "capacityMax": "{count} / 20",
+      "staleBadge": "{count} 방치됨",
+      "viewLeads": "리드 보기",
+      "setTarget": "목표 설정",
+      "noTargetSet": "설정된 목표 없음",
+      "availableToggle": "가용 상태 전환"
+    },
+    "agentCard": {
+      "openLeads": "{count}개 오픈 리드",
+      "capacity": "가용량",
+      "visitsThisMonth": "이번 달 방문",
+      "avgResponse": "평균 응답",
+      "leadsWorked": "작업한 리드",
+      "visitsNoShow": "방문 / 불참",
+      "conversion": "전환율",
+      "staleBadge": "⚠️ {count} 방치됨",
+      "available": "가용 가능",
+      "onLeave": "부재중",
+      "viewLeadsBtn": "리드 보기",
+      "setTargetBtn": "목표 설정",
+      "targetProgress": "{actual} / {target}",
+      "toastAvailabilityUpdated": "{name} 상담원의 가용 상태가 업데이트되었습니다",
+      "toastAvailabilityFailed": "가용 상태 업데이트 실패"
+    },
+    "targetModal": {
+      "title": "월간 목표 설정",
+      "description": "이번 달 {name} 상담원의 성과 목표를 설정합니다.",
+      "periodLabel": "목표 기간",
+      "currentMonth": "이번 달",
+      "visitsLabel": "현장 방문 목표",
+      "visitsPlaceholder": "예: 15",
+      "bookingsLabel": "거래 / 계약 목표",
+      "bookingsPlaceholder": "예: 3",
+      "cancel": "취소",
+      "saving": "저장 중...",
+      "save": "목표 저장",
+      "toastSuccess": "{name} 상담원의 목표가 업데이트되었습니다",
+      "toastFailed": "목표 업데이트 실패"
+    },
+    "unassignedPool": {
+      "title": "미할당 리드 풀",
+      "badge": "{count}개 미할당 리드",
+      "viewAll": "모두 보기",
+      "assignBtn": "할당",
+      "sheetTitle": "상담원에게 리드 할당",
+      "openLeads": "{count}개 오픈 리드",
+      "noAgents": "가용한 상담원이 없습니다.",
+      "sourceUnknown": "직접 유입 리드",
+      "toastSuccess": "리드가 성공적으로 할당되었습니다",
+      "toastError": "리드 할당 실패"
+    },
+    "funnel": {
+      "title": "파이프라인 퍼널",
+      "description": "팀의 모든 단계에 걸친 총 오픈 리드 수",
+      "loading": "퍼널 데이터 로드 중...",
+      "dealsCount": "{count}개 오픈 리드"
+    }
   }
 }
