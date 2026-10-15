@@ -604,8 +604,8 @@ export interface SiteVisit {
   pickup_location?: string | null;
   created_at: string;
   updated_at: string;
-  contact?: Contact;
-  property?: Property;
+  contact?: Contact | null;
+  property?: Property | null;
 }
 
 export interface Property {

@@ -6,15 +6,17 @@
  * A modern right-side Sheet (desktop) / bottom Sheet (mobile) for creating or
  * editing a real-estate site visit:
  *
- *  - Contact search & selection: Clean selected lead card with avatar & phone,
- *    live search list when picking a lead.
+ *  - Contact search & selection: Clean selected lead card with avatar, phone,
+ *    source badge, budget preview, and live search list.
+ *  - Contact switching allowed in both create and edit modes.
  *  - Property context: Rich Base-UI Select with Price (INR), Configuration (BHK),
- *    Location, and selected Property Preview card.
+ *    Location, and selected Property Preview card with builder/project name.
  *  - Quick datetime presets: 1-tap buttons for "Today 4 PM", "Tomorrow 11 AM",
  *    "Tomorrow 4 PM", "This Sat 11 AM", "This Sun 11 AM" + native datetime picker.
  *  - Assigned agent data wiring: Fully synchronized with `tasks` table so the
  *    assigned agent receives an actionable task with due date & notification.
- *  - Status: Amber (Pending) vs Emerald (Confirmed) visual toggle.
+ *  - Status: Amber (Pending) vs Emerald (Confirmed) on create; all 5 valid statuses
+ *    (Pending, Confirmed, Completed, Rescheduled, No Show) on edit.
  *  - Pickup logistics: Clean toggle with landmark/location input.
  *  - Full 4-locale i18n parity, responsive mobile & desktop UX.
  */
@@ -44,9 +46,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SourceBadge } from '@/components/ui/source-badge';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatINR } from '@/lib/currency';
-import type { Contact, Property, Profile, SiteVisit } from '@/types';
+import type { Property, Profile, SiteVisit, SiteVisitStatus } from '@/types';
+import { cn } from '@/lib/utils';
 import {
   Loader2,
   Search,
@@ -59,6 +63,20 @@ import {
   Car,
   Sparkles,
 } from 'lucide-react';
+
+type ContactWithLead = {
+  id: string;
+  name?: string | null;
+  phone: string;
+  email?: string | null;
+  lead_details?: {
+    source?: string | null;
+    budget_min?: number | null;
+    budget_max?: number | null;
+    location_preference?: string | null;
+    configuration_preference?: string[] | null;
+  } | null;
+};
 
 interface Props {
   open: boolean;
@@ -73,7 +91,11 @@ interface Props {
 }
 
 type PresetKey =
-  'today4pm' | 'tomorrow11am' | 'tomorrow4pm' | 'thisSat11am' | 'thisSun11am';
+  | 'today4pm'
+  | 'tomorrow11am'
+  | 'tomorrow4pm'
+  | 'thisSat11am'
+  | 'thisSun11am';
 
 function getPresetDatetime(preset: PresetKey): string {
   const d = new Date();
@@ -89,7 +111,7 @@ function getPresetDatetime(preset: PresetKey): string {
     d.setDate(d.getDate() + 1);
     d.setHours(16, 0, 0, 0);
   } else if (preset === 'thisSat11am') {
-    const day = d.getDay(); // 0 is Sun, 6 is Sat
+    const day = d.getDay();
     const daysUntilSat = (6 - day + 7) % 7 || 7;
     d.setDate(d.getDate() + daysUntilSat);
     d.setHours(11, 0, 0, 0);
@@ -104,6 +126,33 @@ function getPresetDatetime(preset: PresetKey): string {
     .slice(0, 16);
 }
 
+export function formatConfiguration(
+  config?: string | null,
+  bedrooms?: number | null
+): string | null {
+  if (config) {
+    const trimmed = config.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(trimmed) as {
+          bedrooms?: number;
+          configuration?: string;
+        };
+        if (parsed.bedrooms) return `${parsed.bedrooms} BHK`;
+        if (parsed.configuration) return String(parsed.configuration);
+      } catch {
+        // Fallback to raw string if JSON.parse fails
+      }
+    } else {
+      return trimmed;
+    }
+  }
+  if (bedrooms) {
+    return `${bedrooms} BHK`;
+  }
+  return null;
+}
+
 export function ScheduleVisitSheet({
   open,
   onOpenChange,
@@ -113,11 +162,12 @@ export function ScheduleVisitSheet({
   defaultPropertyId,
 }: Props) {
   const t = useTranslations('SiteVisits.schedule');
+  const tPage = useTranslations('SiteVisits.page');
   const supabase = createClient();
   const { accountId, user } = useAuth();
 
   // Reference data
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contacts, setContacts] = useState<ContactWithLead[]>([]);
   const [properties, setProperties] = useState<Property[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -130,7 +180,7 @@ export function ScheduleVisitSheet({
   const [selectedPropertyId, setSelectedPropertyId] = useState('');
   const [assignedAgentId, setAssignedAgentId] = useState('');
   const [scheduledAt, setScheduledAt] = useState(''); // datetime-local string
-  const [status, setStatus] = useState<'pending' | 'confirmed'>('pending');
+  const [status, setStatus] = useState<SiteVisitStatus>('pending');
   const [notes, setNotes] = useState('');
   const [pickupRequired, setPickupRequired] = useState(false);
   const [pickupLocation, setPickupLocation] = useState('');
@@ -144,18 +194,61 @@ export function ScheduleVisitSheet({
       { data: propsData },
       { data: profilesData },
     ] = await Promise.all([
-      supabase.from('contacts').select('id, name, phone').order('name'),
+      supabase
+        .from('contacts')
+        .select(
+          'id, name, phone, email, lead_details(source, location_preference, budget_min, budget_max, configuration_preference)'
+        )
+        .order('name'),
       supabase
         .from('properties')
-        .select('id, title, location, configuration, bedrooms, price')
+        .select(
+          'id, title, project_name, builder_name, location, configuration, bedrooms, price'
+        )
         .order('title'),
       supabase
         .from('profiles')
-        .select('id, user_id, full_name, email')
+        .select('id, user_id, full_name, email, avatar_url')
         .order('full_name'),
     ]);
 
-    setContacts((contactsData ?? []) as Contact[]);
+    const normalizedContacts: ContactWithLead[] = (
+      (contactsData ?? []) as Array<{
+        id: string;
+        name: string | null;
+        phone: string;
+        email: string | null;
+        lead_details?:
+          | {
+              source?: string | null;
+              budget_min?: number | null;
+              budget_max?: number | null;
+              location_preference?: string | null;
+              configuration_preference?: string[] | null;
+            }
+          | Array<{
+              source?: string | null;
+              budget_min?: number | null;
+              budget_max?: number | null;
+              location_preference?: string | null;
+              configuration_preference?: string[] | null;
+            }>
+          | null;
+      }>
+    ).map((c) => {
+      const ld = Array.isArray(c.lead_details)
+        ? c.lead_details[0] ?? null
+        : c.lead_details ?? null;
+      return {
+        id: c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email,
+        lead_details: ld,
+      };
+    });
+
+    setContacts(normalizedContacts);
     setProperties((propsData ?? []) as Property[]);
     setProfiles((profilesData ?? []) as Profile[]);
     setLoading(false);
@@ -165,7 +258,7 @@ export function ScheduleVisitSheet({
     if (!open) return;
 
     const timer = setTimeout(() => {
-      loadFormData();
+      void loadFormData();
 
       // Pre-fill from visit prop (edit mode) or reset (create mode)
       if (visit) {
@@ -184,7 +277,7 @@ export function ScheduleVisitSheet({
           setScheduledAt('');
         }
 
-        setStatus(visit.status === 'confirmed' ? 'confirmed' : 'pending');
+        setStatus(visit.status || 'pending');
         setNotes(visit.notes ?? '');
         setPickupRequired(visit.pickup_required ?? false);
         setPickupLocation(visit.pickup_location ?? '');
@@ -234,13 +327,23 @@ export function ScheduleVisitSheet({
       .filter(
         (c) =>
           c.name?.toLowerCase().includes(q) ||
-          c.phone?.toLowerCase().includes(q)
+          c.phone?.toLowerCase().includes(q) ||
+          c.email?.toLowerCase().includes(q)
       )
       .slice(0, 20);
   }, [contacts, contactSearch]);
 
   const selectedContact = contacts.find((c) => c.id === selectedContactId);
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
+
+  // Status label dictionary
+  const statusLabels: Record<string, string> = {
+    pending: tPage('statusPending'),
+    confirmed: tPage('statusConfirmed'),
+    completed: tPage('statusCompleted'),
+    no_show: tPage('statusNoShow'),
+    rescheduled: tPage('statusRescheduled'),
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -303,6 +406,7 @@ export function ScheduleVisitSheet({
           .maybeSingle();
 
         const taskTitle = `Site Visit: ${selectedProperty?.title || selectedContact?.name || 'Property Showing'}`;
+        const isCompleted = status === 'completed';
 
         if (assignedAgentId) {
           if (currentTask) {
@@ -313,6 +417,8 @@ export function ScheduleVisitSheet({
                 due_at: scheduledAtISO,
                 title: taskTitle,
                 contact_id: selectedContactId,
+                done: isCompleted,
+                done_at: isCompleted ? new Date().toISOString() : null,
                 updated_at: new Date().toISOString(),
               })
               .eq('id', currentTask.id);
@@ -325,6 +431,8 @@ export function ScheduleVisitSheet({
               due_at: scheduledAtISO,
               assigned_to: assignedAgentId,
               created_by: user?.id,
+              done: isCompleted,
+              done_at: isCompleted ? new Date().toISOString() : null,
             });
           }
         } else if (currentTask) {
@@ -333,6 +441,8 @@ export function ScheduleVisitSheet({
             .update({
               assigned_to: null,
               due_at: scheduledAtISO,
+              done: isCompleted,
+              done_at: isCompleted ? new Date().toISOString() : null,
               updated_at: new Date().toISOString(),
             })
             .eq('id', currentTask.id);
@@ -352,7 +462,7 @@ export function ScheduleVisitSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="bg-popover border-border flex w-full max-w-lg flex-col p-0 sm:max-w-lg"
+        className="bg-popover border-border flex w-full max-w-xl flex-col p-0 sm:max-w-[560px]"
       >
         <SheetHeader className="border-border/50 border-b px-5 pt-5 pb-4">
           <div className="flex items-center gap-2.5">
@@ -388,7 +498,7 @@ export function ScheduleVisitSheet({
                     {t('contactLabel')}
                     <span className="text-destructive">*</span>
                   </span>
-                  {selectedContact && !isChangingContact && !isEditMode && (
+                  {selectedContact && !isChangingContact && (
                     <button
                       type="button"
                       onClick={() => setIsChangingContact(true)}
@@ -400,8 +510,8 @@ export function ScheduleVisitSheet({
                 </Label>
 
                 {selectedContact && !isChangingContact ? (
-                  <div className="border-border/80 bg-muted/40 flex items-center justify-between rounded-xl border p-3">
-                    <div className="flex items-center gap-3">
+                  <div className="border-border/80 bg-muted/40 flex items-center justify-between gap-3 rounded-xl border p-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <Avatar className="size-9 shrink-0">
                         <AvatarFallback
                           className="text-xs font-semibold text-white"
@@ -414,16 +524,54 @@ export function ScheduleVisitSheet({
                           {initialsForName(selectedContact.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <div className="min-w-0">
-                        <p className="text-foreground truncate text-sm font-semibold">
-                          {selectedContact.name || selectedContact.phone}
-                        </p>
-                        <p className="text-muted-foreground text-xs">
-                          {selectedContact.phone}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-foreground truncate text-sm font-semibold">
+                            {selectedContact.name || selectedContact.phone}
+                          </p>
+                          {selectedContact.lead_details?.source && (
+                            <SourceBadge
+                              source={selectedContact.lead_details.source}
+                            />
+                          )}
+                        </div>
+                        <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+                          {selectedContact.phone && (
+                            <span>{selectedContact.phone}</span>
+                          )}
+                          {(selectedContact.lead_details?.budget_min ||
+                            selectedContact.lead_details?.budget_max) && (
+                            <span className="text-foreground font-medium">
+                              ·{' '}
+                              {selectedContact.lead_details.budget_min
+                                ? formatINR(
+                                    selectedContact.lead_details.budget_min
+                                  )
+                                : ''}
+                              {selectedContact.lead_details.budget_min &&
+                              selectedContact.lead_details.budget_max
+                                ? ' – '
+                                : ''}
+                              {selectedContact.lead_details.budget_max
+                                ? formatINR(
+                                    selectedContact.lead_details.budget_max
+                                  )
+                                : ''}
+                            </span>
+                          )}
+                          {selectedContact.lead_details?.location_preference && (
+                            <span className="truncate">
+                              · 📍{' '}
+                              {
+                                selectedContact.lead_details
+                                  .location_preference
+                              }
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <span className="text-primary bg-primary/10 rounded-full px-2 py-0.5 text-[11px] font-medium">
+                    <span className="text-primary bg-primary/10 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap">
                       ✓ {t('selectedLead')}
                     </span>
                   </div>
@@ -460,9 +608,12 @@ export function ScheduleVisitSheet({
                           >
                             <span className="truncate">
                               {c.name ? `${c.name} · ${c.phone}` : c.phone}
+                              {c.lead_details?.source
+                                ? ` (${c.lead_details.source})`
+                                : ''}
                             </span>
                             {selectedContactId === c.id && (
-                              <Check className="size-3.5" />
+                              <Check className="size-3.5 shrink-0" />
                             )}
                           </button>
                         ))
@@ -493,9 +644,12 @@ export function ScheduleVisitSheet({
                       {t('propertyPlaceholder')}
                     </SelectItem>
                     {properties.map((p) => {
+                      const formattedConfig = formatConfiguration(
+                        p.configuration,
+                        p.bedrooms
+                      );
                       const detail = [
-                        p.configuration ||
-                          (p.bedrooms ? `${p.bedrooms} BHK` : null),
+                        formattedConfig,
                         p.location,
                         p.price ? formatINR(p.price) : null,
                       ]
@@ -516,20 +670,35 @@ export function ScheduleVisitSheet({
                 </Select>
 
                 {selectedProperty && (
-                  <div className="border-border/60 bg-muted/30 flex items-center justify-between rounded-lg border p-2.5 text-xs">
-                    <div className="flex items-center gap-2">
-                      <MapPin className="text-primary size-3.5 shrink-0" />
-                      <span className="text-foreground font-medium">
-                        {selectedProperty.location || 'Location TBD'}
-                      </span>
-                      {selectedProperty.configuration && (
-                        <span className="text-muted-foreground bg-card border-border py-0.2 rounded border px-1.5 text-[10px]">
-                          {selectedProperty.configuration}
+                  <div className="border-border/60 bg-muted/30 flex items-center justify-between gap-3 rounded-xl border p-3 text-xs">
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <MapPin className="text-primary size-3.5 shrink-0" />
+                        <span className="text-foreground truncate font-medium">
+                          {selectedProperty.location || 'Location TBD'}
+                        </span>
+                        {formatConfiguration(
+                          selectedProperty.configuration,
+                          selectedProperty.bedrooms
+                        ) && (
+                          <span className="text-muted-foreground bg-card border-border shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-semibold">
+                            {formatConfiguration(
+                              selectedProperty.configuration,
+                              selectedProperty.bedrooms
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      {(selectedProperty.project_name ||
+                        selectedProperty.builder_name) && (
+                        <span className="text-muted-foreground truncate pl-5 text-[11px]">
+                          {selectedProperty.project_name ||
+                            selectedProperty.builder_name}
                         </span>
                       )}
                     </div>
                     {selectedProperty.price && (
-                      <span className="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-bold">
+                      <span className="bg-primary/10 text-primary shrink-0 rounded-lg px-2.5 py-1 text-xs font-bold whitespace-nowrap">
                         {formatINR(selectedProperty.price)}
                       </span>
                     )}
@@ -615,27 +784,67 @@ export function ScheduleVisitSheet({
                 <Label className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                   {t('statusLabel')}
                 </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['pending', 'confirmed'] as const).map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => setStatus(s)}
-                      className={`flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
-                        status === s
-                          ? s === 'confirmed'
-                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'border-amber-400 bg-amber-400/10 text-amber-600 dark:text-amber-400'
-                          : 'border-border bg-muted/40 text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
-                      {status === s && <Check className="size-3.5" />}
-                      {s === 'pending'
-                        ? t('statusPending')
-                        : t('statusConfirmed')}
-                    </button>
-                  ))}
-                </div>
+                {isEditMode ? (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {(
+                      [
+                        'pending',
+                        'confirmed',
+                        'completed',
+                        'rescheduled',
+                        'no_show',
+                      ] as const
+                    ).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setStatus(s)}
+                        className={cn(
+                          'flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-2.5 py-2 text-xs font-semibold transition-all select-none',
+                          status === s
+                            ? s === 'confirmed'
+                              ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-xs dark:text-emerald-400'
+                              : s === 'pending'
+                                ? 'border-amber-400 bg-amber-400/15 text-amber-600 shadow-xs dark:text-amber-400'
+                                : s === 'completed'
+                                  ? 'border-foreground/30 bg-muted font-bold text-foreground shadow-xs'
+                                  : s === 'rescheduled'
+                                    ? 'border-blue-500 bg-blue-500/15 text-blue-600 shadow-xs dark:text-blue-400'
+                                    : 'border-destructive bg-destructive/15 text-destructive shadow-xs'
+                            : 'border-border/80 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+                        )}
+                      >
+                        {status === s && <Check className="size-3.5 shrink-0" />}
+                        <span className="truncate">{statusLabels[s] || s}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['pending', 'confirmed'] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setStatus(s)}
+                        className={cn(
+                          'flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-all select-none',
+                          status === s
+                            ? s === 'confirmed'
+                              ? 'border-emerald-500 bg-emerald-500/15 text-emerald-600 shadow-xs dark:text-emerald-400'
+                              : 'border-amber-400 bg-amber-400/15 text-amber-600 shadow-xs dark:text-amber-400'
+                            : 'border-border/80 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
+                        )}
+                      >
+                        {status === s && <Check className="size-3.5 shrink-0" />}
+                        <span>
+                          {s === 'pending'
+                            ? t('statusPending')
+                            : t('statusConfirmed')}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* ── Pickup Logistics ── */}
@@ -692,19 +901,19 @@ export function ScheduleVisitSheet({
 
             {/* ── Footer ── */}
             <div className="border-border/50 bg-popover border-t px-5 py-4">
-              <div className="flex gap-3">
+              <div className="flex items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  className="border-border text-muted-foreground hover:bg-muted flex-1 text-xs"
+                  className="border-border text-foreground hover:bg-muted h-10 flex-1 rounded-xl text-xs font-medium"
                 >
                   {t('cancel')}
                 </Button>
                 <Button
                   type="submit"
                   disabled={!selectedContactId || !scheduledAt || saving}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 text-xs font-semibold"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 flex-1 rounded-xl text-xs font-semibold shadow-xs"
                 >
                   {saving && <Loader2 className="mr-2 size-3.5 animate-spin" />}
                   {isEditMode ? t('saveChanges') : t('schedule')}

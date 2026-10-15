@@ -900,9 +900,9 @@ export default function PipelinesPage() {
                       type="button"
                       onClick={() => setViewMode('kanban')}
                       title={t('viewKanban')}
-                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-all select-none ${
                         viewMode === 'kanban'
-                          ? 'bg-card text-foreground font-semibold shadow-xs'
+                          ? 'bg-card text-foreground shadow-xs'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >
@@ -913,9 +913,9 @@ export default function PipelinesPage() {
                       type="button"
                       onClick={() => setViewMode('table')}
                       title={t('viewTable')}
-                      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                      className={`flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-all select-none ${
                         viewMode === 'table'
-                          ? 'bg-card text-foreground font-semibold shadow-xs'
+                          ? 'bg-card text-foreground shadow-xs'
                           : 'text-muted-foreground hover:text-foreground'
                       }`}
                     >

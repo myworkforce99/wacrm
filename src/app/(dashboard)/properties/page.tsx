@@ -521,24 +521,37 @@ export default function PropertiesPage() {
                   {t('clearFilters')} ({activeFiltersCount})
                 </Button>
               )}
-              <Button
-                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('table')}
-                className="hidden h-8 gap-1.5 px-2.5 text-xs md:inline-flex"
-              >
-                <TableProperties className="size-3.5" />
-                {t('viewTable')}
-              </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="h-8 gap-1.5 px-2.5 text-xs"
-              >
-                <LayoutGrid className="size-3.5" />
-                {t('viewGrid')}
-              </Button>
+              {/* View Mode Toggle (Table vs Grid) */}
+              <div className="border-border bg-muted/40 hidden items-center rounded-lg border p-0.5 sm:flex">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={cn(
+                    'flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-all select-none',
+                    viewMode === 'table'
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title={t('viewTable')}
+                >
+                  <TableProperties className="size-3.5" />
+                  <span>{t('viewTable')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grid')}
+                  className={cn(
+                    'flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold transition-all select-none',
+                    viewMode === 'grid'
+                      ? 'bg-card text-foreground shadow-xs'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                  title={t('viewGrid')}
+                >
+                  <LayoutGrid className="size-3.5" />
+                  <span>{t('viewGrid')}</span>
+                </button>
+              </div>
             </div>
           </div>
 
