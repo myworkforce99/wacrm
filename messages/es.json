@@ -396,6 +396,7 @@
       "scheduleVisitAction": "Programar visita",
       "viewDetailsAction": "Ver detalles",
       "editContactAction": "Editar detalles",
+      "copyPhoneAction": "Copiar teléfono",
       "budget": "Presupuesto",
       "location": "Ubicación",
       "source": "Fuente",
@@ -476,6 +477,7 @@
       "editLeadBtn": "Editar detalles",
       "tabs": {
         "details": "Detalles",
+        "visits": "Visitas",
         "activity": "Actividad",
         "notes": "Notas",
         "custom": "Campos personalizados",
@@ -516,6 +518,31 @@
       "dealsTab": {
         "noDeals": "Aún no hay negocios"
       },
+      "visitsTab": {
+        "title": "Visitas al sitio",
+        "scheduleBtn": "Programar visita",
+        "noVisits": "No hay visitas programadas para este cliente.",
+        "pickupAt": "Recogida en: {location}",
+        "markConfirmed": "Marcar confirmada",
+        "markCompleted": "Marcar completada",
+        "markNoShow": "Marcar no presentado",
+        "edit": "Editar",
+        "loading": "Cargando visitas..."
+      },
+      "realEstateRequirements": "Requisitos inmobiliarios",
+      "editRequirements": "Editar requisitos",
+      "propertyType": "Tipo de propiedad",
+      "buyerIntent": "Intención del comprador",
+      "budgetRange": "Rango de presupuesto",
+      "preferredLocation": "Ubicación preferida",
+      "possessionTimeline": "Plazo de posesión",
+      "configuration": "Configuración / BHK",
+      "leadSource": "Origen del contacto",
+      "notSpecified": "No especificado",
+      "anyConfig": "Cualquier configuración",
+      "anyTimeline": "Cualquier plazo",
+      "copyInfo": "Copiar datos del contacto",
+      "toastInfoCopied": "Datos del contacto copiados al portapapeles",
       "matchTab": {
         "title": "Property Matches",
         "sendViaWhatsapp": "Send via WhatsApp",
@@ -2283,6 +2310,14 @@
       "pickupHint": "Arrange pickup from the lead's location",
       "pickupAddressLabel": "Pickup Address",
       "pickupAddressPlaceholder": "Full address or landmark...",
+      "changeContact": "Cambiar",
+      "selectedLead": "Contacto seleccionado",
+      "quickPresets": "Accesos rápidos",
+      "today4pm": "Hoy 4 PM",
+      "tomorrow11am": "Mañana 11 AM",
+      "tomorrow4pm": "Mañana 4 PM",
+      "thisSat11am": "Este sábado 11 AM",
+      "thisSun11am": "Este domingo 11 AM",
       "saveChanges": "Save Changes",
       "toastUpdated": "Visit updated successfully."
     }

@@ -1,11 +1,26 @@
 'use client';
 
+/**
+ * ContactDetailView
+ *
+ * High-density inspection Sheet for viewing comprehensive lead profiles:
+ *  - Overview: Structured Real Estate Requirements (Budget in ₹ INR, Configuration
+ *    BHK chips, Property Type, Buyer Intent, Possession Timeline, Location, Source)
+ *    and Contact Information with 1-click Copy & direct WhatsApp chat.
+ *  - Prominent "Edit Details" triggers seamlessly redirect to ContactForm modal
+ *    to eliminate duplicated competing inline form logic.
+ *  - Dedicated Visits Tab: Lists all scheduled and past site visits for this lead,
+ *    status badges (Pending, Confirmed, Completed, No Show), pickup info, and 1-click
+ *    "Schedule Visit" trigger.
+ *  - Comprehensive Tabs: Visits, Deals, Tasks, Notes, Matches, Tags, Custom Fields.
+ *  - Quick header actions: Edit Details, Schedule Visit, Chat in Inbox, Call, Template, Cost Sheet.
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency, formatINR, formatINRRange } from '@/lib/currency';
-import { parseBudget } from '@/lib/contacts/parse-budget';
 import { toast } from 'sonner';
 import type {
   Contact,
@@ -17,8 +32,11 @@ import type {
   AssignmentHistory,
   LeadDetail,
   Property,
+  SiteVisit,
 } from '@/types';
 import { SlaBadge } from '@/components/ui/sla-badge';
+import { SourceBadge } from '@/components/ui/source-badge';
+import { StatusBadge } from '@/components/ui/status-badge';
 import {
   TemplatePicker,
   type TemplateSendValues,
@@ -62,7 +80,6 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Save,
   IndianRupee,
   LayoutTemplate,
   History,
@@ -72,11 +89,14 @@ import {
   Calendar,
   MessageCircle,
   Pencil,
+  MapPin,
+  Clock,
+  Car,
+  Sparkles,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
-import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
-import { PROPERTY_CONFIGURATIONS } from '@/types';
+import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -85,19 +105,6 @@ interface ContactDetailViewProps {
   onUpdated: () => void;
   onEdit?: (contact: Contact) => void;
 }
-
-// Known portal source values — must stay in sync with SourceBadge and contact-form options
-const KNOWN_SOURCES = [
-  '99acres',
-  'MagicBricks',
-  'Housing.com',
-  'NoBroker',
-  'Walk-in',
-  'Referral',
-  'Meta Ads',
-  'Google Ads',
-  'Manual Entry',
-];
 
 export function ContactDetailView({
   open,
@@ -131,36 +138,23 @@ export function ContactDetailView({
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [taskCount, setTaskCount] = useState(0);
 
-  // Send template — lets the business initiate (or re-open) a conversation
-  // with this contact by sending an approved template. The send route
-  // find-or-creates the conversation, so no inbound message is required.
+  // Send template modal
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
   const [sendingTemplate, setSendingTemplate] = useState(false);
 
-  // Cost Sheet modal
+  // Modals
   const [costSheetModalOpen, setCostSheetModalOpen] = useState(false);
   const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
+  const [editingVisit, setEditingVisit] = useState<SiteVisit | undefined>(
+    undefined
+  );
 
-  // Details tab
-  const [editName, setEditName] = useState('');
-  const [editPhone, setEditPhone] = useState('');
-  const [editEmail, setEditEmail] = useState('');
-  const [editCompany, setEditCompany] = useState('');
-  const [savingDetails, setSavingDetails] = useState(false);
+  // Lead qualification details
+  const [leadDetail, setLeadDetail] = useState<LeadDetail | null>(null);
 
-  // Lead details (RE qualification) — part of the Details tab
-  const [editSource, setEditSource] = useState('');
-  const [editOtherSource, setEditOtherSource] = useState('');
-  const [editConfigPref, setEditConfigPref] = useState<string[]>([]);
-  const [editPossessionPref, setEditPossessionPref] = useState('');
-  const [editLocationPref, setEditLocationPref] = useState('');
-  const [editBudgetMin, setEditBudgetMin] = useState('');
-  const [editBudgetMax, setEditBudgetMax] = useState('');
-  const [editPropertyType, setEditPropertyType] = useState('');
-  const [editIntent, setEditIntent] = useState('');
-  const [existingLeadDetailId, setExistingLeadDetailId] = useState<
-    string | null
-  >(null);
+  // Visits tab
+  const [visits, setVisits] = useState<SiteVisit[]>([]);
+  const [loadingVisits, setLoadingVisits] = useState(false);
 
   // Tags tab
   const [allTags, setAllTags] = useState<Tag[]>([]);
@@ -184,8 +178,6 @@ export function ContactDetailView({
   const [loadingDeals, setLoadingDeals] = useState(false);
 
   // Match tab
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [leadDetail, setLeadDetail] = useState<LeadDetail | null>(null);
   const [matchedProperties, setMatchedProperties] = useState<Property[]>([]);
   const [loadingMatches, setLoadingMatches] = useState(false);
 
@@ -201,10 +193,6 @@ export function ContactDetailView({
 
     if (data) {
       setContact(data);
-      setEditName(data.name ?? '');
-      setEditPhone(data.phone);
-      setEditEmail(data.email ?? '');
-      setEditCompany(data.company ?? '');
     }
 
     const { data: conv } = await supabase
@@ -235,69 +223,23 @@ export function ContactDetailView({
       .select('*')
       .eq('contact_id', contactId)
       .maybeSingle();
-    if (data) {
-      setExistingLeadDetailId(data.id);
-      const src = data.source ?? '';
-      if (!src || KNOWN_SOURCES.includes(src)) {
-        setEditSource(src);
-        setEditOtherSource('');
-      } else {
-        // Freeform value from contact-form "Other" flow
-        setEditSource('Other');
-        setEditOtherSource(src);
-      }
-      setEditConfigPref(data.configuration_preference ?? []);
-      setEditPossessionPref(data.possession_preference ?? '');
-      setEditLocationPref(data.location_preference ?? '');
-      setEditBudgetMin(
-        data.budget_min ? formatINR(data.budget_min).replace('₹', '') : ''
-      );
-      setEditBudgetMax(
-        data.budget_max ? formatINR(data.budget_max).replace('₹', '') : ''
-      );
-      setEditPropertyType(data.property_type ?? '');
-      setEditIntent(data.intent ?? '');
-    } else {
-      setExistingLeadDetailId(null);
-      setEditSource('');
-      setEditOtherSource('');
-      setEditConfigPref([]);
-      setEditPossessionPref('');
-      setEditLocationPref('');
-      setEditBudgetMin('');
-      setEditBudgetMax('');
-      setEditPropertyType('');
-      setEditIntent('');
-    }
+    setLeadDetail(data ?? null);
   }, [contactId, supabase]);
 
-  async function saveLeadDetails() {
-    if (!contactId || !accountId) return;
-    const resolvedSource =
-      editSource === 'Other' ? editOtherSource.trim() : editSource;
-    const parsedMin = parseBudget(editBudgetMin);
-    const parsedMax = parseBudget(editBudgetMax);
-    const payload = {
-      account_id: accountId,
-      contact_id: contactId,
-      ...(resolvedSource ? { source: resolvedSource } : {}),
-      configuration_preference: editConfigPref,
-      possession_preference: editPossessionPref || null,
-      location_preference: editLocationPref || null,
-      budget_min: parsedMin ?? null,
-      budget_max: parsedMax ?? null,
-      property_type: editPropertyType || null,
-      intent: editIntent || null,
-      updated_at: new Date().toISOString(),
-    };
-    const { error } = existingLeadDetailId
-      ? await supabase
-          .from('lead_details')
-          .update(payload)
-          .eq('id', existingLeadDetailId)
-      : await supabase.from('lead_details').insert(payload);
-    if (error) throw error;
-  }
+  const fetchVisits = useCallback(async () => {
+    if (!contactId) return;
+    setLoadingVisits(true);
+    const { data } = await supabase
+      .from('site_visits')
+      .select(
+        '*, property:properties(id, title, location, configuration, bedrooms, price)'
+      )
+      .eq('contact_id', contactId)
+      .order('scheduled_at', { ascending: false });
+
+    setVisits((data ?? []) as SiteVisit[]);
+    setLoadingVisits(false);
+  }, [contactId, supabase]);
 
   const fetchTags = useCallback(async () => {
     if (!contactId) return;
@@ -369,7 +311,6 @@ export function ContactDetailView({
     if (!contactId) return;
     setLoadingMatches(true);
 
-    // First fetch lead_details
     const { data: detailData } = await supabase
       .from('lead_details')
       .select('*')
@@ -377,9 +318,6 @@ export function ContactDetailView({
       .maybeSingle();
 
     if (detailData) {
-      setLeadDetail(detailData);
-
-      // Query properties based on preferences
       let query = supabase.from('properties').select('*');
 
       if (detailData.location_preference) {
@@ -395,13 +333,10 @@ export function ContactDetailView({
         query = query.lte('price', detailData.budget_max);
       }
 
-      // Limit to top 3
       query = query.limit(3);
-
       const { data: propertiesData } = await query;
       setMatchedProperties(propertiesData ?? []);
     } else {
-      setLeadDetail(null);
       setMatchedProperties([]);
     }
 
@@ -422,6 +357,7 @@ export function ContactDetailView({
     if (open && contactId) {
       fetchContact();
       fetchLeadDetails();
+      fetchVisits();
       fetchTags();
       fetchNotes();
       fetchCustomFields();
@@ -434,6 +370,7 @@ export function ContactDetailView({
     contactId,
     fetchContact,
     fetchLeadDetails,
+    fetchVisits,
     fetchTags,
     fetchNotes,
     fetchCustomFields,
@@ -463,48 +400,23 @@ export function ContactDetailView({
     if (!contact) return;
     await navigator.clipboard.writeText(contactHandle(contact));
     setCopiedPhone(true);
+    toast.success(t('toastInfoCopied'));
     setTimeout(() => setCopiedPhone(false), 2000);
   }
 
-  async function saveDetails() {
-    if (!contactId || !editPhone.trim()) {
-      toast.error(t('toastPhoneRequired'));
-      return;
-    }
+  async function updateVisitStatus(visitId: string, newStatus: string) {
+    const { error } = await supabase
+      .from('site_visits')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', visitId);
 
-    // Same rule as the create form: a changed number must start with `+`
-    // and a country code (issue #586). Unchanged numbers — including the
-    // digits-only form the inbound webhook stores — are left alone so a
-    // name/email edit is never blocked by the phone field.
-    const phoneChanged = editPhone.trim() !== (contact?.phone ?? '');
-    if (phoneChanged && !parseInternationalPhone(editPhone)) {
-      toast.error(t('toastPhoneNeedsCountryCode'));
-      return;
+    if (error) {
+      toast.error('Failed to update visit status');
+    } else {
+      toast.success('Visit status updated');
+      fetchVisits();
+      onUpdated();
     }
-
-    setSavingDetails(true);
-    try {
-      const { error } = await supabase
-        .from('contacts')
-        .update({
-          name: editName.trim() || null,
-          phone: editPhone.trim(),
-          email: editEmail.trim() || null,
-          company: editCompany.trim() || null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', contactId);
-      if (error) throw error;
-      await saveLeadDetails();
-      toast.success(t('toastUpdated'));
-      fetchContact();
-      fetchLeadDetails();
-      // Small delay so the table re-fetch sees committed DB writes
-      setTimeout(() => onUpdated(), 300);
-    } catch {
-      toast.error(t('toastUpdateFailed'));
-    }
-    setSavingDetails(false);
   }
 
   async function toggleTag(tagId: string) {
@@ -512,7 +424,6 @@ export function ContactDetailView({
     setSavingTags(true);
 
     const isSelected = contactTagIds.includes(tagId);
-
     try {
       if (isSelected) {
         await deleteContactTag(contactId, tagId);
@@ -580,7 +491,6 @@ export function ContactDetailView({
     setSavingCustom(true);
 
     try {
-      // Delete existing values and re-insert
       await supabase
         .from('contact_custom_values')
         .delete()
@@ -619,8 +529,6 @@ export function ContactDetailView({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // No conversation_id — the route find-or-creates one for this
-          // contact, mirroring the inbox template-send payload otherwise.
           contact_id: contactId,
           message_type: 'template',
           template_name: template.name,
@@ -652,16 +560,6 @@ export function ContactDetailView({
 
   async function handleSendPropertyMatch(property: Property) {
     if (!contactId || !contact) return;
-    // Assuming there is an existing template for property matches or we send a generic message
-    // If we use the template picker we can just pre-fill a template.
-    // However, the spec says "reusing the existing message-send API/template mechanism".
-    // We'll use the generic API to send a template for property matches, e.g. "property_match" template.
-    // Note: for safety, I'll open the template picker with variables, but it's easier to just find the template and send it.
-    // For simplicity, let's just trigger the template picker to let the user send it.
-    // But since H3 says "one-tap send via WhatsApp", let's send a hardcoded template or generic text via api if we can't find a template.
-    // We will simulate sending a template to keep it simple, or send a generic text message if templates aren't strictly required for this test.
-    // The requirement: "sending a match posts an actual outbound WhatsApp message in a test/staging number."
-    // Let's send a generic text message using the /api/whatsapp/send route with message_type: 'text'.
     setSendingTemplate(true);
     try {
       const res = await fetch('/api/whatsapp/send', {
@@ -689,300 +587,414 @@ export function ContactDetailView({
     }
   }
 
-  function getInitials(name?: string | null) {
-    if (!name) return '?';
-    return name
-      .split(' ')
-      .map((w) => w[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  }
-
+  // ── Overview / Requirements (Non-duplicated, High-density Lead Card) ──
   const detailsContent = (
-    <>
-      <div className="space-y-3">
-        {/* ── Contact Info ── */}
-        <p className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
-          Contact Info
-        </p>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">{t('name')}</Label>
-          <Input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            className="bg-muted border-border text-foreground h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            {t('phone')} <span className="text-red-400">*</span>
-          </Label>
-          <Input
-            value={editPhone}
-            onChange={(e) => setEditPhone(e.target.value)}
-            className="bg-muted border-border text-foreground h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">{t('email')}</Label>
-          <Input
-            value={editEmail}
-            onChange={(e) => setEditEmail(e.target.value)}
-            className="bg-muted border-border text-foreground h-8 text-sm"
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            {t('company')}
-          </Label>
-          <Input
-            value={editCompany}
-            onChange={(e) => setEditCompany(e.target.value)}
-            className="bg-muted border-border text-foreground h-8 text-sm"
-          />
-        </div>
-
-        {/* ── Lead Qualification ── */}
-        <p className="text-muted-foreground mt-4 text-[11px] font-semibold tracking-wide uppercase">
-          Lead Qualification
-        </p>
-
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">Source</Label>
-          <Select
-            value={editSource}
-            onValueChange={(val: string | null) => {
-              setEditSource(val ?? '');
-              if (val !== 'Other') setEditOtherSource('');
-            }}
-          >
-            <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
-              <SelectValue placeholder="Select source..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="99acres">99acres</SelectItem>
-              <SelectItem value="MagicBricks">MagicBricks</SelectItem>
-              <SelectItem value="Housing.com">Housing.com</SelectItem>
-              <SelectItem value="NoBroker">NoBroker</SelectItem>
-              <SelectItem value="Walk-in">Walk-in</SelectItem>
-              <SelectItem value="Referral">Referral</SelectItem>
-              <SelectItem value="Meta Ads">Meta Ads</SelectItem>
-              <SelectItem value="Google Ads">Google Ads</SelectItem>
-              <SelectItem value="Manual Entry">Manual Entry</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
-          {editSource === 'Other' && (
-            <Input
-              value={editOtherSource}
-              onChange={(e) => setEditOtherSource(e.target.value)}
-              placeholder="Specify source..."
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground mt-1.5 h-8 text-sm"
-            />
+    <div className="space-y-4">
+      {/* Real Estate Qualification Section */}
+      <div className="bg-card border-border/80 rounded-xl border p-4 shadow-xs">
+        <div className="flex items-center justify-between pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="text-primary size-4" />
+            <h4 className="text-foreground text-xs font-semibold tracking-wide uppercase">
+              {t('realEstateRequirements')}
+            </h4>
+          </div>
+          {onEdit && contact && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                onOpenChange(false);
+                onEdit(contact);
+              }}
+              className="border-border text-foreground hover:bg-muted h-7 px-2.5 text-xs font-medium"
+            >
+              <Pencil className="text-primary mr-1.5 size-3" />
+              {t('editRequirements')}
+            </Button>
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            Configuration Preference
-          </Label>
-          <div className="flex flex-wrap gap-1.5">
-            {PROPERTY_CONFIGURATIONS.map((config) => {
-              const isSelected = editConfigPref.includes(config);
-              return (
-                <button
-                  key={config}
-                  type="button"
-                  onClick={() =>
-                    setEditConfigPref((prev) =>
-                      prev.includes(config)
-                        ? prev.filter((c) => c !== config)
-                        : [...prev, config]
-                    )
-                  }
-                  className={`inline-flex cursor-pointer items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
-                    isSelected
-                      ? 'bg-primary border-primary text-primary-foreground'
-                      : 'bg-muted border-border text-muted-foreground hover:bg-muted/80'
-                  }`}
-                >
-                  {config}
-                </button>
-              );
-            })}
+        <div className="space-y-3">
+          {/* Budget Range */}
+          <div className="bg-muted/40 flex items-center justify-between rounded-lg p-3">
+            <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
+              <IndianRupee className="text-primary size-3.5" />
+              {t('budgetRange')}
+            </span>
+            <span className="text-primary bg-primary/10 rounded-full px-2.5 py-0.5 text-xs font-bold">
+              {formatINRRange(
+                leadDetail?.budget_min ?? null,
+                leadDetail?.budget_max ?? null
+              )}
+            </span>
           </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            Possession Preference
-          </Label>
-          <Select
-            value={editPossessionPref}
-            onValueChange={(val: string | null) =>
-              setEditPossessionPref(val ?? '')
-            }
-          >
-            <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
-              <SelectValue placeholder="Any" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any</SelectItem>
-              <SelectItem value="ready_to_move_only">
-                Ready to move only
-              </SelectItem>
-              <SelectItem value="under_construction_ok">
-                Under construction OK
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-muted-foreground text-xs">
-            Preferred Location
-          </Label>
-          <Input
-            value={editLocationPref}
-            onChange={(e) => setEditLocationPref(e.target.value)}
-            placeholder="e.g. Bandra, Powai, Whitefield"
-            className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
+          {/* Configuration / BHK Preferences */}
           <div className="space-y-1.5">
-            <Label className="text-muted-foreground text-xs">
-              Property Type
-            </Label>
-            <Select
-              value={editPropertyType}
-              onValueChange={(val: string | null) =>
-                setEditPropertyType(val ?? '')
-              }
-            >
-              <SelectTrigger className="bg-muted border-border text-foreground h-8 w-full text-sm">
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Apartment">Apartment</SelectItem>
-                <SelectItem value="Villa">Villa</SelectItem>
-                <SelectItem value="Plot">Plot</SelectItem>
-                <SelectItem value="Commercial">Commercial</SelectItem>
-                <SelectItem value="Penthouse">Penthouse</SelectItem>
-                <SelectItem value="Builder Floor">Builder Floor</SelectItem>
-                <SelectItem value="Studio">Studio</SelectItem>
-              </SelectContent>
-            </Select>
+            <span className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
+              {t('configuration')}
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              {leadDetail?.configuration_preference &&
+              leadDetail.configuration_preference.length > 0 ? (
+                leadDetail.configuration_preference.map((cfg) => (
+                  <span
+                    key={cfg}
+                    className="border-primary/40 bg-primary/10 text-primary rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                  >
+                    {cfg}
+                  </span>
+                ))
+              ) : (
+                <span className="text-muted-foreground text-xs">
+                  {t('anyConfig')}
+                </span>
+              )}
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-muted-foreground text-xs">
-              Buyer Intent
-            </Label>
-            <Select
-              value={editIntent}
-              onValueChange={(val: string | null) => setEditIntent(val ?? '')}
-            >
-              <SelectTrigger className="bg-muted border-border text-foreground h-8 w-full text-sm">
-                <SelectValue placeholder="Any intent" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="End Use">End Use</SelectItem>
-                <SelectItem value="Investment">Investment</SelectItem>
-                <SelectItem value="Rental Yield">Rental Yield</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label className="text-muted-foreground text-xs">
-              Budget Range{' '}
-              {defaultCurrency === 'INR' ? '(₹)' : `(${defaultCurrency})`}
-            </Label>
-            {(parseBudget(editBudgetMin) !== null ||
-              parseBudget(editBudgetMax) !== null) && (
-              <span className="text-primary bg-primary/10 rounded-full px-2 py-0.5 text-[11px] font-semibold">
-                {formatINRRange(
-                  parseBudget(editBudgetMin),
-                  parseBudget(editBudgetMax)
-                )}
+          {/* Property Type & Buyer Intent */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="border-border/60 bg-muted/20 space-y-1 rounded-lg border p-2.5">
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                {t('propertyType')}
+              </span>
+              <p className="text-foreground text-xs font-semibold">
+                {leadDetail?.property_type || t('notSpecified')}
+              </p>
+            </div>
+            <div className="border-border/60 bg-muted/20 space-y-1 rounded-lg border p-2.5">
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                {t('buyerIntent')}
+              </span>
+              <p className="text-foreground text-xs font-semibold">
+                {leadDetail?.intent || t('notSpecified')}
+              </p>
+            </div>
+          </div>
+
+          {/* Location & Possession */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="border-border/60 bg-muted/20 space-y-1 rounded-lg border p-2.5">
+              <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
+                <MapPin className="text-primary size-3" />
+                {t('preferredLocation')}
+              </span>
+              <p className="text-foreground truncate text-xs font-medium">
+                {leadDetail?.location_preference || t('notSpecified')}
+              </p>
+            </div>
+            <div className="border-border/60 bg-muted/20 space-y-1 rounded-lg border p-2.5">
+              <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
+                <Clock className="size-3" />
+                {t('possessionTimeline')}
+              </span>
+              <p className="text-foreground truncate text-xs font-medium">
+                {leadDetail?.possession_preference === 'ready_to_move_only'
+                  ? 'Ready to move only'
+                  : leadDetail?.possession_preference ===
+                      'under_construction_ok'
+                    ? 'Under construction OK'
+                    : t('anyTimeline')}
+              </p>
+            </div>
+          </div>
+
+          {/* Lead Source */}
+          <div className="flex items-center justify-between border-t pt-2.5 text-xs">
+            <span className="text-muted-foreground font-medium">
+              {t('leadSource')}
+            </span>
+            {leadDetail?.source ? (
+              <SourceBadge source={leadDetail.source} />
+            ) : (
+              <span className="text-muted-foreground text-xs">
+                {t('notSpecified')}
               </span>
             )}
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Input
-              value={editBudgetMin}
-              onChange={(e) => setEditBudgetMin(e.target.value)}
-              placeholder="Min (e.g. 50L or 5000000)"
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
-            />
-            <Input
-              value={editBudgetMax}
-              onChange={(e) => setEditBudgetMax(e.target.value)}
-              placeholder="Max (e.g. 1.5Cr or 15000000)"
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
-            />
-          </div>
         </div>
+      </div>
 
-        <Button
-          onClick={saveDetails}
-          disabled={savingDetails}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
-          size="sm"
-        >
-          {savingDetails ? (
-            <Loader2 className="size-3.5 animate-spin" />
-          ) : (
-            <Save className="size-3.5" />
+      {/* Core Contact Info Card */}
+      <div className="bg-card border-border/80 space-y-3 rounded-xl border p-4 shadow-xs">
+        <h4 className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
+          {t('contactInfo')}
+        </h4>
+
+        <div className="space-y-2.5 text-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t('name')}</span>
+            <span className="text-foreground font-semibold">
+              {contact?.name || t('unnamed')}
+            </span>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground">{t('phone')}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyPhone}
+                className="hover:text-primary flex cursor-pointer items-center gap-1 font-mono font-medium transition-colors"
+                title="Copy phone"
+              >
+                <span>{contact?.phone}</span>
+                {copiedPhone ? (
+                  <Check className="text-primary size-3" />
+                ) : (
+                  <Copy className="size-3" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {contact?.email && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{t('email')}</span>
+              <span className="text-foreground font-medium">
+                {contact.email}
+              </span>
+            </div>
           )}
-          {t('saveChangesBtn')}
+
+          {contact?.company && (
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{t('company')}</span>
+              <span className="text-foreground font-medium">
+                {contact.company}
+              </span>
+            </div>
+          )}
+
+          {contact?.created_at && (
+            <div className="border-border/50 flex items-center justify-between border-t pt-2 text-[11px]">
+              <span className="text-muted-foreground">{t('createdAt')}</span>
+              <span className="text-muted-foreground">
+                {new Date(contact.created_at).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── Site Visits Tab Content ──
+  const visitsContent = (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between pb-1">
+        <p className="text-muted-foreground text-xs">
+          {visits.length === 1
+            ? '1 site visit on record'
+            : `${visits.length} site visits on record`}
+        </p>
+        <Button
+          size="sm"
+          onClick={() => {
+            setEditingVisit(undefined);
+            setScheduleVisitOpen(true);
+          }}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-7.5 px-3 text-xs font-medium"
+        >
+          <Calendar className="mr-1.5 size-3.5" />
+          {t('visitsTab.scheduleBtn')}
         </Button>
       </div>
-    </>
+
+      {loadingVisits ? (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="text-primary size-5 animate-spin" />
+        </div>
+      ) : visits.length === 0 ? (
+        <div className="border-border/80 bg-muted/20 flex flex-col items-center justify-center rounded-xl border py-10 text-center">
+          <Calendar className="text-muted-foreground/60 mb-2 size-8" />
+          <p className="text-muted-foreground text-xs">
+            {t('visitsTab.noVisits')}
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setEditingVisit(undefined);
+              setScheduleVisitOpen(true);
+            }}
+            className="border-border text-foreground hover:bg-muted mt-3 h-8 text-xs font-medium"
+          >
+            <Plus className="mr-1 size-3.5" />
+            {t('visitsTab.scheduleBtn')}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {visits.map((v) => {
+            const visitDate = v.scheduled_at
+              ? new Date(v.scheduled_at).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })
+              : 'TBD';
+
+            return (
+              <div
+                key={v.id}
+                className="bg-card border-border/80 space-y-2.5 rounded-xl border p-3.5 shadow-xs"
+              >
+                {/* Header: Date + Status Badge */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">
+                      <Clock className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-xs font-semibold">
+                        {visitDate}
+                      </p>
+                      {v.property ? (
+                        <p className="text-muted-foreground text-xs">
+                          {v.property.title} · {v.property.location}
+                        </p>
+                      ) : (
+                        <p className="text-muted-foreground text-xs italic">
+                          Property to be decided
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <StatusBadge status={v.status} />
+                </div>
+
+                {/* Property Detail Strip */}
+                {v.property && (
+                  <div className="border-border/50 bg-muted/40 flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs">
+                    <span className="text-foreground font-medium">
+                      {v.property.configuration ||
+                        (v.property.bedrooms
+                          ? `${v.property.bedrooms} BHK`
+                          : '')}
+                    </span>
+                    {v.property.price && (
+                      <span className="text-primary font-bold">
+                        {formatINR(v.property.price)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Pickup Details */}
+                {v.pickup_required && (
+                  <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                    <Car className="text-primary size-3.5 shrink-0" />
+                    <span>
+                      {t('visitsTab.pickupAt', {
+                        location: v.pickup_location || 'Address pending',
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Notes */}
+                {v.notes && (
+                  <p className="text-muted-foreground bg-muted/30 rounded p-2 text-xs italic">
+                    &quot;{v.notes}&quot;
+                  </p>
+                )}
+
+                {/* Visit Actions */}
+                <div className="border-border/50 flex flex-wrap items-center justify-between gap-2 border-t pt-2 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    {v.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => updateVisitStatus(v.id, 'confirmed')}
+                        className="cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium text-emerald-600 transition-colors hover:bg-emerald-500/10"
+                      >
+                        ✓ {t('visitsTab.markConfirmed')}
+                      </button>
+                    )}
+                    {(v.status === 'confirmed' || v.status === 'pending') && (
+                      <button
+                        type="button"
+                        onClick={() => updateVisitStatus(v.id, 'completed')}
+                        className="text-primary hover:bg-primary/10 cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium transition-colors"
+                      >
+                        {t('visitsTab.markCompleted')}
+                      </button>
+                    )}
+                    {v.status !== 'no_show' && v.status !== 'completed' && (
+                      <button
+                        type="button"
+                        onClick={() => updateVisitStatus(v.id, 'no_show')}
+                        className="cursor-pointer rounded px-2 py-0.5 text-[11px] font-medium text-red-500 transition-colors hover:bg-red-500/10"
+                      >
+                        {t('visitsTab.markNoShow')}
+                      </button>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setEditingVisit(v);
+                      setScheduleVisitOpen(true);
+                    }}
+                    className="h-6 px-2 text-[11px]"
+                  >
+                    <Pencil className="mr-1 size-3" />
+                    {t('visitsTab.edit')}
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 
   const tagsContent = (
-    <>
-      <div className="space-y-3">
-        <p className="text-muted-foreground text-xs">
-          {t('tagsTab.clickTagDesc')}
+    <div className="space-y-3">
+      <p className="text-muted-foreground text-xs">
+        {t('tagsTab.clickTagDesc')}
+      </p>
+      {allTags.length === 0 ? (
+        <p className="text-muted-foreground text-sm">
+          {t('tagsTab.noTagsAvailable')}
         </p>
-        {allTags.length === 0 ? (
-          <p className="text-muted-foreground text-sm">
-            {t('tagsTab.noTagsAvailable')}
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((tag) => {
-              const selected = contactTagIds.includes(tag.id);
-              return (
-                <button
-                  key={tag.id}
-                  onClick={() => toggleTag(tag.id)}
-                  disabled={savingTags}
-                  className={`inline-flex cursor-pointer items-center rounded-full px-3 py-1 text-xs font-medium transition-all ${
-                    selected
-                      ? 'ring-primary ring-offset-border ring-2 ring-offset-1'
-                      : 'opacity-50 hover:opacity-80'
-                  }`}
-                  style={{
-                    backgroundColor: tag.color + '20',
-                    color: tag.color,
-                  }}
-                >
-                  {selected && <Check className="mr-1 size-3" />}
-                  {tag.name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {allTags.map((tag) => {
+            const selected = contactTagIds.includes(tag.id);
+            return (
+              <button
+                key={tag.id}
+                onClick={() => toggleTag(tag.id)}
+                disabled={savingTags}
+                className={`inline-flex cursor-pointer items-center rounded-full px-3 py-1 text-xs font-medium transition-all ${
+                  selected
+                    ? 'ring-primary ring-offset-border ring-2 ring-offset-1'
+                    : 'opacity-50 hover:opacity-80'
+                }`}
+                style={{
+                  backgroundColor: tag.color + '20',
+                  color: tag.color,
+                }}
+              >
+                {selected && <Check className="mr-1 size-3" />}
+                {tag.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 
   const notesContent = (
@@ -992,12 +1004,12 @@ export function ContactDetailView({
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
           placeholder={t('notesTab.placeholder')}
-          className="bg-muted border-border text-foreground placeholder:text-muted-foreground min-h-[60px] resize-none text-sm"
+          className="bg-muted/40 border-border text-foreground placeholder:text-muted-foreground min-h-[64px] resize-none text-xs"
         />
         <Button
           onClick={addNote}
           disabled={!newNote.trim() || savingNote}
-          className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          className="bg-primary hover:bg-primary/90 text-primary-foreground h-7.5 px-3 text-xs"
           size="sm"
         >
           {savingNote ? (
@@ -1015,17 +1027,17 @@ export function ContactDetailView({
             <Loader2 className="text-muted-foreground size-5 animate-spin" />
           </div>
         ) : notes.length === 0 ? (
-          <p className="text-muted-foreground py-8 text-center text-sm">
+          <p className="text-muted-foreground py-8 text-center text-xs">
             {t('notesTab.noNotes')}
           </p>
         ) : (
           notes.map((note) => (
             <div
               key={note.id}
-              className="bg-muted/50 border-border/50 group rounded-lg border p-3"
+              className="bg-card border-border/70 group rounded-xl border p-3 shadow-xs"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-muted-foreground flex-1 text-sm whitespace-pre-wrap">
+                <p className="text-foreground flex-1 text-xs whitespace-pre-wrap">
                   {note.note_text}
                 </p>
                 <button
@@ -1035,7 +1047,7 @@ export function ContactDetailView({
                   <Trash2 className="size-3.5" />
                 </button>
               </div>
-              <p className="text-muted-foreground mt-1.5 text-xs">
+              <p className="text-muted-foreground mt-1.5 text-[10px]">
                 {new Date(note.created_at).toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
@@ -1058,7 +1070,7 @@ export function ContactDetailView({
           <Loader2 className="text-muted-foreground size-5 animate-spin" />
         </div>
       ) : customFields.length === 0 ? (
-        <p className="text-muted-foreground py-8 text-center text-sm">
+        <p className="text-muted-foreground py-8 text-center text-xs">
           {t('noCustomFields')}
         </p>
       ) : (
@@ -1085,7 +1097,7 @@ export function ContactDetailView({
                       }))
                     }
                   >
-                    <SelectTrigger className="bg-muted border-border text-foreground h-8 text-sm">
+                    <SelectTrigger className="bg-muted/40 border-border text-foreground h-8 text-xs">
                       <SelectValue
                         placeholder={`Select ${field.field_name}...`}
                       />
@@ -1110,7 +1122,7 @@ export function ContactDetailView({
                     placeholder={t('enterCustomField', {
                       name: field.field_name,
                     })}
-                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground h-8 text-sm"
+                    className="bg-muted/40 border-border text-foreground placeholder:text-muted-foreground h-8 text-xs"
                   />
                 )}
               </div>
@@ -1119,13 +1131,13 @@ export function ContactDetailView({
           <Button
             onClick={saveCustomFields}
             disabled={savingCustom}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground w-full text-xs"
             size="sm"
           >
             {savingCustom ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : (
-              <Save className="size-3.5" />
+              <Check className="size-3.5" />
             )}
             {t('saveCustomFieldsBtn')}
           </Button>
@@ -1141,21 +1153,23 @@ export function ContactDetailView({
           <Loader2 className="text-primary size-5 animate-spin" />
         </div>
       ) : deals.length === 0 ? (
-        <p className="text-muted-foreground text-xs">{t('dealsTab.noDeals')}</p>
+        <p className="text-muted-foreground py-8 text-center text-xs">
+          {t('dealsTab.noDeals')}
+        </p>
       ) : (
         <div className="space-y-2">
           {deals.map((deal) => (
             <div
               key={deal.id}
-              className="border-border bg-muted/50 rounded-lg border p-3"
+              className="border-border bg-card rounded-xl border p-3.5 shadow-xs"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="text-foreground text-sm font-medium">
+                <p className="text-foreground text-xs font-semibold">
                   {deal.title}
                 </p>
                 {deal.stage && (
                   <span
-                    className="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
                     style={{
                       backgroundColor: `${deal.stage.color}20`,
                       color: deal.stage.color,
@@ -1165,8 +1179,8 @@ export function ContactDetailView({
                   </span>
                 )}
               </div>
-              <div className="text-muted-foreground mt-1.5 flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1">
+              <div className="text-muted-foreground mt-2 flex items-center justify-between text-xs">
+                <span className="text-primary flex items-center gap-1 font-bold">
                   <IndianRupee className="size-3" />
                   {deal.currency === 'INR' ||
                   (!deal.currency && defaultCurrency === 'INR')
@@ -1179,7 +1193,9 @@ export function ContactDetailView({
                 {deal.status && deal.status !== 'open' && (
                   <span
                     className={
-                      deal.status === 'won' ? 'text-primary' : 'text-red-400'
+                      deal.status === 'won'
+                        ? 'text-emerald-500'
+                        : 'text-red-400'
                     }
                   >
                     {deal.status}
@@ -1210,20 +1226,27 @@ export function ContactDetailView({
           {matchedProperties.map((property) => (
             <div
               key={property.id}
-              className="border-border bg-muted/30 rounded-lg border p-3"
+              className="border-border/80 bg-card rounded-xl border p-3.5 shadow-xs"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h4 className="text-sm font-semibold">{property.title}</h4>
+                  <h4 className="text-foreground text-xs font-semibold">
+                    {property.title}
+                  </h4>
                   <p className="text-muted-foreground mt-1 flex items-center gap-2 text-xs">
-                    {property.location && <span>{property.location}</span>}
+                    {property.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="text-primary size-3" />
+                        {property.location}
+                      </span>
+                    )}
                     {property.property_type && (
                       <span>• {property.property_type}</span>
                     )}
                   </p>
                 </div>
                 {property.price && (
-                  <span className="bg-primary/10 text-primary rounded px-2 py-1 text-xs font-medium">
+                  <span className="bg-primary/10 text-primary rounded px-2 py-0.5 text-xs font-bold">
                     {defaultCurrency === 'INR'
                       ? formatINR(property.price)
                       : formatCurrency(property.price, defaultCurrency)}
@@ -1236,6 +1259,7 @@ export function ContactDetailView({
                   variant="outline"
                   onClick={() => handleSendPropertyMatch(property)}
                   disabled={sendingTemplate}
+                  className="h-7 text-xs"
                 >
                   <Send className="mr-1.5 size-3" />
                   {t('matchTab.sendViaWhatsapp')}
@@ -1253,33 +1277,38 @@ export function ContactDetailView({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="bg-popover border-border text-popover-foreground w-full p-0 sm:max-w-lg"
+          className="bg-popover border-border text-popover-foreground flex w-full flex-col p-0 sm:max-w-xl"
         >
           {loading || !contact ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="text-primary size-6 animate-spin" />
             </div>
           ) : (
-            <div className="flex h-full flex-col">
+            <div className="flex h-full flex-col overflow-hidden">
               {/* Header */}
               <SheetHeader className="border-border/50 border-b p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar className="bg-muted border-border size-12 border">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm font-medium">
-                      {getInitials(contact.name)}
+                  <Avatar className="size-12 shrink-0">
+                    <AvatarFallback
+                      className="text-sm font-semibold text-white"
+                      style={{
+                        background: avatarColorForName(contact.name),
+                      }}
+                    >
+                      {initialsForName(contact.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <SheetTitle className="text-popover-foreground truncate">
+                    <SheetTitle className="text-popover-foreground truncate text-base font-bold">
                       {contact.name || t('unnamed')}
                     </SheetTitle>
                     <SheetDescription className="text-muted-foreground mt-0.5 text-xs">
                       {t('contactDetailsDesc')}
                     </SheetDescription>
-                    <div className="text-muted-foreground mt-1.5 flex flex-wrap items-center gap-3 text-xs">
+                    <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-3 text-xs">
                       <button
                         onClick={copyPhone}
-                        className="hover:text-primary flex cursor-pointer items-center gap-1 transition-colors"
+                        className="hover:text-primary flex cursor-pointer items-center gap-1 font-mono font-medium transition-colors"
                       >
                         <Phone className="size-3" />
                         {contactHandle(contact)}
@@ -1312,10 +1341,10 @@ export function ContactDetailView({
                         {assignee && (
                           <button
                             onClick={fetchAssignmentHistory}
-                            className="bg-muted hover:bg-muted/80 border-border flex cursor-pointer items-center gap-1 rounded border px-1.5 py-0.5 transition-colors"
+                            className="bg-muted hover:bg-muted/80 border-border flex cursor-pointer items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] transition-colors"
                           >
                             <User className="size-3" />
-                            {t('assignedTo', { fallback: 'Assigned to: ' })}
+                            {t('assignedTo')}
                             <span className="text-foreground font-medium">
                               {assignee.full_name}
                             </span>
@@ -1325,7 +1354,9 @@ export function ContactDetailView({
                     )}
                   </div>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
+
+                {/* Header Action Buttons */}
+                <div className="mt-3 flex flex-wrap items-center gap-1.5 pt-1">
                   {onEdit && contact && (
                     <Button
                       size="sm"
@@ -1334,51 +1365,54 @@ export function ContactDetailView({
                         onOpenChange(false);
                         onEdit(contact);
                       }}
-                      className="border-border text-foreground hover:bg-muted"
+                      className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                     >
                       <Pencil className="text-primary mr-1.5 size-3.5" />
-                      {t('editLeadBtn') || 'Edit Details'}
+                      {t('editLeadBtn')}
                     </Button>
                   )}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setScheduleVisitOpen(true)}
-                    className="border-border text-foreground hover:bg-muted"
+                    onClick={() => {
+                      setEditingVisit(undefined);
+                      setScheduleVisitOpen(true);
+                    }}
+                    className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                   >
                     <Calendar className="text-primary mr-1.5 size-3.5" />
-                    {t('scheduleVisitBtn') || 'Schedule Visit'}
+                    {t('scheduleVisitBtn')}
                   </Button>
                   <Button
                     size="sm"
                     variant="outline"
                     render={<Link href={`/inbox?contact=${contact.id}`} />}
-                    className="border-border text-foreground hover:bg-muted"
+                    className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                   >
                     <MessageCircle className="mr-1.5 size-3.5 text-emerald-600" />
-                    {t('chatInInboxBtn') || 'Chat in Inbox'}
+                    {t('chatInInboxBtn')}
                   </Button>
                   {contact.phone && (
                     <Button
                       size="sm"
                       variant="outline"
                       render={<a href={`tel:${contact.phone}`} />}
-                      className="border-border text-foreground hover:bg-muted"
+                      className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                     >
                       <Phone className="mr-1.5 size-3.5 text-blue-600" />
-                      {t('callBtn') || 'Call'}
+                      {t('callBtn')}
                     </Button>
                   )}
                   <Button
                     size="sm"
                     onClick={() => setTemplatePickerOpen(true)}
                     disabled={sendingTemplate}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-7.5 px-2.5 text-xs"
                   >
                     {sendingTemplate ? (
-                      <Loader2 className="size-4 animate-spin" />
+                      <Loader2 className="size-3.5 animate-spin" />
                     ) : (
-                      <LayoutTemplate className="size-4" />
+                      <LayoutTemplate className="mr-1 size-3.5" />
                     )}
                     {t('sendTemplateBtn')}
                   </Button>
@@ -1389,9 +1423,9 @@ export function ContactDetailView({
                           if (hasCostSheet) setCostSheetModalOpen(true);
                         }}
                         disabled={!hasCostSheet}
-                        className="border-input bg-background hover:bg-accent hover:text-accent-foreground focus-visible:ring-ring inline-flex h-8 items-center justify-center rounded-md border px-3 text-xs font-medium whitespace-nowrap shadow-sm transition-colors focus-visible:ring-1 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+                        className="border-input bg-background hover:bg-accent hover:text-accent-foreground inline-flex h-7.5 items-center justify-center rounded-md border px-2.5 text-xs font-medium shadow-xs transition-colors disabled:pointer-events-none disabled:opacity-50"
                       >
-                        <Zap className="mr-1 size-4 text-emerald-500" />
+                        <Zap className="mr-1 size-3.5 text-emerald-500" />
                         Cost Sheet
                       </TooltipTrigger>
                       {!hasCostSheet && (
@@ -1404,110 +1438,122 @@ export function ContactDetailView({
                 </div>
               </SheetHeader>
 
-              {/* Tabs */}
-
-              {/* Mobile Inline View */}
-              <div className="flex flex-col gap-6 overflow-y-auto p-4 md:hidden">
+              {/* Mobile View: Stacked Sections */}
+              <div className="flex flex-col gap-5 overflow-y-auto p-4 md:hidden">
                 <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
+                  <h3 className="text-foreground mb-2 font-semibold">
                     {t('tabs.details')}
                   </h3>
                   {detailsContent}
                 </section>
                 <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
-                    {t('tabs.tags')}
+                  <h3 className="text-foreground mb-2 font-semibold">
+                    {t('tabs.visits')} ({visits.length})
                   </h3>
-                  {tagsContent}
+                  {visitsContent}
                 </section>
                 <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
-                    {t('tabs.notes')}
-                  </h3>
-                  {notesContent}
-                </section>
-                <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
+                  <h3 className="text-foreground mb-2 font-semibold">
                     {t('tabs.deals')}
                   </h3>
                   {dealsContent}
                 </section>
                 <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
+                  <h3 className="text-foreground mb-2 font-semibold">Tasks</h3>
+                  <TasksWidget contactId={contactId || undefined} />
+                </section>
+                <section>
+                  <h3 className="text-foreground mb-2 font-semibold">
+                    {t('tabs.notes')}
+                  </h3>
+                  {notesContent}
+                </section>
+                <section>
+                  <h3 className="text-foreground mb-2 font-semibold">
                     {t('tabs.match')}
                   </h3>
                   {matchContent}
                 </section>
                 <section>
-                  <h3 className="text-foreground mb-3 font-semibold">
+                  <h3 className="text-foreground mb-2 font-semibold">
+                    {t('tabs.tags')}
+                  </h3>
+                  {tagsContent}
+                </section>
+                <section>
+                  <h3 className="text-foreground mb-2 font-semibold">
                     {t('tabs.custom')}
                   </h3>
                   {customContent}
                 </section>
-                <section>
-                  <h3 className="text-foreground mb-3 font-semibold">Tasks</h3>
-                  <TasksWidget contactId={contactId || undefined} />
-                </section>
               </div>
 
-              {/* Desktop Tabs — hidden on mobile to avoid double-rendering
-                  all content sections. The mobile stacked view above handles
-                  the <md breakpoint instead. */}
+              {/* Desktop View: Tabs */}
               <Tabs
                 defaultValue="details"
                 className="hidden min-h-0 flex-1 flex-col md:flex"
               >
-                <TabsList className="bg-muted/50 border-border mx-4 mt-3 border-b">
+                <TabsList className="bg-muted/40 border-border mx-4 mt-2.5 h-auto flex-wrap gap-1 border-b pb-1">
                   <TabsTrigger
                     value="details"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
                   >
                     {t('tabs.details')}
                   </TabsTrigger>
                   <TabsTrigger
-                    value="tags"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                    value="visits"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground flex items-center gap-1.5 text-xs"
                   >
-                    {t('tabs.tags')}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="notes"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
-                  >
-                    {t('tabs.notes')}
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="custom"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
-                  >
-                    {t('tabs.custom')}
+                    <span>{t('tabs.visits')}</span>
+                    {visits.length > 0 && (
+                      <span className="bg-primary/10 text-primary flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
+                        {visits.length}
+                      </span>
+                    )}
                   </TabsTrigger>
                   <TabsTrigger
                     value="deals"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
                   >
                     {t('tabs.deals')}
                   </TabsTrigger>
                   <TabsTrigger
-                    value="match"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground"
-                  >
-                    {t('tabs.match')}
-                  </TabsTrigger>
-                  <TabsTrigger
                     value="tasks"
-                    className="data-active:bg-muted data-active:text-primary text-muted-foreground flex items-center space-x-2"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground flex items-center gap-1.5 text-xs"
                   >
                     <span>Tasks</span>
                     {taskCount > 0 && (
-                      <span className="bg-primary/10 text-primary flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium">
+                      <span className="bg-primary/10 text-primary flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
                         {taskCount}
                       </span>
                     )}
                   </TabsTrigger>
+                  <TabsTrigger
+                    value="notes"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
+                  >
+                    {t('tabs.notes')}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="match"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
+                  >
+                    {t('tabs.match')}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tags"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
+                  >
+                    {t('tabs.tags')}
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="custom"
+                    className="data-active:bg-background data-active:text-primary text-muted-foreground text-xs"
+                  >
+                    {t('tabs.custom')}
+                  </TabsTrigger>
                 </TabsList>
 
-                {/* Details Tab */}
                 <TabsContent
                   value="details"
                   className="flex-1 overflow-y-auto px-4 py-3"
@@ -1515,31 +1561,13 @@ export function ContactDetailView({
                   {detailsContent}
                 </TabsContent>
 
-                {/* Tags Tab */}
                 <TabsContent
-                  value="tags"
+                  value="visits"
                   className="flex-1 overflow-y-auto px-4 py-3"
                 >
-                  {tagsContent}
+                  {visitsContent}
                 </TabsContent>
 
-                {/* Notes Tab */}
-                <TabsContent
-                  value="notes"
-                  className="flex min-h-0 flex-1 flex-col px-4 py-3"
-                >
-                  {notesContent}
-                </TabsContent>
-
-                {/* Custom Fields Tab */}
-                <TabsContent
-                  value="custom"
-                  className="flex-1 overflow-y-auto px-4 py-3"
-                >
-                  {customContent}
-                </TabsContent>
-
-                {/* Deals Tab */}
                 <TabsContent
                   value="deals"
                   className="flex-1 overflow-y-auto px-4 py-3"
@@ -1547,7 +1575,20 @@ export function ContactDetailView({
                   {dealsContent}
                 </TabsContent>
 
-                {/* Match Tab */}
+                <TabsContent
+                  value="tasks"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  <TasksWidget contactId={contactId || undefined} />
+                </TabsContent>
+
+                <TabsContent
+                  value="notes"
+                  className="flex min-h-0 flex-1 flex-col px-4 py-3"
+                >
+                  {notesContent}
+                </TabsContent>
+
                 <TabsContent
                   value="match"
                   className="flex-1 overflow-y-auto px-4 py-3"
@@ -1555,18 +1596,26 @@ export function ContactDetailView({
                   {matchContent}
                 </TabsContent>
 
-                {/* Tasks Tab */}
                 <TabsContent
-                  value="tasks"
+                  value="tags"
                   className="flex-1 overflow-y-auto px-4 py-3"
                 >
-                  <TasksWidget contactId={contactId || undefined} />
+                  {tagsContent}
+                </TabsContent>
+
+                <TabsContent
+                  value="custom"
+                  className="flex-1 overflow-y-auto px-4 py-3"
+                >
+                  {customContent}
                 </TabsContent>
               </Tabs>
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Assignment History Sheet */}
       <Sheet
         open={assignmentHistoryOpen}
         onOpenChange={setAssignmentHistoryOpen}
@@ -1576,9 +1625,9 @@ export function ContactDetailView({
           className="bg-popover border-border text-popover-foreground flex w-full flex-col p-0 sm:max-w-md"
         >
           <SheetHeader className="border-border/50 border-b p-4">
-            <SheetTitle className="text-popover-foreground flex items-center gap-2">
+            <SheetTitle className="text-popover-foreground flex items-center gap-2 text-sm font-semibold">
               <History className="size-4" />
-              {t('assignmentHistoryTitle', { fallback: 'Assignment History' })}
+              {t('assignmentHistoryTitle')}
             </SheetTitle>
           </SheetHeader>
           <div className="flex-1 overflow-y-auto p-4">
@@ -1587,30 +1636,28 @@ export function ContactDetailView({
                 <Loader2 className="text-muted-foreground size-5 animate-spin" />
               </div>
             ) : assignmentHistory.length === 0 ? (
-              <p className="text-muted-foreground py-8 text-center text-sm">
-                {t('noAssignmentHistory', {
-                  fallback: 'No assignment history found.',
-                })}
+              <p className="text-muted-foreground py-8 text-center text-xs">
+                {t('noAssignmentHistory')}
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {assignmentHistory.map((record) => (
                   <div
                     key={record.id}
-                    className="bg-card border-border rounded-lg border p-3 shadow-sm"
+                    className="bg-card border-border/80 rounded-xl border p-3 shadow-xs"
                   >
-                    <p className="text-foreground mb-1 text-sm font-medium">
+                    <p className="text-foreground text-xs font-semibold">
                       {record.to_agent
                         ? record.to_agent.full_name
                         : 'Unassigned'}
                     </p>
-                    <p className="text-muted-foreground text-xs">
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
                       From:{' '}
                       {record.from_agent
                         ? record.from_agent.full_name
                         : 'Unassigned'}
                     </p>
-                    <div className="text-muted-foreground border-border/50 mt-2 flex items-center justify-between border-t pt-2 text-xs">
+                    <div className="text-muted-foreground border-border/50 mt-2 flex items-center justify-between border-t pt-2 text-[10px]">
                       <span>
                         Reason:{' '}
                         <span className="font-medium">{record.reason}</span>
@@ -1630,21 +1677,26 @@ export function ContactDetailView({
           </div>
         </SheetContent>
       </Sheet>
+
       <TemplatePicker
         open={templatePickerOpen}
         onOpenChange={setTemplatePickerOpen}
         onSelect={handleSendTemplate}
       />
+
       <CostSheetModal
         open={costSheetModalOpen}
         onOpenChange={setCostSheetModalOpen}
         contactId={contactId || undefined}
       />
+
       <ScheduleVisitSheet
         open={scheduleVisitOpen}
         onOpenChange={setScheduleVisitOpen}
         defaultContactId={contact?.id}
+        visit={editingVisit}
         onSuccess={() => {
+          fetchVisits();
           onUpdated();
         }}
       />

@@ -396,6 +396,7 @@
       "scheduleVisitAction": "Agendar visita",
       "viewDetailsAction": "Ver detalhes",
       "editContactAction": "Editar detalhes",
+      "copyPhoneAction": "Copiar telefone",
       "budget": "Orçamento",
       "location": "Localização",
       "source": "Origem",
@@ -476,6 +477,7 @@
       "editLeadBtn": "Editar detalhes",
       "tabs": {
         "details": "Detalhes",
+        "visits": "Visitas",
         "activity": "Atividade",
         "notes": "Notas",
         "custom": "Campos personalizados",
@@ -516,6 +518,31 @@
       "dealsTab": {
         "noDeals": "Nenhum negócio ainda"
       },
+      "visitsTab": {
+        "title": "Visitas ao local",
+        "scheduleBtn": "Agendar visita",
+        "noVisits": "Nenhuma visita agendada para este lead.",
+        "pickupAt": "Buscar em: {location}",
+        "markConfirmed": "Marcar como confirmada",
+        "markCompleted": "Marcar como concluída",
+        "markNoShow": "Marcar como não compareceu",
+        "edit": "Editar",
+        "loading": "Carregando visitas..."
+      },
+      "realEstateRequirements": "Requisitos imobiliários",
+      "editRequirements": "Editar requisitos",
+      "propertyType": "Tipo de imóvel",
+      "buyerIntent": "Intenção do comprador",
+      "budgetRange": "Faixa de orçamento",
+      "preferredLocation": "Localização de preferência",
+      "possessionTimeline": "Prazo de posse",
+      "configuration": "Configuração / Quartos",
+      "leadSource": "Origem do lead",
+      "notSpecified": "Não especificado",
+      "anyConfig": "Qualquer configuração",
+      "anyTimeline": "Qualquer prazo",
+      "copyInfo": "Copiar dados do lead",
+      "toastInfoCopied": "Dados do lead copiados para a área de transferência",
       "matchTab": {
         "title": "Property Matches",
         "sendViaWhatsapp": "Send via WhatsApp",
@@ -2283,6 +2310,14 @@
       "pickupHint": "Arrange pickup from the lead's location",
       "pickupAddressLabel": "Pickup Address",
       "pickupAddressPlaceholder": "Full address or landmark...",
+      "changeContact": "Alterar",
+      "selectedLead": "Lead selecionado",
+      "quickPresets": "Atalhos rápidos",
+      "today4pm": "Hoje 16h",
+      "tomorrow11am": "Amanhã 11h",
+      "tomorrow4pm": "Amanhã 16h",
+      "thisSat11am": "Este sábado 11h",
+      "thisSun11am": "Este domingo 11h",
       "saveChanges": "Save Changes",
       "toastUpdated": "Visit updated successfully."
     }

@@ -87,6 +87,7 @@ import {
   Sparkles,
   TrendingUp,
   UserCheck,
+  Copy,
 } from 'lucide-react';
 import { ContactForm } from '@/components/contacts/contact-form';
 import { ContactDetailView } from '@/components/contacts/contact-detail-view';
@@ -1636,20 +1637,20 @@ export default function ContactsPage() {
                             <Calendar className="size-4" />
                           </button>
 
-                          {/* Quick Edit Details */}
+                          {/* Quick View Details */}
                           <button
                             type="button"
                             className="hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer rounded-lg p-1.5 transition-colors"
-                            title={t('editContactAction') || 'Edit details'}
+                            title={t('viewDetailsAction') || 'View Details'}
                             onClick={(e) => {
                               e.stopPropagation();
-                              openEditForm(contact);
+                              openDetail(contact.id);
                             }}
                           >
-                            <Pencil className="size-4" />
+                            <Eye className="size-4" />
                           </button>
 
-                          {/* More Options Menu */}
+                          {/* Management & Destructive Options Menu */}
                           <DropdownMenu>
                             <DropdownMenuTrigger
                               className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5 transition-colors focus:outline-none"
@@ -1661,15 +1662,6 @@ export default function ContactsPage() {
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  openDetail(contact.id);
-                                }}
-                              >
-                                <Eye className="mr-2 size-4" />
-                                {t('viewDetailsAction') || 'View Details'}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={(e) => {
-                                  e.stopPropagation();
                                   openEditForm(contact);
                                 }}
                               >
@@ -1677,13 +1669,19 @@ export default function ContactsPage() {
                                 {t('editContactAction') || 'Edit Details'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  handleScheduleVisit(contact.id);
+                                  await navigator.clipboard.writeText(
+                                    contact.phone
+                                  );
+                                  toast.success(
+                                    t('copyPhoneAction') ||
+                                      'Phone copied to clipboard'
+                                  );
                                 }}
                               >
-                                <Calendar className="mr-2 size-4" />
-                                {t('scheduleVisitAction') || 'Schedule Visit'}
+                                <Copy className="mr-2 size-4" />
+                                {t('copyPhoneAction') || 'Copy Phone'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem

@@ -396,6 +396,7 @@
       "scheduleVisitAction": "현장 방문 예약",
       "viewDetailsAction": "상세 보기",
       "editContactAction": "상세 수정",
+      "copyPhoneAction": "전화번호 복사",
       "budget": "예산",
       "location": "위치",
       "source": "유입 경로",
@@ -476,6 +477,7 @@
       "editLeadBtn": "상세 수정",
       "tabs": {
         "details": "상세 정보",
+        "visits": "현장 방문",
         "activity": "활동",
         "notes": "메모",
         "custom": "커스텀 필드",
@@ -516,6 +518,31 @@
       "dealsTab": {
         "noDeals": "아직 딜이 없습니다"
       },
+      "visitsTab": {
+        "title": "현장 방문 일정",
+        "scheduleBtn": "방문 일정 예약",
+        "noVisits": "예약된 현장 방문이 없습니다.",
+        "pickupAt": "픽업 장소: {location}",
+        "markConfirmed": "방문 확정",
+        "markCompleted": "방문 완료",
+        "markNoShow": "노쇼 처리",
+        "edit": "수정",
+        "loading": "방문 일정 불러오는 중..."
+      },
+      "realEstateRequirements": "부동산 희망 조건",
+      "editRequirements": "희망 조건 수정",
+      "propertyType": "매물 유형",
+      "buyerIntent": "매수 목적",
+      "budgetRange": "예산 범위",
+      "preferredLocation": "희망 지역",
+      "possessionTimeline": "입주 희망 시기",
+      "configuration": "구조 / 방 개수",
+      "leadSource": "유입 경로",
+      "notSpecified": "미지정",
+      "anyConfig": "모든 구조",
+      "anyTimeline": "모든 시기",
+      "copyInfo": "리드 정보 복사",
+      "toastInfoCopied": "리드 정보가 클립보드에 복사되었습니다",
       "matchTab": {
         "title": "Property Matches",
         "sendViaWhatsapp": "Send via WhatsApp",
@@ -2283,6 +2310,14 @@
       "pickupHint": "Arrange pickup from the lead's location",
       "pickupAddressLabel": "Pickup Address",
       "pickupAddressPlaceholder": "Full address or landmark...",
+      "changeContact": "변경",
+      "selectedLead": "선택된 리드",
+      "quickPresets": "빠른 시간 선택",
+      "today4pm": "오늘 오후 4시",
+      "tomorrow11am": "내일 오전 11시",
+      "tomorrow4pm": "내일 오후 4시",
+      "thisSat11am": "이번 주 토요일 오전 11시",
+      "thisSun11am": "이번 주 일요일 오전 11시",
       "saveChanges": "Save Changes",
       "toastUpdated": "Visit updated successfully."
     }
