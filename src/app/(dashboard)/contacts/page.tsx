@@ -904,7 +904,7 @@ export default function ContactsPage() {
               >
                 <SelectTrigger
                   label={t('filterSource') || 'Source'}
-                  className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                  className="bg-muted/40 border-border text-foreground h-9 min-w-[140px] text-xs"
                 >
                   <SelectValue
                     placeholder={t('filterAllSources') || 'All Sources'}
@@ -931,7 +931,7 @@ export default function ContactsPage() {
               >
                 <SelectTrigger
                   label={t('filterStage') || 'Stage'}
-                  className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                  className="bg-muted/40 border-border text-foreground h-9 min-w-[140px] text-xs"
                 >
                   <SelectValue
                     placeholder={t('filterAllStages') || 'All Stages'}
@@ -957,7 +957,7 @@ export default function ContactsPage() {
                   render={
                     <Button
                       variant="outline"
-                      className="border-border text-muted-foreground hover:bg-muted h-8.5 shrink-0 text-xs"
+                      className="border-border text-muted-foreground hover:bg-muted h-9 shrink-0 text-xs"
                     />
                   }
                 >
@@ -1004,7 +1004,7 @@ export default function ContactsPage() {
                             className="size-2.5 shrink-0 rounded-full"
                             style={{ backgroundColor: tag.color }}
                           />
-                          <span className="text-popover-foreground truncate text-xs">
+                          <span className="text-popover-foreground truncate text-sm">
                             {tag.name}
                           </span>
                         </label>
@@ -1022,7 +1022,7 @@ export default function ContactsPage() {
                 >
                   <SelectTrigger
                     label={t('filterAssignee') || 'Assignee'}
-                    className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                    className="bg-muted/40 border-border text-foreground h-9 min-w-[140px] text-xs"
                   >
                     <SelectValue
                       placeholder={t('filterAllAssignees') || 'All Agents'}

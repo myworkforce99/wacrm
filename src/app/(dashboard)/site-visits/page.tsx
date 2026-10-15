@@ -1365,29 +1365,29 @@ export default function SiteVisitsPage() {
             >
               <SelectTrigger
                 label={t('filterStatus')}
-                className="bg-card h-8 min-w-[130px] text-xs"
+                className="bg-card h-9 min-w-[130px] text-xs"
               >
                 <SelectValue placeholder={t('allStatuses')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterStatus')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allStatuses')}
                 </SelectItem>
-                <SelectItem value="pending" className="text-xs">
+                <SelectItem value="pending">
                   {t('statusPending')}
                 </SelectItem>
-                <SelectItem value="confirmed" className="text-xs">
+                <SelectItem value="confirmed">
                   {t('statusConfirmed')}
                 </SelectItem>
-                <SelectItem value="completed" className="text-xs">
+                <SelectItem value="completed">
                   {t('statusCompleted')}
                 </SelectItem>
-                <SelectItem value="no_show" className="text-xs">
+                <SelectItem value="no_show">
                   {t('statusNoShow')}
                 </SelectItem>
-                <SelectItem value="rescheduled" className="text-xs">
+                <SelectItem value="rescheduled">
                   {t('statusRescheduled')}
                 </SelectItem>
               </SelectContent>
@@ -1400,23 +1400,23 @@ export default function SiteVisitsPage() {
             >
               <SelectTrigger
                 label={t('filterTimeframe')}
-                className="bg-card h-8 min-w-[130px] text-xs"
+                className="bg-card h-9 min-w-[130px] text-xs"
               >
                 <SelectValue placeholder={t('allTimeframes')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterTimeframe')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allTimeframes')}
                 </SelectItem>
-                <SelectItem value="today" className="text-xs">
+                <SelectItem value="today">
                   {t('timeframeToday')}
                 </SelectItem>
-                <SelectItem value="upcoming" className="text-xs">
+                <SelectItem value="upcoming">
                   {t('timeframeUpcoming')}
                 </SelectItem>
-                <SelectItem value="past" className="text-xs">
+                <SelectItem value="past">
                   {t('timeframePast')}
                 </SelectItem>
               </SelectContent>
@@ -1429,18 +1429,18 @@ export default function SiteVisitsPage() {
             >
               <SelectTrigger
                 label={t('filterConfig')}
-                className="bg-card h-8 min-w-[130px] text-xs"
+                className="bg-card h-9 min-w-[130px] text-xs"
               >
                 <SelectValue placeholder={t('allConfigs')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterConfig')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allConfigs')}
                 </SelectItem>
                 {PROPERTY_CONFIGURATIONS.map((cfg) => (
-                  <SelectItem key={cfg} value={cfg} className="text-xs">
+                  <SelectItem key={cfg} value={cfg}>
                     {cfg}
                   </SelectItem>
                 ))}
@@ -1454,20 +1454,20 @@ export default function SiteVisitsPage() {
             >
               <SelectTrigger
                 label={t('filterPickup')}
-                className="bg-card h-8 min-w-[130px] text-xs"
+                className="bg-card h-9 min-w-[130px] text-xs"
               >
                 <SelectValue placeholder={t('allPickups')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterPickup')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allPickups')}
                 </SelectItem>
-                <SelectItem value="needed" className="text-xs">
+                <SelectItem value="needed">
                   {t('pickupNeeded')}
                 </SelectItem>
-                <SelectItem value="self" className="text-xs">
+                <SelectItem value="self">
                   {t('pickupSelf')}
                 </SelectItem>
               </SelectContent>
@@ -1480,24 +1480,23 @@ export default function SiteVisitsPage() {
             >
               <SelectTrigger
                 label={t('filterAgent')}
-                className="bg-card h-8 min-w-[130px] text-xs"
+                className="bg-card h-9 min-w-[130px] text-xs"
               >
                 <SelectValue placeholder={t('allAgents')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterAgent')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allAgents')}
                 </SelectItem>
-                <SelectItem value="unassigned" className="text-xs">
+                <SelectItem value="unassigned">
                   {t('unassigned')}
                 </SelectItem>
                 {profiles.map((p) => (
                   <SelectItem
                     key={p.id}
                     value={p.user_id || p.id}
-                    className="text-xs"
                   >
                     {p.full_name || p.email}
                   </SelectItem>

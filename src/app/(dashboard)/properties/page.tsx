@@ -571,11 +571,11 @@ export default function PropertiesPage() {
               <SelectContent>
                 <SelectLabel>{t('filterConfig')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allConfigs')}
                 </SelectItem>
                 {PROPERTY_CONFIGURATIONS.map((cfg) => (
-                  <SelectItem key={cfg} value={cfg} className="text-xs">
+                  <SelectItem key={cfg} value={cfg}>
                     {cfg}
                   </SelectItem>
                 ))}
@@ -589,18 +589,18 @@ export default function PropertiesPage() {
             >
               <SelectTrigger
                 label={t('filterType')}
-                className="bg-card h-8 min-w-[140px] text-xs"
+                className="bg-card h-9 min-w-[140px] text-xs"
               >
                 <SelectValue placeholder={t('allTypes')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterType')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allTypes')}
                 </SelectItem>
                 {PROPERTY_TYPES.map((type) => (
-                  <SelectItem key={type} value={type} className="text-xs">
+                  <SelectItem key={type} value={type}>
                     {type}
                   </SelectItem>
                 ))}
@@ -614,23 +614,23 @@ export default function PropertiesPage() {
             >
               <SelectTrigger
                 label={t('filterPossession')}
-                className="bg-card h-8 min-w-[155px] text-xs"
+                className="bg-card h-9 min-w-[155px] text-xs"
               >
                 <SelectValue placeholder={t('allPossessions')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterPossession')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allPossessions')}
                 </SelectItem>
-                <SelectItem value="ready_to_move" className="text-xs">
+                <SelectItem value="ready_to_move">
                   {t('statReady')}
                 </SelectItem>
-                <SelectItem value="under_construction" className="text-xs">
+                <SelectItem value="under_construction">
                   {t('statUnderConst')}
                 </SelectItem>
-                <SelectItem value="nearing_possession" className="text-xs">
+                <SelectItem value="nearing_possession">
                   {tForm('possessionNearing')}
                 </SelectItem>
               </SelectContent>
@@ -643,29 +643,29 @@ export default function PropertiesPage() {
             >
               <SelectTrigger
                 label={t('filterPrice')}
-                className="bg-card h-8 min-w-[150px] text-xs"
+                className="bg-card h-9 min-w-[150px] text-xs"
               >
                 <SelectValue placeholder={t('allPrices')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectLabel>{t('filterPrice')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all" className="text-xs">
+                <SelectItem value="all">
                   {t('allPrices')}
                 </SelectItem>
-                <SelectItem value="under_50l" className="text-xs">
+                <SelectItem value="under_50l">
                   {t('priceUnder50L')}
                 </SelectItem>
-                <SelectItem value="50l_to_1cr" className="text-xs">
+                <SelectItem value="50l_to_1cr">
                   {t('price50Lto1Cr')}
                 </SelectItem>
-                <SelectItem value="1cr_to_2cr" className="text-xs">
+                <SelectItem value="1cr_to_2cr">
                   {t('price1Crto2Cr')}
                 </SelectItem>
-                <SelectItem value="2cr_to_5cr" className="text-xs">
+                <SelectItem value="2cr_to_5cr">
                   {t('price2Crto5Cr')}
                 </SelectItem>
-                <SelectItem value="above_5cr" className="text-xs">
+                <SelectItem value="above_5cr">
                   {t('priceAbove5Cr')}
                 </SelectItem>
               </SelectContent>

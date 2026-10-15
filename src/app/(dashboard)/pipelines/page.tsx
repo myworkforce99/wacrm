@@ -744,7 +744,7 @@ export default function PipelinesPage() {
                 >
                   <SelectTrigger
                     label={t('filterSource')}
-                    className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                    className="bg-muted/40 border-border text-foreground h-9 min-w-[140px] text-xs"
                   >
                     <SelectValue placeholder={t('filterAllSources')} />
                   </SelectTrigger>
@@ -768,7 +768,7 @@ export default function PipelinesPage() {
                   >
                     <SelectTrigger
                       label={t('filterAssignee')}
-                      className="bg-muted/40 border-border text-foreground h-8.5 min-w-[140px] text-xs"
+                      className="bg-muted/40 border-border text-foreground h-9 min-w-[140px] text-xs"
                     >
                       <SelectValue placeholder={t('filterAllAssignees')} />
                     </SelectTrigger>
@@ -797,7 +797,7 @@ export default function PipelinesPage() {
                 >
                   <SelectTrigger
                     label={t('filterValueRange')}
-                    className="bg-muted/40 border-border text-foreground h-8.5 min-w-[150px] text-xs"
+                    className="bg-muted/40 border-border text-foreground h-9 min-w-[150px] text-xs"
                   >
                     <SelectValue placeholder={t('filterAllValues')} />
                   </SelectTrigger>
