@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
+import { createClient } from '@/lib/supabase/client';
+
 import {
   Sheet,
   SheetContent,
@@ -55,15 +57,24 @@ export function CostSheetModal({
     if (!open || initialContactId) return;
     let isMounted = true;
     setLoadingContacts(true);
-    fetch('/api/v1/contacts?limit=1000') // Adjust according to API if necessary, or just use a combo box endpoint if available.
-      .then((res) => res.json())
-      .then((data) => {
-        if (isMounted && data.contacts) setContacts(data.contacts);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => {
+    async function fetchContacts() {
+      try {
+        const db = createClient();
+        const { data, error } = await db
+          .from('contacts')
+          .select('id, name, phone')
+          .order('name')
+          .limit(100);
+        if (isMounted && !error && data) {
+          setContacts(data as unknown as Contact[]);
+        }
+      } catch (err: unknown) {
+        console.error(err);
+      } finally {
         if (isMounted) setLoadingContacts(false);
-      });
+      }
+    }
+    void fetchContacts();
     return () => {
       isMounted = false;
     };
@@ -90,19 +101,25 @@ export function CostSheetModal({
 
     async function loadData() {
       try {
+        const db = createClient();
         const [accountRes, contactRes, propertiesRes] = await Promise.all([
           fetch('/api/account'),
-          fetch(`/api/v1/contacts/${selectedContactId}`),
-          fetch('/api/v1/properties?limit=20'),
+          db
+            .from('contacts')
+            .select('*, lead_details(*)')
+            .eq('id', selectedContactId)
+            .single(),
+          db.from('properties').select('*').limit(50),
         ]);
 
-        if (!accountRes.ok || !contactRes.ok || !propertiesRes.ok) {
+        if (!accountRes.ok || contactRes.error || propertiesRes.error) {
           throw new Error('Failed to load required data');
         }
 
         const accountData = await accountRes.json();
-        const contactJson = await contactRes.json();
-        const propertiesJson = await propertiesRes.json();
+        const contact = contactRes.data;
+        const allProperties: Property[] = (propertiesRes.data ||
+          []) as Property[];
 
         if (!isMounted) return;
 
@@ -127,12 +144,12 @@ export function CostSheetModal({
           }
         }
 
-        setContactData(contactJson.contact);
+        setContactData(contact as unknown as Contact);
 
-        const allProperties: Property[] = propertiesJson.properties || [];
-        const leadDetails = contactJson.contact?.lead_details || {};
+        const leadDetails = (contact as { lead_details?: LeadDetail | null })
+          ?.lead_details;
 
-        const locPref = (leadDetails.location_preference || '').toLowerCase();
+        const locPref = (leadDetails?.location_preference || '').toLowerCase();
 
         const filtered = allProperties.map((p) => ({ ...p, _matchScore: 0 }));
         filtered.forEach((p) => {
@@ -140,13 +157,14 @@ export function CostSheetModal({
           if (locPref && (p.location || '').toLowerCase().includes(locPref))
             score += 1;
           if (
-            leadDetails.configuration_preference &&
+            leadDetails?.configuration_preference &&
+            p.configuration &&
             leadDetails.configuration_preference.includes(p.configuration)
           ) {
             score += 1;
           }
           if (
-            leadDetails.property_type &&
+            leadDetails?.property_type &&
             p.property_type === leadDetails.property_type
           ) {
             score += 1;

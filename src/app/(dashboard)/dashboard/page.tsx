@@ -3,9 +3,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { formatCurrency, formatINR } from '@/lib/currency';
-import { MessageCircle, Phone } from 'lucide-react';
+import { formatCurrency, formatINR, formatINRRange } from '@/lib/currency';
+import {
+  Users,
+  Calendar,
+  Zap,
+  UserPlus,
+  Coins,
+  MessageSquare,
+  MessageCircle,
+  Phone,
+  Pencil,
+  RotateCw,
+  Building2,
+  CalendarCheck,
+  Car,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 import { Task } from '@/types';
 
@@ -27,6 +43,7 @@ import type {
 
 import { PageHeader } from '@/components/layout/page-header';
 import { SkeletonCard } from '@/components/dashboard/skeleton';
+import { MetricCard } from '@/components/dashboard/metric-card';
 import { TasksWidget } from '@/components/dashboard/tasks-widget';
 import { QuickActions } from '@/components/dashboard/quick-actions';
 import { ConversationsChart } from '@/components/dashboard/conversations-chart';
@@ -53,22 +70,27 @@ interface DashboardLead {
     location_preference?: string;
     budget_min?: number;
     budget_max?: number;
+    configuration_preference?: string[];
     source?: string;
   } | null;
-  deals?: { pipeline_stages?: { name?: string } }[];
+  deals?: { status?: string; pipeline_stages?: { name?: string } }[];
 }
 
 interface DashboardVisit {
   id: string;
+  contact_id?: string | null;
+  property_id?: string | null;
   scheduled_at: string;
   status: string;
-  contacts?: { name?: string };
-  properties?: { title?: string };
+  pickup_required?: boolean;
+  pickup_location?: string | null;
+  contacts?: { name?: string; phone?: string };
+  properties?: { title?: string; location?: string };
 }
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard.page');
-  const { defaultCurrency, profile } = useAuth();
+  const { defaultCurrency, profile, canManageMembers: isManager } = useAuth();
 
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
@@ -77,7 +99,6 @@ export default function DashboardPage() {
     count: number;
     overdue: number;
   } | null>(null);
-  const [, setFollowupsLoading] = useState(true);
 
   const [range, setRange] = useState<RangeDays>(30);
   const [series, setSeries] = useState<
@@ -110,6 +131,7 @@ export default function DashboardPage() {
   const [todayTasksLoading, setTodayTasksLoading] = useState(true);
 
   const [hotLeadsCount, setHotLeadsCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadAll = useCallback(() => {
     const db = createClient();
@@ -121,8 +143,7 @@ export default function DashboardPage() {
 
     void getFollowupsDueCount(db)
       .then((f) => setFollowups(f))
-      .catch((err) => console.error('[dashboard] followups failed:', err))
-      .finally(() => setFollowupsLoading(false));
+      .catch((err) => console.error('[dashboard] followups failed:', err));
 
     void loadConversationsSeries(db, 30)
       .then((s) => setSeries((prev) => ({ ...prev, 30: s })))
@@ -144,23 +165,28 @@ export default function DashboardPage() {
       .catch((err) => console.error('[dashboard] activity failed:', err))
       .finally(() => setActivityLoading(false));
 
-    void db
-      .from('contacts')
-      .select('id', { count: 'exact', head: true })
-      .eq('contact_tags.tags.name', 'hot-lead')
-      .not('contact_tags', 'is', null) // We would need a custom RPC or view for perfect tag filtering due to PostgREST inner join limitations, so we fallback to a simpler count if needed. Actually, a simpler way is fetching the contacts with tags.
-      .then(({ count, error }) => {
-        // Fallback: we'll just fetch hot leads in a separate simpler query if needed, or rely on a known query.
-      });
+    // Hot leads count via tags lookup
+    void (async () => {
+      try {
+        const { data: tag } = await db
+          .from('tags')
+          .select('id')
+          .eq('name', 'hot-lead')
+          .maybeSingle();
 
-    void db
-      .from('contacts')
-      .select('id, contact_tags!inner(tags!inner(name))')
-      .eq('contact_tags.tags.name', 'hot-lead')
-      .then(({ data, error }) => {
-        if (!error && data) setHotLeadsCount(data.length);
-      });
+        if (tag?.id) {
+          const { count, error } = await db
+            .from('contact_tags')
+            .select('contact_id', { count: 'exact', head: true })
+            .eq('tag_id', tag.id);
+          if (!error && count !== null) setHotLeadsCount(count);
+        }
+      } catch (err) {
+        console.error('[dashboard] hot leads count error:', err);
+      }
+    })();
 
+    // Recent leads
     void db
       .from('contacts')
       .select(
@@ -168,13 +194,14 @@ export default function DashboardPage() {
       )
       .order('created_at', { ascending: false })
       .order('created_at', { referencedTable: 'deals', ascending: false })
-      .limit(5)
+      .limit(6)
       .then(({ data, error }) => {
         if (error) console.error('[dashboard] recent leads failed:', error);
         else setRecentLeads(data || []);
         setRecentLeadsLoading(false);
       });
 
+    // Today's site visits
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -182,18 +209,17 @@ export default function DashboardPage() {
 
     void db
       .from('site_visits')
-      .select('*, contacts(name), properties(title)')
+      .select('*, contacts(name, phone), properties(title, location)')
       .gte('scheduled_at', todayStart.toISOString())
       .lte('scheduled_at', todayEnd.toISOString())
       .order('scheduled_at', { ascending: true })
       .then(({ data, error }) => {
         if (error) console.error('[dashboard] today visits failed:', error);
-        else setTodayVisits(data || []);
+        else setTodayVisits((data as unknown as DashboardVisit[]) || []);
         setTodayVisitsLoading(false);
       });
 
-    // We can fetch today's tasks via the API, or duplicate logic here.
-    // Fetching via our API route is simpler to reuse the exact task formatting/filters.
+    // Today's tasks
     fetch('/api/tasks?due_today=true')
       .then((r) => r.json())
       .then((d) => {
@@ -206,6 +232,15 @@ export default function DashboardPage() {
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    loadAll();
+    setTimeout(() => {
+      setIsRefreshing(false);
+      toast.success(t('refresh'));
+    }, 600);
+  };
 
   const handleRangeChange = useCallback(
     (r: RangeDays) => {
@@ -221,7 +256,46 @@ export default function DashboardPage() {
     [series]
   );
 
+  const handleVisitStatusChange = async (
+    visitId: string,
+    newStatus: 'completed' | 'no_show'
+  ) => {
+    // Optimistic update
+    setTodayVisits((prev) =>
+      prev.map((v) => (v.id === visitId ? { ...v, status: newStatus } : v))
+    );
+
+    const db = createClient();
+    const { error } = await db
+      .from('site_visits')
+      .update({ status: newStatus })
+      .eq('id', visitId);
+
+    if (error) {
+      console.error('Failed to update site visit:', error);
+      toast.error(t('visitUpdateFailed'));
+      loadAll();
+    } else {
+      toast.success(t('visitUpdated'));
+    }
+  };
+
   const firstName = profile?.full_name?.split(' ')[0] || '';
+  const currentHour = new Date().getHours();
+  const greetingText =
+    currentHour < 12
+      ? t('greeting')
+      : currentHour < 17
+        ? t('greetingAfternoon')
+        : t('greetingEvening');
+
+  // Compute completed & upcoming visits count for today
+  const completedVisitsCount = todayVisits.filter(
+    (v) => v.status === 'completed'
+  ).length;
+  const upcomingVisitsCount = todayVisits.filter(
+    (v) => v.status === 'pending' || v.status === 'confirmed'
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -232,181 +306,180 @@ export default function DashboardPage() {
 
       <PageHeader
         title={
-          <div className="flex items-center gap-2">
-            <span>{t('greeting') + `, ${firstName} 👋`}</span>
-            {(profile?.account_role === 'owner' ||
-              profile?.account_role === 'admin') && (
-              <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-semibold">
-                Team View
-              </span>
-            )}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span>{greetingText + (firstName ? `, ${firstName}` : '')} 👋</span>
+            <span
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-xs font-semibold tracking-wide uppercase',
+                isManager
+                  ? 'border-primary/30 bg-primary/10 text-primary border'
+                  : 'border-muted bg-muted/60 text-muted-foreground border'
+              )}
+            >
+              {isManager ? t('teamView') : t('agentView')}
+            </span>
           </div>
         }
         subtitle={
-          <span>
-            Here&apos;s your pipeline today.{' '}
-            <Link
-              href="/contacts?tag=hot-lead"
-              className="text-primary font-medium underline-offset-2 hover:underline"
-            >
-              {t('hotLeadsNotice', { count: hotLeadsCount })}
-            </Link>
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            Here&apos;s your property sales pipeline today.{' '}
+            {hotLeadsCount > 0 ? (
+              <Link
+                href="/contacts?tag=hot-lead"
+                className="text-primary hover:text-primary/80 inline-flex items-center gap-1 font-semibold underline-offset-2 hover:underline"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <span>{t('hotLeadsNotice', { count: hotLeadsCount })}</span>
+              </Link>
+            ) : null}
           </span>
+        }
+        action={
+          <button
+            onClick={handleRefresh}
+            title={t('refresh')}
+            aria-label={t('refresh')}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground border-border bg-card inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
+          >
+            <RotateCw
+              className={cn(
+                'h-3.5 w-3.5',
+                isRefreshing && 'text-primary animate-spin'
+              )}
+            />
+            <span className="hidden sm:inline">{t('refresh')}</span>
+          </button>
         }
       />
 
-      {/* Quick actions */}
+      {/* Quick actions bar */}
       <QuickActions />
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
+      {/* Situational Awareness KPI Strip */}
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {metricsLoading ? (
           Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">👥</div>
-              <div className="text-foreground text-3xl font-bold">
-                {metrics?.activeConversations.current ?? 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                Active Leads
-              </div>
-              <div className="mt-2 text-xs font-medium text-green-600">
-                +
-                {(metrics?.activeConversations.current ?? 0) -
-                  (metrics?.activeConversations.previous ?? 0)}{' '}
-                today
-              </div>
-            </div>
+            <MetricCard
+              title={t('activeLeads')}
+              value={String(metrics?.activeConversations.current ?? 0)}
+              icon={Users}
+              iconBgClassName="bg-blue-500/10 text-blue-600 dark:text-blue-400"
+              href="/contacts"
+              subtitle={t('activeConversationsSubtitle', {
+                count: metrics?.activeConversations.current ?? 0,
+              })}
+            />
 
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">📅</div>
-              <div className="text-foreground text-3xl font-bold">
-                {todayVisits.length}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                Site Visits Today
-              </div>
-              <div className="text-muted-foreground mt-2 text-xs font-medium">
-                {todayVisits.filter((v) => v.status === 'completed').length}{' '}
-                completed,{' '}
-                {todayVisits.filter((v) => v.status === 'scheduled').length}{' '}
-                scheduled
-              </div>
-            </div>
+            <MetricCard
+              title={t('siteVisitsToday')}
+              value={String(todayVisits.length)}
+              icon={Calendar}
+              iconBgClassName="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+              href="/site-visits"
+              subtitle={
+                todayVisits.length > 0
+                  ? t('siteVisitsSubtitle', {
+                      completed: completedVisitsCount,
+                      scheduled: upcomingVisitsCount,
+                    })
+                  : t('noVisitsToday')
+              }
+            />
 
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">⚡</div>
-              <div className="text-foreground text-3xl font-bold">
-                {followups?.count ?? 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                Action Items
-              </div>
-              <div
-                className={cn(
-                  'mt-2 text-xs font-medium',
-                  (followups?.overdue ?? 0) > 0
-                    ? 'text-red-500'
-                    : 'text-green-600'
-                )}
-              >
-                {(followups?.overdue ?? 0) > 0
-                  ? `${followups?.overdue} overdue`
-                  : 'All caught up'}
-              </div>
-            </div>
+            <MetricCard
+              title={t('actionItems')}
+              value={String(followups?.count ?? 0)}
+              icon={Zap}
+              iconBgClassName="bg-amber-500/10 text-amber-600 dark:text-amber-400"
+              href="/contacts"
+              subtitle={
+                (followups?.overdue ?? 0) > 0
+                  ? t('overdueCount', { count: followups?.overdue ?? 0 })
+                  : t('allCaughtUp')
+              }
+              subtitleClassName={
+                (followups?.overdue ?? 0) > 0
+                  ? 'text-red-500 font-medium'
+                  : 'text-emerald-600 dark:text-emerald-400 font-medium'
+              }
+            />
 
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">👤</div>
-              <div className="text-foreground text-3xl font-bold">
-                {metrics?.newContactsToday.current ?? 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                {t('newContactsToday')}
-              </div>
-              <div
-                className={cn(
-                  'mt-2 text-xs font-medium',
+            <MetricCard
+              title={t('newContactsToday')}
+              value={String(metrics?.newContactsToday.current ?? 0)}
+              icon={UserPlus}
+              iconBgClassName="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400"
+              href="/contacts"
+              delta={{
+                sign:
+                  (metrics?.newContactsToday.current ?? 0) -
+                  (metrics?.newContactsToday.previous ?? 0),
+                label: `${
                   (metrics?.newContactsToday.current ?? 0) -
                     (metrics?.newContactsToday.previous ?? 0) >=
-                    0
-                    ? 'text-green-600'
-                    : 'text-red-500'
-                )}
-              >
-                {(metrics?.newContactsToday.current ?? 0) -
-                  (metrics?.newContactsToday.previous ?? 0) >=
-                0
-                  ? '+'
-                  : ''}
-                {(metrics?.newContactsToday.current ?? 0) -
-                  (metrics?.newContactsToday.previous ?? 0)}{' '}
-                vs yesterday
-              </div>
-            </div>
+                  0
+                    ? '+'
+                    : ''
+                }${(metrics?.newContactsToday.current ?? 0) - (metrics?.newContactsToday.previous ?? 0)} ${t('vsYesterday')}`,
+              }}
+            />
 
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">💰</div>
-              <div className="text-foreground text-3xl font-bold">
-                {metrics?.openDealsValue
-                  ? defaultCurrency === 'INR'
-                    ? formatINR(metrics.openDealsValue)
-                    : formatCurrency(metrics.openDealsValue, defaultCurrency)
-                  : 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                {t('openDealsValue')}
-              </div>
-              <div className="text-muted-foreground mt-2 text-xs font-medium">
-                {t('openDeals', { count: metrics?.openDealsCount ?? 0 })}
-              </div>
-            </div>
+            <MetricCard
+              title={t('openDealsValue')}
+              value={
+                defaultCurrency === 'INR'
+                  ? formatINR(metrics?.openDealsValue ?? 0)
+                  : formatCurrency(
+                      metrics?.openDealsValue ?? 0,
+                      defaultCurrency
+                    )
+              }
+              icon={Coins}
+              iconBgClassName="bg-purple-500/10 text-purple-600 dark:text-purple-400"
+              href="/pipelines"
+              subtitle={t('openDeals', { count: metrics?.openDealsCount ?? 0 })}
+            />
 
-            <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
-              <div className="mb-3 text-2xl">📤</div>
-              <div className="text-foreground text-3xl font-bold">
-                {metrics?.messagesSentToday.current ?? 0}
-              </div>
-              <div className="text-muted-foreground mt-1 text-sm">
-                {t('messagesSentToday')}
-              </div>
-              <div
-                className={cn(
-                  'mt-2 text-xs font-medium',
+            <MetricCard
+              title={t('messagesSentToday')}
+              value={String(metrics?.messagesSentToday.current ?? 0)}
+              icon={MessageSquare}
+              iconBgClassName="bg-teal-500/10 text-teal-600 dark:text-teal-400"
+              href="/inbox"
+              delta={{
+                sign:
+                  (metrics?.messagesSentToday.current ?? 0) -
+                  (metrics?.messagesSentToday.previous ?? 0),
+                label: `${
                   (metrics?.messagesSentToday.current ?? 0) -
                     (metrics?.messagesSentToday.previous ?? 0) >=
-                    0
-                    ? 'text-green-600'
-                    : 'text-red-500'
-                )}
-              >
-                {(metrics?.messagesSentToday.current ?? 0) -
-                  (metrics?.messagesSentToday.previous ?? 0) >=
-                0
-                  ? '+'
-                  : ''}
-                {(metrics?.messagesSentToday.current ?? 0) -
-                  (metrics?.messagesSentToday.previous ?? 0)}{' '}
-                vs yesterday
-              </div>
-            </div>
+                  0
+                    ? '+'
+                    : ''
+                }${(metrics?.messagesSentToday.current ?? 0) - (metrics?.messagesSentToday.previous ?? 0)} ${t('vsYesterday')}`,
+              }}
+            />
           </>
         )}
       </div>
 
-      {/* Two-column layout */}
+      {/* Main operational view: Recent Leads & Visits/Tasks */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Recent Leads Widget */}
         <div className="flex min-h-0 flex-col lg:col-span-2">
-          <div className="border-border bg-card flex-1 rounded-xl border p-5 shadow-sm">
+          <div className="border-border bg-card flex-1 rounded-xl border p-4 shadow-sm sm:p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-foreground text-lg font-semibold">
-                {t('recentLeads')}
-              </h3>
+              <div className="flex items-center gap-2">
+                <Users className="text-primary h-4 w-4" />
+                <h3 className="text-foreground text-sm font-semibold sm:text-base">
+                  {t('recentLeads')}
+                </h3>
+              </div>
               <Link
                 href="/contacts"
-                className="text-primary text-sm font-medium hover:underline"
+                className="text-primary hover:text-primary/80 text-xs font-medium hover:underline sm:text-sm"
               >
                 {t('viewAll')}
               </Link>
@@ -414,102 +487,132 @@ export default function DashboardPage() {
 
             <div className="flex flex-col">
               {recentLeadsLoading ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  Loading...
+                <div className="space-y-3 py-4">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="border-border flex items-center gap-3 border-b py-3 last:border-0"
+                    >
+                      <div className="bg-muted h-9 w-9 animate-pulse rounded-full" />
+                      <div className="flex-1 space-y-1.5">
+                        <div className="bg-muted h-4 w-1/3 animate-pulse rounded" />
+                        <div className="bg-muted h-3 w-1/2 animate-pulse rounded" />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : recentLeads.length === 0 ? (
-                <div className="text-muted-foreground py-8 text-center text-sm">
-                  No recent leads.
+                <div className="text-muted-foreground flex flex-col items-center justify-center py-10 text-center">
+                  <Users className="text-muted-foreground/40 mb-2 h-8 w-8" />
+                  <p className="text-sm font-medium">{t('noRecentLeads')}</p>
+                  <p className="text-muted-foreground/80 mt-1 max-w-sm text-xs">
+                    {t('noRecentLeadsHint')}
+                  </p>
+                  <Link
+                    href="/contacts"
+                    className="text-primary mt-3 text-xs font-semibold hover:underline"
+                  >
+                    {t('addLead')}
+                  </Link>
                 </div>
               ) : (
                 recentLeads.map((lead) => {
                   const isHot = lead.contact_tags?.some(
-                    (t) => t.tags?.name === 'hot-lead'
+                    (tagItem) => tagItem.tags?.name === 'hot-lead'
                   );
                   const location =
-                    lead.lead_details?.location_preference || 'No location';
+                    lead.lead_details?.location_preference || t('noLocation');
 
                   const min = lead.lead_details?.budget_min;
                   const max = lead.lead_details?.budget_max;
-                  const format = (v: number) =>
+                  const budgetFormatted =
                     defaultCurrency === 'INR'
-                      ? formatINR(v)
-                      : formatCurrency(v, defaultCurrency);
-                  const budget =
-                    !min && !max
-                      ? 'No budget'
-                      : min && !max
-                        ? format(min)
-                        : !min && max
-                          ? format(max)
-                          : `${format(min as number)} - ${format(max as number)}`;
+                      ? formatINRRange(min, max)
+                      : !min && !max
+                        ? t('noBudget')
+                        : min && !max
+                          ? formatCurrency(min, defaultCurrency)
+                          : !min && max
+                            ? formatCurrency(max, defaultCurrency)
+                            : `${formatCurrency(min as number, defaultCurrency)} - ${formatCurrency(max as number, defaultCurrency)}`;
 
                   const source = lead.lead_details?.source || 'manual';
                   const stageName =
                     lead.deals?.[0]?.pipeline_stages?.name || 'New';
+                  const configs = lead.lead_details?.configuration_preference;
 
                   return (
                     <div
                       key={lead.id}
-                      className="border-border flex items-center gap-3 border-b py-3 last:border-0"
+                      className="border-border hover:bg-muted/30 -mx-2 flex flex-col gap-3 rounded-lg border-b p-3 transition-colors last:border-0 sm:mx-0 sm:flex-row sm:items-center"
                     >
-                      <Avatar className="h-9 w-9 shrink-0">
-                        <AvatarFallback
-                          className="text-sm font-medium text-white"
-                          style={{ background: avatarColorForName(lead.name) }}
-                        >
-                          {initialsForName(lead.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-foreground truncate text-sm font-medium">
-                            {lead.name || 'Unknown'}
-                          </span>
-                          {isHot && (
-                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 uppercase">
-                              HOT
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-muted-foreground truncate text-xs">
-                          {location} · {budget}
-                        </p>
-                      </div>
-                      <div className="hidden shrink-0 sm:block">
-                        <SourceBadge source={source} />
-                      </div>
-                      <div className="ml-2 hidden shrink-0 sm:block">
-                        <StatusBadge status={stageName} />
-                      </div>
-                      <div className="ml-auto flex items-center gap-1.5 pl-2">
-                        <Link
-                          href={`/inbox?contact=${lead.id}`}
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5"
-                        >
-                          <MessageCircle className="size-4" />
-                        </Link>
-                        <a
-                          href={`/contacts?contactId=${lead.id}`}
-                          className="hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center rounded-lg p-1.5"
-                          title="Edit Contact"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="lucide lucide-pencil"
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        <Avatar className="h-9 w-9 shrink-0">
+                          <AvatarFallback
+                            className="text-sm font-medium text-white"
+                            style={{
+                              background: avatarColorForName(lead.name),
+                            }}
                           >
-                            <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
-                            <path d="m15 5 4 4" />
-                          </svg>
-                        </a>
+                            {initialsForName(lead.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <Link
+                              href={`/contacts?contactId=${lead.id}`}
+                              className="text-foreground hover:text-primary truncate text-sm font-semibold hover:underline"
+                            >
+                              {lead.name || 'Unknown'}
+                            </Link>
+                            {isHot && (
+                              <span className="rounded-full border border-red-500/30 bg-red-500/10 px-1.5 py-0.5 text-[9px] font-bold text-red-600 uppercase dark:text-red-400">
+                                {t('hotBadge')}
+                              </span>
+                            )}
+                            {configs && configs.length > 0 && (
+                              <span className="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
+                                {configs.join(', ')}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                            {location} · {budgetFormatted}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="border-border/40 flex shrink-0 items-center justify-between gap-2 border-t pt-1 sm:justify-end sm:border-t-0 sm:pt-0">
+                        <div className="flex items-center gap-1.5">
+                          <SourceBadge source={source} />
+                          <StatusBadge status={stageName} />
+                        </div>
+
+                        <div className="flex items-center gap-1 pl-2">
+                          {lead.phone && (
+                            <a
+                              href={`tel:${lead.phone}`}
+                              title={t('call')}
+                              className="hover:bg-muted text-muted-foreground rounded-lg p-1.5 transition-colors hover:text-emerald-600"
+                            >
+                              <Phone className="h-4 w-4" />
+                            </a>
+                          )}
+                          <Link
+                            href={`/inbox?contact=${lead.id}`}
+                            title={t('chat')}
+                            className="hover:bg-muted text-muted-foreground hover:text-primary rounded-lg p-1.5 transition-colors"
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Link>
+                          <Link
+                            href={`/contacts?contactId=${lead.id}`}
+                            title="Edit Contact"
+                            className="hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg p-1.5 transition-colors"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Link>
+                        </div>
                       </div>
                     </div>
                   );
@@ -519,25 +622,40 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Right column: Today's Visits & Tasks */}
         <div className="flex flex-col gap-6 lg:col-span-1">
-          <div className="border-border bg-card rounded-xl border p-5 shadow-sm">
+          {/* Today's Visits Widget */}
+          <div className="border-border bg-card rounded-xl border p-4 shadow-sm sm:p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-foreground text-sm font-semibold">
-                {t('todayVisits')}
-              </h3>
-              <span className="text-primary bg-primary/10 rounded-full px-2 py-0.5 text-xs font-medium">
-                {todayVisits.length}{' '}
-                {t('todayVisits').split(' ')[0].toLowerCase()}
-              </span>
+              <div className="flex items-center gap-2">
+                <CalendarCheck className="h-4 w-4 text-emerald-500" />
+                <h3 className="text-foreground text-sm font-semibold">
+                  {t('todayVisits')}
+                </h3>
+              </div>
+              <Link
+                href="/site-visits"
+                className="text-primary hover:text-primary/80 text-xs font-medium hover:underline"
+              >
+                {t('viewAll')}
+              </Link>
             </div>
-            <div className="flex flex-col">
+
+            <div className="flex flex-col space-y-3">
               {todayVisitsLoading ? (
-                <div className="text-muted-foreground py-4 text-center text-sm">
-                  Loading...
+                <div className="text-muted-foreground py-6 text-center text-xs">
+                  Loading visits...
                 </div>
               ) : todayVisits.length === 0 ? (
-                <div className="text-muted-foreground py-4 text-center text-sm">
-                  No visits scheduled today.
+                <div className="text-muted-foreground flex flex-col items-center justify-center py-6 text-center">
+                  <Calendar className="text-muted-foreground/40 mb-1.5 h-6 w-6" />
+                  <p className="text-xs font-medium">{t('noVisitsToday')}</p>
+                  <Link
+                    href="/site-visits"
+                    className="text-primary mt-2 text-xs font-semibold hover:underline"
+                  >
+                    + {t('scheduleVisit')}
+                  </Link>
                 </div>
               ) : (
                 todayVisits.map((v) => {
@@ -545,88 +663,79 @@ export default function DashboardPage() {
                     hour: '2-digit',
                     minute: '2-digit',
                   });
+                  const isActionable =
+                    v.status === 'pending' || v.status === 'confirmed';
+
                   return (
                     <div
                       key={v.id}
-                      className="border-border flex items-center gap-3 border-b py-3 last:border-0"
+                      className="border-border hover:bg-muted/30 -mx-1 flex flex-col gap-2 rounded-lg border-b p-2.5 transition-colors last:border-0 sm:mx-0"
                     >
-                      <div className="bg-primary/10 min-w-[56px] shrink-0 rounded-lg px-2 py-1.5 text-center">
-                        <div className="text-primary text-[9px] font-bold uppercase">
-                          TODAY
-                        </div>
-                        <div className="text-primary text-xs font-bold">
-                          {time}
-                        </div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-foreground truncate text-sm font-medium">
-                          {v.contacts?.name || 'Unknown'}
-                        </p>
-                        <p className="text-muted-foreground truncate text-xs">
-                          📍 {v.properties?.title || 'No property'}
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <StatusBadge status={v.status} />
-                        {v.status === 'scheduled' && (
-                          <div className="mt-1 flex gap-1">
-                            <button
-                              onClick={() => {
-                                // Optimistic update
-                                setTodayVisits((prev) =>
-                                  prev.map((visit) =>
-                                    visit.id === v.id
-                                      ? { ...visit, status: 'completed' }
-                                      : visit
-                                  )
-                                );
-                                const db = createClient();
-                                db.from('site_visits')
-                                  .update({ status: 'completed' })
-                                  .eq('id', v.id)
-                                  .then(({ error }) => {
-                                    if (error) {
-                                      console.error(
-                                        'Failed to update site visit:',
-                                        error
-                                      );
-                                      // Revert on error if needed
-                                    }
-                                  });
-                              }}
-                              className="rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] text-green-700 transition-colors hover:bg-green-100"
-                            >
-                              Complete
-                            </button>
-                            <button
-                              onClick={() => {
-                                setTodayVisits((prev) =>
-                                  prev.map((visit) =>
-                                    visit.id === v.id
-                                      ? { ...visit, status: 'no_show' }
-                                      : visit
-                                  )
-                                );
-                                const db = createClient();
-                                db.from('site_visits')
-                                  .update({ status: 'no_show' })
-                                  .eq('id', v.id)
-                                  .then(({ error }) => {
-                                    if (error) {
-                                      console.error(
-                                        'Failed to update site visit:',
-                                        error
-                                      );
-                                    }
-                                  });
-                              }}
-                              className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700 transition-colors hover:bg-red-100"
-                            >
-                              No-show
-                            </button>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-primary/10 border-primary/20 min-w-[54px] shrink-0 rounded-lg border px-2 py-1 text-center">
+                          <div className="text-primary text-[8px] font-bold tracking-wider uppercase">
+                            {t('today')}
                           </div>
-                        )}
+                          <div className="text-primary text-xs font-bold tabular-nums">
+                            {time}
+                          </div>
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <Link
+                            href={
+                              v.contact_id
+                                ? `/contacts?contactId=${v.contact_id}`
+                                : '/site-visits'
+                            }
+                            className="text-foreground hover:text-primary block truncate text-xs font-semibold hover:underline sm:text-sm"
+                          >
+                            {v.contacts?.name || 'Client'}
+                          </Link>
+                          <p className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
+                            <Building2 className="text-muted-foreground h-3 w-3 shrink-0" />
+                            <span>
+                              {v.properties?.title || 'Property visit'}
+                            </span>
+                          </p>
+                        </div>
+
+                        <div className="shrink-0">
+                          <StatusBadge status={v.status} />
+                        </div>
                       </div>
+
+                      {v.pickup_required && (
+                        <div className="flex items-center gap-1.5 rounded bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                          <Car className="h-3 w-3" />
+                          <span className="truncate">
+                            {t('pickup', {
+                              location: v.pickup_location || 'Requested',
+                            })}
+                          </span>
+                        </div>
+                      )}
+
+                      {isActionable && (
+                        <div className="mt-1 flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() =>
+                              handleVisitStatusChange(v.id, 'completed')
+                            }
+                            className="cursor-pointer rounded border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-[11px] font-semibold text-green-700 transition-colors hover:bg-green-500/20 dark:text-green-300"
+                          >
+                            {t('completeVisit')}
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleVisitStatusChange(v.id, 'no_show')
+                            }
+                            className="cursor-pointer rounded border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-500/20 dark:text-red-300"
+                          >
+                            {t('noShowVisit')}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })
@@ -634,7 +743,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="border-border bg-card flex min-h-[300px] flex-1 flex-col rounded-xl border shadow-sm">
+          {/* Today's Tasks Widget */}
+          <div
+            id="tasks"
+            className="border-border bg-card flex min-h-[300px] flex-1 flex-col rounded-xl border shadow-sm"
+          >
             <TasksWidget
               initialTasks={todayTasks}
               initialLoading={todayTasksLoading}
@@ -643,7 +756,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Charts row */}
+      {/* Analytics & Charts Row */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="h-full lg:col-span-3">
           <ConversationsChart
@@ -662,10 +775,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Response time */}
+      {/* Response time SLA overview */}
       <ResponseTimeChart data={responseTime} loading={responseTimeLoading} />
 
-      {/* Activity feed */}
+      {/* Recent activity feed */}
       <div className="grid grid-cols-1">
         <div className="flex min-h-0 flex-col">
           <ActivityFeed items={activity} loading={activityLoading} />

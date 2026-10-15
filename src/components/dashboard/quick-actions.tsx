@@ -1,9 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { UserPlus, Briefcase, Radio, Zap } from 'lucide-react';
+import {
+  UserPlus,
+  Briefcase,
+  CalendarCheck,
+  Radio,
+  Zap,
+  FileSpreadsheet,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
-
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
@@ -15,15 +21,12 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-// Quick-action shortcuts. Each navigates to the page that owns the
-// relevant "create" flow. We deliberately don't try to auto-open any
-// modal on the target page — that'd require touching those pages,
-// which is out of scope here.
 interface Action {
   labelKey: string;
   href: string;
   icon: ComponentType<{ className?: string }>;
   tint: string;
+  bgTint: string;
 }
 
 const ACTIONS: Action[] = [
@@ -32,24 +35,35 @@ const ACTIONS: Action[] = [
     href: '/contacts',
     icon: UserPlus,
     tint: 'text-primary',
+    bgTint: 'bg-primary/10',
   },
   {
     labelKey: 'newDeal',
     href: '/pipelines',
     icon: Briefcase,
-    tint: 'text-blue-400',
+    tint: 'text-blue-500 dark:text-blue-400',
+    bgTint: 'bg-blue-500/10',
+  },
+  {
+    labelKey: 'scheduleVisit',
+    href: '/site-visits',
+    icon: CalendarCheck,
+    tint: 'text-emerald-500 dark:text-emerald-400',
+    bgTint: 'bg-emerald-500/10',
   },
   {
     labelKey: 'newBroadcast',
     href: '/broadcasts/new',
     icon: Radio,
-    tint: 'text-amber-400',
+    tint: 'text-amber-500 dark:text-amber-400',
+    bgTint: 'bg-amber-500/10',
   },
   {
     labelKey: 'newAutomation',
     href: '/automations/new',
     icon: Zap,
-    tint: 'text-primary',
+    tint: 'text-purple-500 dark:text-purple-400',
+    bgTint: 'bg-purple-500/10',
   },
 ];
 
@@ -60,22 +74,29 @@ export function QuickActions() {
   const hasCostSheet = !!account?.cost_sheet_template_id;
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 lg:grid-cols-6">
       {ACTIONS.map((a) => {
         const Icon = a.icon;
         return (
           <Link
             key={a.href}
             href={a.href}
-            className="group border-border bg-card hover:border-border hover:bg-muted/60 flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
+            className="group border-border bg-card hover:border-primary/40 hover:bg-muted/50 flex items-center gap-3 rounded-xl border p-3 transition-all hover:shadow-sm sm:px-4 sm:py-3"
           >
             <div
-              className={`bg-muted flex h-9 w-9 items-center justify-center rounded-lg ${a.tint}`}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105 ${a.bgTint} ${a.tint}`}
             >
               <Icon className="h-4 w-4" />
             </div>
-            <span className="text-foreground text-sm font-medium">
-              {t(a.labelKey as string)}
+            <span className="text-foreground truncate text-xs font-medium sm:text-sm">
+              {t(
+                a.labelKey as
+                  | 'newContact'
+                  | 'newDeal'
+                  | 'scheduleVisit'
+                  | 'newBroadcast'
+                  | 'newAutomation'
+              )}
             </span>
           </Link>
         );
@@ -89,23 +110,21 @@ export function QuickActions() {
               if (hasCostSheet) setCostSheetOpen(true);
             }}
             disabled={!hasCostSheet}
-            className={`group border-border col-span-2 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors sm:col-span-1 ${
+            className={`group border-border flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all sm:px-4 sm:py-3 ${
               hasCostSheet
-                ? 'bg-card hover:border-border hover:bg-muted/60'
-                : 'bg-muted/30 cursor-not-allowed opacity-50'
+                ? 'bg-card hover:border-primary/40 hover:bg-muted/50 cursor-pointer hover:shadow-sm'
+                : 'bg-muted/20 cursor-not-allowed opacity-50'
             }`}
           >
-            <div className="bg-muted flex h-9 w-9 items-center justify-center rounded-lg text-emerald-500">
-              <Zap className="h-4 w-4" />
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-600 transition-transform group-hover:scale-105 dark:text-teal-400">
+              <FileSpreadsheet className="h-4 w-4" />
             </div>
-            <span className="text-foreground text-sm font-medium">
-              Send Cost Sheet
+            <span className="text-foreground truncate text-xs font-medium sm:text-sm">
+              {t('sendCostSheet')}
             </span>
           </TooltipTrigger>
           {!hasCostSheet && (
-            <TooltipContent>
-              Set up your Cost Sheet in Settings -&gt; Cost Sheet
-            </TooltipContent>
+            <TooltipContent>{t('costSheetTooltipDisabled')}</TooltipContent>
           )}
         </Tooltip>
       </TooltipProvider>

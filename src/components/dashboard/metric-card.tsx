@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { cn } from '@/lib/utils';
@@ -7,6 +8,9 @@ interface MetricCardProps {
   /** Pre-formatted value for display (e.g. "42" or "$1,250"). */
   value: string;
   icon: ComponentType<{ className?: string }>;
+  iconClassName?: string;
+  iconBgClassName?: string;
+  href?: string;
   /**
    * Delta-mode secondary row: arrow + delta text. Omit when the metric
    * doesn't have a sensible comparison (e.g. total pipeline value).
@@ -27,19 +31,34 @@ export function MetricCard({
   title,
   value,
   icon: Icon,
+  iconClassName,
+  iconBgClassName,
+  href,
   delta,
   subtitle,
   subtitleClassName,
 }: MetricCardProps) {
-  return (
-    <div className="border-border bg-card rounded-xl border p-5">
-      <div className="flex items-start justify-between">
-        <p className="text-muted-foreground text-sm font-medium">{title}</p>
-        <div className="bg-muted text-muted-foreground flex h-8 w-8 items-center justify-center rounded-lg">
-          <Icon className="h-4 w-4" />
+  const content = (
+    <div
+      className={cn(
+        'border-border bg-card rounded-xl border p-4 shadow-sm transition-all sm:p-5',
+        href && 'hover:border-primary/40 cursor-pointer hover:shadow-md'
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-muted-foreground truncate text-xs font-medium sm:text-sm">
+          {title}
+        </p>
+        <div
+          className={cn(
+            'bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+            iconBgClassName
+          )}
+        >
+          <Icon className={cn('h-4 w-4', iconClassName)} />
         </div>
       </div>
-      <p className="text-foreground mt-3 text-[28px] leading-none font-bold tabular-nums">
+      <p className="text-foreground mt-2 text-2xl leading-none font-bold tracking-tight tabular-nums sm:mt-3 sm:text-3xl">
         {value}
       </p>
       {delta ? (
@@ -47,7 +66,7 @@ export function MetricCard({
       ) : subtitle ? (
         <p
           className={cn(
-            'mt-2 text-sm',
+            'mt-2 truncate text-xs sm:text-sm',
             subtitleClassName || 'text-muted-foreground'
           )}
         >
@@ -56,6 +75,16 @@ export function MetricCard({
       ) : null}
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {content}
+      </Link>
+    );
+  }
+
+  return content;
 }
 
 function DeltaRow({ sign, label }: { sign: number; label: string }) {
