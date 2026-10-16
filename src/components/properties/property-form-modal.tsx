@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import type { Property } from '@/types';
@@ -55,7 +56,15 @@ const PROPERTY_TYPES = [
   'Commercial',
   'Penthouse',
   'Builder Floor',
+];
+
+const RESIDENTIAL_CONFIGURATIONS = [
   'Studio',
+  '1BHK',
+  '2BHK',
+  '3BHK',
+  '4BHK',
+  '5+ BHK',
 ];
 
 const FACING_OPTIONS = [
@@ -90,7 +99,8 @@ export function PropertyFormModal({
 }: PropertyFormModalProps) {
   const t = useTranslations('Properties.form');
   const supabase = createClient();
-  const { accountId } = useAuth();
+  const { accountId, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isEdit = !!property;
 
   // Form states
@@ -117,6 +127,22 @@ export function PropertyFormModal({
   const parsedPrice = useMemo(() => {
     return parseBudget(priceInput);
   }, [priceInput]);
+
+  const isNonBhkPropertyType =
+    propertyType === 'Plot' || propertyType === 'Commercial';
+
+  const availableConfigurations = useMemo(() => {
+    const list = [...RESIDENTIAL_CONFIGURATIONS];
+    if (
+      configuration &&
+      !list.includes(configuration) &&
+      configuration !== 'Plot' &&
+      configuration !== 'Commercial'
+    ) {
+      list.push(configuration);
+    }
+    return list;
+  }, [configuration]);
 
   // Sync state with open/property
   useEffect(() => {
@@ -182,16 +208,22 @@ export function PropertyFormModal({
       return;
     }
 
+    if (!isManager) {
+      toast.error(t('errorManagerOnly'));
+      return;
+    }
+
     setSaving(true);
 
+    const isNonBhk = propertyType === 'Plot' || propertyType === 'Commercial';
     const payload = {
       title: title.trim(),
       project_name: projectName.trim() || null,
       builder_name: builderName.trim() || null,
       location: location.trim() || null,
       property_type: propertyType || null,
-      configuration: configuration || null,
-      bedrooms: bedrooms ? parseInt(bedrooms, 10) : null,
+      configuration: isNonBhk ? propertyType : (configuration || null),
+      bedrooms: isNonBhk ? null : (bedrooms ? parseInt(bedrooms, 10) : null),
       carpet_area: carpetArea ? parseFloat(carpetArea) : null,
       facing: facing || null,
       price: parsedPrice,
@@ -327,7 +359,19 @@ export function PropertyFormModal({
                 <Select
                   value={propertyType}
                   onValueChange={(val) => {
-                    if (val) setPropertyType(val);
+                    if (val) {
+                      setPropertyType(val);
+                      if (val === 'Plot' || val === 'Commercial') {
+                        setConfiguration(val);
+                        setBedrooms('');
+                      } else if (
+                        configuration === 'Plot' ||
+                        configuration === 'Commercial'
+                      ) {
+                        setConfiguration('2BHK');
+                        setBedrooms('2');
+                      }
+                    }
                   }}
                 >
                   <SelectTrigger className="h-9 text-xs">
@@ -347,43 +391,58 @@ export function PropertyFormModal({
                 <Label className="text-xs font-medium">
                   {t('labelConfig')}
                 </Label>
-                <Select
-                  value={configuration}
-                  onValueChange={(val) => {
-                    if (val) {
-                      setConfiguration(val);
-                      // Auto-populate bedroom count if format matches \d+BHK
-                      const match = val.match(/^(\d+)BHK/);
-                      if (match) setBedrooms(match[1]);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="h-9 text-xs">
-                    <SelectValue placeholder={t('selectConfig')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROPERTY_CONFIGURATIONS.map((cfg) => (
-                      <SelectItem key={cfg} value={cfg} className="text-xs">
-                        {cfg}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                {isNonBhkPropertyType ? (
+                  <div className="border-border/60 bg-muted/40 text-muted-foreground flex h-9 items-center rounded-md border px-3 text-xs">
+                    <span>
+                      {t('configNotApplicable', { type: propertyType })}
+                    </span>
+                  </div>
+                ) : (
+                  <Select
+                    value={configuration}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setConfiguration(val);
+                        // Auto-populate bedroom count if format matches \d+BHK
+                        const match = val.match(/^(\d+)BHK/);
+                        if (match) setBedrooms(match[1]);
+                        else if (val === 'Studio') setBedrooms('1');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder={t('selectConfig')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableConfigurations.map((cfg) => (
+                        <SelectItem key={cfg} value={cfg} className="text-xs">
+                          {cfg}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="prop-bedrooms" className="text-xs font-medium">
                   {t('labelBedrooms')}
                 </Label>
-                <Input
-                  id="prop-bedrooms"
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={bedrooms}
-                  onChange={(e) => setBedrooms(e.target.value)}
-                  className="h-9 text-xs"
-                />
+                {isNonBhkPropertyType ? (
+                  <div className="border-border/60 bg-muted/40 text-muted-foreground flex h-9 items-center rounded-md border px-3 text-xs">
+                    <span>N/A</span>
+                  </div>
+                ) : (
+                  <Input
+                    id="prop-bedrooms"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={bedrooms}
+                    onChange={(e) => setBedrooms(e.target.value)}
+                    className="h-9 text-xs"
+                  />
+                )}
               </div>
 
               <div className="space-y-1.5">

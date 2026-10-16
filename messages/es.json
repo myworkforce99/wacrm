@@ -363,7 +363,10 @@
       "finalUrl": "URL final: {url}",
       "back": "Atrás",
       "cancel": "Cancelar",
-      "send": "Enviar plantilla"
+      "send": "Enviar plantilla",
+      "syncFromMeta": "Sincronizar de Meta",
+      "syncing": "Sincronizando...",
+      "refresh": "Actualizar"
     },
     "sidebar": {
       "contactInfo": "Información del contacto",
@@ -480,6 +483,7 @@
       "budgetMinPlaceholder": "Mín (p. ej. 50L o 50,00,000)",
       "budgetMaxPlaceholder": "Máx (p. ej. 1.5Cr o 1,50,00,000)",
       "configLabel": "Preferencia de configuración",
+      "configNotApplicable": "La configuración BHK no se aplica a propiedades de tipo {type}.",
       "possessionLabel": "Preferencia de posesión",
       "possessionAny": "Cualquier posesión",
       "possessionReady": "Solo listo para mudarse",
@@ -592,6 +596,7 @@
       "leadSource": "Origen del contacto",
       "notSpecified": "No especificado",
       "anyConfig": "Cualquier configuración",
+      "configNotApplicable": "No aplicable para {type}",
       "anyTimeline": "Cualquier plazo",
       "copyInfo": "Copiar datos del contacto",
       "toastInfoCopied": "Datos del contacto copiados al portapapeles",
@@ -837,7 +842,8 @@
       "estBrokerage": "Comisión est. ({pct}%): {amount}",
       "scheduleVisitForBuyer": "Programar visita al sitio para este comprador",
       "buyerPhone": "Teléfono",
-      "buyerLocation": "Preferencia de ubicación"
+      "buyerLocation": "Preferencia de ubicación",
+      "reassignManagerOnly": "Solo administradores y propietarios pueden reasignar"
     },
     "lostModal": {
       "title": "Marcar como perdido",
@@ -2332,6 +2338,9 @@
       "allConfigs": "Todas las configuraciones",
       "allPickups": "Toda la logística",
       "allAgents": "Todos los agentes",
+      "filterMyVisits": "Mis visitas",
+      "myVisits": "Mis visitas",
+      "reassignManagerOnly": "Solo administradores y propietarios pueden reasignar agentes",
       "timeframeToday": "Hoy",
       "timeframeUpcoming": "Próximas",
       "timeframePast": "Pasadas",
@@ -2500,6 +2509,7 @@
       "selectType": "Seleccionar Tipo",
       "labelConfig": "Configuración",
       "selectConfig": "Seleccionar Configuración",
+      "configNotApplicable": "No aplica para {type}",
       "labelBedrooms": "Dormitorios",
       "labelCarpetArea": "Área Útil (pies²)",
       "labelFacing": "Orientación",
@@ -2524,6 +2534,7 @@
       "updateBtn": "Actualizar Propiedad",
       "errorTitleRequired": "El título de la propiedad es obligatorio.",
       "errorNoAccount": "Contexto de cuenta no encontrado.",
+      "errorManagerOnly": "Solo los administradores y propietarios pueden agregar o editar propiedades.",
       "toastCreated": "Propiedad creada exitosamente.",
       "toastUpdated": "Propiedad actualizada exitosamente.",
       "toastSaveFailed": "Error al guardar la propiedad. Verifique los datos ingresados."

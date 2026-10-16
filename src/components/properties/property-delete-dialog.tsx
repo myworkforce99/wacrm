@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Loader2, Trash2 } from 'lucide-react';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 
 interface PropertyDeleteDialogProps {
   open: boolean;
@@ -31,12 +33,18 @@ export function PropertyDeleteDialog({
 }: PropertyDeleteDialogProps) {
   const t = useTranslations('Properties.delete');
   const supabase = createClient();
+  const { accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const [deleting, setDeleting] = useState(false);
 
   if (!property) return null;
 
   async function handleDelete() {
     if (!property) return;
+    if (!isManager) {
+      toast.error('Only admins and owners can delete properties');
+      return;
+    }
     setDeleting(true);
 
     try {

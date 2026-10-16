@@ -50,6 +50,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatINR } from '@/lib/currency';
 import { useCan } from '@/hooks/use-can';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { GatedButton } from '@/components/ui/gated-button';
 import { SourceBadge } from '@/components/ui/source-badge';
 import type { SiteVisit, Contact, Property, Profile } from '@/types';
@@ -94,6 +96,7 @@ import {
   Car,
   MoreVertical,
   Trash2,
+  User,
 } from 'lucide-react';
 
 export type VisitWithDetails = SiteVisit & {
@@ -771,6 +774,8 @@ const PAST_DEFAULT_COUNT = 5;
 export default function SiteVisitsPage() {
   const t = useTranslations('SiteVisits.page');
   const supabase = createClient();
+  const { user, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isViewOnly = useCan('view-only');
   const canEdit = !isViewOnly;
 
@@ -819,12 +824,26 @@ export default function SiteVisitsPage() {
   const getAgentForVisit = useCallback(
     (visit: VisitWithDetails): Profile | null => {
       const task = Array.isArray(visit.tasks) ? visit.tasks[0] : visit.tasks;
-      if (!task?.assigned_to) return null;
-      return (
-        profilesByUserId[task.assigned_to] ||
-        profilesById[task.assigned_to] ||
-        null
-      );
+      if (task?.assigned_to) {
+        return (
+          profilesByUserId[task.assigned_to] ||
+          profilesById[task.assigned_to] ||
+          null
+        );
+      }
+      // Fallback: check contact's assigned agent / creator
+      const contactUserId = (visit.contact as { user_id?: string } | null)?.user_id;
+      if (
+        contactUserId &&
+        (profilesByUserId[contactUserId] || profilesById[contactUserId])
+      ) {
+        return (
+          profilesByUserId[contactUserId] ||
+          profilesById[contactUserId] ||
+          null
+        );
+      }
+      return null;
     },
     [profilesById, profilesByUserId]
   );
@@ -975,7 +994,7 @@ export default function SiteVisitsPage() {
     if (timeframeFilter !== 'all') count++;
     if (configFilter !== 'all') count++;
     if (pickupFilter !== 'all') count++;
-    if (agentFilter !== 'all') count++;
+    if (isManager && agentFilter !== 'all') count++;
     return count;
   }, [
     search,
@@ -984,6 +1003,7 @@ export default function SiteVisitsPage() {
     configFilter,
     pickupFilter,
     agentFilter,
+    isManager,
   ]);
 
   // Status label dictionary
@@ -1106,8 +1126,15 @@ export default function SiteVisitsPage() {
         if (pickupFilter === 'self' && v.pickup_required) return false;
       }
 
-      // 6. Agent
-      if (agentFilter !== 'all') {
+      // 6. Agent Scoping & Filter (Role-based: agents only see their own visits; managers can filter by agent)
+      if (!isManager && user) {
+        const agent = getAgentForVisit(v);
+        const isAssigned =
+          agent?.user_id === user.id ||
+          agent?.id === user.id ||
+          (v.contact as { user_id?: string } | null)?.user_id === user.id;
+        if (!isAssigned) return false;
+      } else if (isManager && agentFilter !== 'all') {
         const agent = getAgentForVisit(v);
         if (agentFilter === 'unassigned') {
           if (agent) return false;
@@ -1129,6 +1156,8 @@ export default function SiteVisitsPage() {
     configFilter,
     pickupFilter,
     agentFilter,
+    isManager,
+    user,
     getAgentForVisit,
   ]);
 
@@ -1473,36 +1502,49 @@ export default function SiteVisitsPage() {
               </SelectContent>
             </Select>
 
-            {/* Assigned Agent */}
-            <Select
-              value={agentFilter}
-              onValueChange={(val) => setAgentFilter(val || 'all')}
-            >
-              <SelectTrigger
-                label={t('filterAgent')}
-                className="bg-card h-9 min-w-[130px] text-xs"
+            {/* Assigned Agent Filter (Only visible to managers/admins/owners) */}
+            {isManager && profiles.length > 0 && (
+              <Select
+                value={agentFilter}
+                onValueChange={(val) => setAgentFilter(val || 'all')}
               >
-                <SelectValue placeholder={t('allAgents')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectLabel>{t('filterAgent')}</SelectLabel>
-                <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allAgents')}
-                </SelectItem>
-                <SelectItem value="unassigned">
-                  {t('unassigned')}
-                </SelectItem>
-                {profiles.map((p) => (
-                  <SelectItem
-                    key={p.id}
-                    value={p.user_id || p.id}
-                  >
-                    {p.full_name || p.email}
+                <SelectTrigger
+                  label={t('filterAgent')}
+                  className="bg-card h-9 min-w-[130px] text-xs"
+                >
+                  <SelectValue placeholder={t('allAgents')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectLabel>{t('filterAgent')}</SelectLabel>
+                  <SelectSeparator />
+                  <SelectItem value="all">
+                    {t('allAgents')}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                  <SelectItem value="unassigned">
+                    {t('unassigned')}
+                  </SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem
+                      key={p.id}
+                      value={p.user_id || p.id}
+                    >
+                      {p.full_name || p.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Agent Scoped Indicator (for individual sales agents) */}
+            {!isManager && (
+              <div
+                className="bg-primary/10 border-primary/20 text-primary flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium shadow-2xs"
+                title={t('filterMyVisits') || 'My Visits'}
+              >
+                <User className="size-3.5" />
+                <span>{t('myVisits') || 'My Visits'}</span>
+              </div>
+            )}
           </div>
         </div>
 

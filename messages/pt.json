@@ -363,7 +363,10 @@
       "finalUrl": "URL final: {url}",
       "back": "Voltar",
       "cancel": "Cancelar",
-      "send": "Enviar modelo"
+      "send": "Enviar modelo",
+      "syncFromMeta": "Sincronizar da Meta",
+      "syncing": "Sincronizando...",
+      "refresh": "Atualizar"
     },
     "sidebar": {
       "contactInfo": "Informações do contato",
@@ -480,6 +483,7 @@
       "budgetMinPlaceholder": "Mín (ex.: 50L ou 50,00,000)",
       "budgetMaxPlaceholder": "Máx (ex.: 1.5Cr ou 1,50,00,000)",
       "configLabel": "Configuração / BHK",
+      "configNotApplicable": "A configuração BHK não é aplicável para imóveis do tipo {type}.",
       "possessionLabel": "Preferência de entrega",
       "possessionAny": "Qualquer entrega",
       "possessionReady": "Pronto para morar",
@@ -592,6 +596,7 @@
       "leadSource": "Origem do lead",
       "notSpecified": "Não especificado",
       "anyConfig": "Qualquer configuração",
+      "configNotApplicable": "Não aplicável para {type}",
       "anyTimeline": "Qualquer prazo",
       "copyInfo": "Copiar dados do lead",
       "toastInfoCopied": "Dados do lead copiados para a área de transferência",
@@ -837,7 +842,8 @@
       "estBrokerage": "Comissão est. ({pct}%): {amount}",
       "scheduleVisitForBuyer": "Agendar visita ao local para este comprador",
       "buyerPhone": "Telefone",
-      "buyerLocation": "Preferência de localização"
+      "buyerLocation": "Preferência de localização",
+      "reassignManagerOnly": "Apenas administradores e proprietários podem reatribuir"
     },
     "lostModal": {
       "title": "Marcar como perdido",
@@ -2332,6 +2338,9 @@
       "allConfigs": "Todas as configurações",
       "allPickups": "Toda logística",
       "allAgents": "Todos os agentes",
+      "filterMyVisits": "Minhas visitas",
+      "myVisits": "Minhas visitas",
+      "reassignManagerOnly": "Apenas administradores e proprietários podem reatribuir agentes",
       "timeframeToday": "Hoje",
       "timeframeUpcoming": "Próximas",
       "timeframePast": "Passadas",
@@ -2500,6 +2509,7 @@
       "selectType": "Selecionar Tipo",
       "labelConfig": "Configuração",
       "selectConfig": "Selecionar Configuração",
+      "configNotApplicable": "Não aplicável para {type}",
       "labelBedrooms": "Quartos",
       "labelCarpetArea": "Área Útil (sq ft)",
       "labelFacing": "Orientação Solar",
@@ -2524,6 +2534,7 @@
       "updateBtn": "Atualizar Propriedade",
       "errorTitleRequired": "O título da propriedade é obrigatório.",
       "errorNoAccount": "Contexto da conta não encontrado.",
+      "errorManagerOnly": "Apenas administradores e proprietários podem adicionar ou editar imóveis.",
       "toastCreated": "Propriedade criada com sucesso.",
       "toastUpdated": "Propriedade atualizada com sucesso.",
       "toastSaveFailed": "Falha ao salvar a propriedade. Verifique os dados inseridos."

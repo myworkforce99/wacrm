@@ -62,17 +62,16 @@ export function TagManager() {
       setLoading(false);
       return;
     }
-    fetchTags(user.id);
+    fetchTags();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user?.id]);
 
-  async function fetchTags(userId: string) {
+  async function fetchTags() {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .eq('user_id', userId)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -112,7 +111,7 @@ export function TagManager() {
       toast.success(t('tagCreated'));
       setNewTagName('');
       setSelectedColor(PRESET_COLORS[3].value);
-      await fetchTags(user.id);
+      await fetchTags();
     } catch (err) {
       console.error('Create error:', err);
       toast.error(t('failedToCreateTag'));

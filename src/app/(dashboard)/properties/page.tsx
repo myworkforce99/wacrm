@@ -17,6 +17,8 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
 import { useCan } from '@/hooks/use-can';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { formatINR } from '@/lib/currency';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { PageHeader } from '@/components/layout/page-header';
@@ -85,7 +87,6 @@ const PROPERTY_TYPES = [
   'Commercial',
   'Penthouse',
   'Builder Floor',
-  'Studio',
 ];
 
 export default function PropertiesPage() {
@@ -94,7 +95,9 @@ export default function PropertiesPage() {
   const router = useRouter();
   const supabase = createClient();
   const isViewOnly = useCan('view-only');
-  const canEdit = !isViewOnly;
+  const { accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
+  const canManageInventory = isManager && !isViewOnly;
 
   // Data states
   const [properties, setProperties] = useState<Property[]>([]);
@@ -274,11 +277,13 @@ export default function PropertiesPage() {
 
   // Action handlers
   function handleOpenCreate() {
+    if (!canManageInventory) return;
     setEditingProperty(null);
     setFormModalOpen(true);
   }
 
   function handleOpenEdit(property: Property) {
+    if (!canManageInventory) return;
     setEditingProperty(property);
     setFormModalOpen(true);
   }
@@ -289,6 +294,7 @@ export default function PropertiesPage() {
   }
 
   function handleOpenDelete(property: Property) {
+    if (!canManageInventory) return;
     setDeletingProperty(property);
     setDeleteDialogOpenOpen(true);
   }
@@ -389,14 +395,15 @@ export default function PropertiesPage() {
           title={t('title')}
           subtitle={t('subtitle')}
           action={
-            <Button
-              onClick={handleOpenCreate}
-              disabled={!canEdit}
-              className="gap-1.5 shadow-sm"
-            >
-              <Plus className="size-4" />
-              {t('addProperty')}
-            </Button>
+            canManageInventory ? (
+              <Button
+                onClick={handleOpenCreate}
+                className="gap-1.5 shadow-sm"
+              >
+                <Plus className="size-4" />
+                {t('addProperty')}
+              </Button>
+            ) : null
           }
         />
 
@@ -702,7 +709,7 @@ export default function PropertiesPage() {
                 {t('clearFilters')} ({activeFiltersCount})
               </Button>
             ) : (
-              canEdit && (
+              canManageInventory && (
                 <Button
                   size="sm"
                   onClick={handleOpenCreate}
@@ -899,7 +906,7 @@ export default function PropertiesPage() {
                                   <ExternalLink className="size-3.5" />
                                   {t('actionViewDetails')}
                                 </DropdownMenuItem>
-                                {canEdit && (
+                                {canManageInventory && (
                                   <>
                                     <DropdownMenuItem
                                       onClick={() => handleOpenEdit(property)}
@@ -1065,7 +1072,7 @@ export default function PropertiesPage() {
                           <ExternalLink className="size-3.5" />
                           {t('actionViewDetails')}
                         </DropdownMenuItem>
-                        {canEdit && (
+                        {canManageInventory && (
                           <>
                             <DropdownMenuItem
                               onClick={() => handleOpenEdit(property)}

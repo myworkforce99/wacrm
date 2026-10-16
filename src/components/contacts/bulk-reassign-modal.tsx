@@ -36,8 +36,7 @@ export function BulkReassignModal({
       supabase
         .from('profiles')
         .select('user_id, full_name')
-        .eq('account_role', 'agent') // Maybe we should allow admins too? Just 'agent' and 'admin'
-        .in('account_role', ['admin', 'agent'])
+        .in('account_role', ['owner', 'admin', 'agent'])
         .then(({ data }) => {
           if (data) {
             setAgents(data.map((p) => ({ id: p.user_id, name: p.full_name })));

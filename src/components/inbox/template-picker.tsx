@@ -15,9 +15,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ChevronRight, LayoutTemplate, Loader2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, LayoutTemplate, Loader2, RefreshCw } from 'lucide-react';
 import { extractVariableIndices } from '@/lib/whatsapp/template-validators';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
+import { useCan } from '@/hooks/use-can';
+import { cn } from '@/lib/utils';
 
 export interface TemplateSendValues {
   body: string[];
@@ -75,56 +78,71 @@ export function TemplatePicker({
   onSelect,
 }: TemplatePickerProps) {
   const t = useTranslations('Inbox.templatePicker');
+  const canEditSettings = useCan('edit-settings');
 
   const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
   const [selected, setSelected] = useState<MessageTemplate | null>(null);
   const [params, setParams] = useState<string[]>([]);
   const [headerText, setHeaderText] = useState<string>('');
   const [buttonParams, setButtonParams] = useState<Record<number, string>>({});
 
-  useEffect(() => {
-    if (!open) return;
-
-    let cancelled = false;
-    (async () => {
-      setLoading(true);
+  const fetchTemplates = async () => {
+    setLoading(true);
+    try {
       const supabase = createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (!user) {
-        if (!cancelled) {
-          setTemplates([]);
-          setLoading(false);
-        }
+        setTemplates([]);
         return;
       }
 
-      // Scope by RLS (message_templates_select → is_account_member), NOT by
-      // user_id. Templates are account-owned, so filtering on the caller's
-      // user_id hid templates that a teammate created — leaving them unable
-      // to send approved templates in a shared account.
       const { data, error } = await supabase
         .from('message_templates')
         .select('*')
         .eq('status', 'APPROVED')
         .order('created_at', { ascending: false });
 
-      if (cancelled) return;
       if (error) {
         console.error('Failed to fetch templates:', error);
         setTemplates([]);
       } else {
         setTemplates((data as MessageTemplate[]) ?? []);
       }
+    } finally {
       setLoading(false);
-    })();
+    }
+  };
 
-    return () => {
-      cancelled = true;
-    };
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await fetch('/api/whatsapp/templates/sync', {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to sync templates from Meta');
+        return;
+      }
+      toast.success(
+        `Synced ${data.total ?? 0} templates (${data.inserted ?? 0} new, ${data.updated ?? 0} updated)`
+      );
+      await fetchTemplates();
+    } catch (err) {
+      toast.error('Network error syncing templates');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    void fetchTemplates();
   }, [open]);
 
   function resetSelection() {
@@ -186,10 +204,34 @@ export function TemplatePicker({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="border-border bg-popover sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-popover-foreground flex items-center gap-2">
-            <LayoutTemplate className="text-primary h-4 w-4" />
-            {selected ? selected.name : t('sendTemplate')}
-          </DialogTitle>
+          <div className="flex items-center justify-between pr-6">
+            <DialogTitle className="text-popover-foreground flex items-center gap-2">
+              <LayoutTemplate className="text-primary h-4 w-4" />
+              {selected ? selected.name : t('sendTemplate')}
+            </DialogTitle>
+            {!selected && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-foreground h-7 gap-1.5 px-2 text-xs"
+                onClick={canEditSettings ? handleSync : fetchTemplates}
+                disabled={loading || syncing}
+                title={canEditSettings ? t('syncFromMeta') : t('refresh')}
+              >
+                <RefreshCw
+                  className={cn(
+                    'h-3.5 w-3.5',
+                    (loading || syncing) && 'animate-spin'
+                  )}
+                />
+                {syncing
+                  ? t('syncing')
+                  : canEditSettings
+                    ? t('syncFromMeta')
+                    : t('refresh')}
+              </Button>
+            )}
+          </div>
           <DialogDescription className="text-muted-foreground">
             {selected ? t('fillPlaceholders') : t('pickTemplate')}
           </DialogDescription>
@@ -209,6 +251,35 @@ export function TemplatePicker({
                 <p className="text-muted-foreground mt-1 text-xs">
                   {t('noApprovedTemplatesHint')}
                 </p>
+                {canEditSettings ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-4 gap-2 text-xs"
+                    onClick={handleSync}
+                    disabled={syncing}
+                  >
+                    {syncing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                    {syncing ? t('syncing') : t('syncFromMeta')}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground mt-3 gap-1.5 text-xs"
+                    onClick={fetchTemplates}
+                    disabled={loading}
+                  >
+                    <RefreshCw
+                      className={cn('h-3 w-3', loading && 'animate-spin')}
+                    />
+                    {t('refresh')}
+                  </Button>
+                )}
               </div>
             ) : (
               templates.map((t) => (

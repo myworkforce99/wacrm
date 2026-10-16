@@ -363,7 +363,10 @@
       "finalUrl": "Final URL: {url}",
       "back": "Back",
       "cancel": "Cancel",
-      "send": "Send template"
+      "send": "Send template",
+      "syncFromMeta": "Sync from Meta",
+      "syncing": "Syncing...",
+      "refresh": "Refresh"
     },
     "sidebar": {
       "contactInfo": "Contact info",
@@ -480,6 +483,7 @@
       "budgetMinPlaceholder": "Min (e.g. 50L or 50,00,000)",
       "budgetMaxPlaceholder": "Max (e.g. 1.5Cr or 1,50,00,000)",
       "configLabel": "Configuration / BHK Preference",
+      "configNotApplicable": "BHK configuration is not applicable for {type} properties.",
       "possessionLabel": "Possession Preference",
       "possessionAny": "Any Possession",
       "possessionReady": "Ready to Move Only",
@@ -592,6 +596,7 @@
       "leadSource": "Lead Source",
       "notSpecified": "Not specified",
       "anyConfig": "Any configuration",
+      "configNotApplicable": "Not applicable for {type}",
       "anyTimeline": "Any timeline",
       "copyInfo": "Copy Lead Info",
       "toastInfoCopied": "Lead info copied to clipboard",
@@ -837,7 +842,8 @@
       "estBrokerage": "Est. Brokerage ({pct}%): {amount}",
       "scheduleVisitForBuyer": "Schedule Site Visit for this Buyer",
       "buyerPhone": "Phone",
-      "buyerLocation": "Location Preference"
+      "buyerLocation": "Location Preference",
+      "reassignManagerOnly": "Only admins and owners can reassign"
     },
     "lostModal": {
       "title": "Mark as Lost",
@@ -2332,6 +2338,9 @@
       "allConfigs": "All Configurations",
       "allPickups": "All Logistics",
       "allAgents": "All Agents",
+      "filterMyVisits": "My Visits",
+      "myVisits": "My Visits",
+      "reassignManagerOnly": "Only admins and owners can reassign agents",
       "timeframeToday": "Today",
       "timeframeUpcoming": "Upcoming",
       "timeframePast": "Past",
@@ -2500,6 +2509,7 @@
       "selectType": "Select Type",
       "labelConfig": "Configuration",
       "selectConfig": "Select Configuration",
+      "configNotApplicable": "Not applicable for {type}",
       "labelBedrooms": "Bedrooms",
       "labelCarpetArea": "Carpet Area (sq ft)",
       "labelFacing": "Facing Direction",
@@ -2524,6 +2534,7 @@
       "updateBtn": "Update Property",
       "errorTitleRequired": "Property title is required.",
       "errorNoAccount": "Account context not found.",
+      "errorManagerOnly": "Only admins and owners can add or edit properties.",
       "toastCreated": "Property listing created successfully.",
       "toastUpdated": "Property listing updated successfully.",
       "toastSaveFailed": "Failed to save property. Please check input values."

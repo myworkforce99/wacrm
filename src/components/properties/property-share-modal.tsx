@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
 import type { Property, Contact } from '@/types';
 import { formatINR } from '@/lib/currency';
+import { formatConfiguration } from '@/lib/properties/format-configuration';
 import {
   Dialog,
   DialogContent,
@@ -95,7 +96,11 @@ export function PropertyShareModal({
     }
 
     const specs: string[] = [];
-    if (property.configuration) specs.push(property.configuration);
+    const formattedConfig = formatConfiguration(
+      property.configuration,
+      property.bedrooms
+    );
+    if (formattedConfig) specs.push(formattedConfig);
     if (property.carpet_area) specs.push(`${property.carpet_area} sq ft`);
     if (property.facing) specs.push(`${property.facing} Facing`);
     if (specs.length > 0) {

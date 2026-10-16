@@ -50,6 +50,7 @@ import { SourceBadge } from '@/components/ui/source-badge';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatINR } from '@/lib/currency';
 import type { Property, Profile, SiteVisit, SiteVisitStatus } from '@/types';
+import { canManageMembers } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
 import {
   Loader2,
@@ -62,6 +63,7 @@ import {
   Clock,
   Car,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 
 type ContactWithLead = {
@@ -126,32 +128,8 @@ function getPresetDatetime(preset: PresetKey): string {
     .slice(0, 16);
 }
 
-export function formatConfiguration(
-  config?: string | null,
-  bedrooms?: number | null
-): string | null {
-  if (config) {
-    const trimmed = config.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      try {
-        const parsed = JSON.parse(trimmed) as {
-          bedrooms?: number;
-          configuration?: string;
-        };
-        if (parsed.bedrooms) return `${parsed.bedrooms} BHK`;
-        if (parsed.configuration) return String(parsed.configuration);
-      } catch {
-        // Fallback to raw string if JSON.parse fails
-      }
-    } else {
-      return trimmed;
-    }
-  }
-  if (bedrooms) {
-    return `${bedrooms} BHK`;
-  }
-  return null;
-}
+import { formatConfiguration } from '@/lib/properties/format-configuration';
+export { formatConfiguration };
 
 export function ScheduleVisitSheet({
   open,
@@ -164,7 +142,8 @@ export function ScheduleVisitSheet({
   const t = useTranslations('SiteVisits.schedule');
   const tPage = useTranslations('SiteVisits.page');
   const supabase = createClient();
-  const { accountId, user } = useAuth();
+  const { accountId, user, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   // Reference data
   const [contacts, setContacts] = useState<ContactWithLead[]>([]);
@@ -291,6 +270,8 @@ export function ScheduleVisitSheet({
           .then(({ data: taskData }) => {
             if (taskData?.assigned_to) {
               setAssignedAgentId(taskData.assigned_to);
+            } else if (!isManager && user?.id) {
+              setAssignedAgentId(user.id);
             } else {
               setAssignedAgentId('');
             }
@@ -300,7 +281,7 @@ export function ScheduleVisitSheet({
         setSelectedContactId(defaultContactId ?? '');
         setIsChangingContact(false);
         setSelectedPropertyId(defaultPropertyId ?? '');
-        setAssignedAgentId('');
+        setAssignedAgentId(!isManager && user?.id ? user.id : '');
         setScheduledAt(getPresetDatetime('tomorrow11am'));
         setStatus('pending');
         setNotes('');
@@ -317,6 +298,8 @@ export function ScheduleVisitSheet({
     defaultPropertyId,
     loadFormData,
     supabase,
+    isManager,
+    user,
   ]);
 
   // Live-filtered contact list
@@ -335,6 +318,16 @@ export function ScheduleVisitSheet({
 
   const selectedContact = contacts.find((c) => c.id === selectedContactId);
   const selectedProperty = properties.find((p) => p.id === selectedPropertyId);
+
+  // Resolve assigned agent profile for display
+  const assignedAgentProfile = useMemo(() => {
+    if (!assignedAgentId) return null;
+    return (
+      profiles.find(
+        (p) => p.user_id === assignedAgentId || p.id === assignedAgentId
+      ) ?? null
+    );
+  }, [profiles, assignedAgentId]);
 
   // Status label dictionary
   const statusLabels: Record<string, string> = {
@@ -408,12 +401,17 @@ export function ScheduleVisitSheet({
         const taskTitle = `Site Visit: ${selectedProperty?.title || selectedContact?.name || 'Property Showing'}`;
         const isCompleted = status === 'completed';
 
-        if (assignedAgentId) {
+        // Guard assignment: only managers can reassign or unassign
+        const effectiveAgentId = isManager
+          ? assignedAgentId
+          : (assignedAgentId || user?.id || '');
+
+        if (effectiveAgentId) {
           if (currentTask) {
             await supabase
               .from('tasks')
               .update({
-                assigned_to: assignedAgentId,
+                assigned_to: effectiveAgentId,
                 due_at: scheduledAtISO,
                 title: taskTitle,
                 contact_id: selectedContactId,
@@ -429,13 +427,13 @@ export function ScheduleVisitSheet({
               site_visit_id: visitId,
               title: taskTitle,
               due_at: scheduledAtISO,
-              assigned_to: assignedAgentId,
+              assigned_to: effectiveAgentId,
               created_by: user?.id,
               done: isCompleted,
               done_at: isCompleted ? new Date().toISOString() : null,
             });
           }
-        } else if (currentTask) {
+        } else if (currentTask && isManager) {
           await supabase
             .from('tasks')
             .update({
@@ -753,30 +751,61 @@ export function ScheduleVisitSheet({
 
               {/* ── Assigned Agent ── */}
               <div className="space-y-2">
-                <Label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
-                  <User className="size-3.5" />
-                  {t('agentLabel')}
-                </Label>
-                <Select
-                  value={assignedAgentId || 'none'}
-                  onValueChange={(val) =>
-                    setAssignedAgentId(val === 'none' ? '' : (val ?? ''))
-                  }
-                >
-                  <SelectTrigger className="border-border bg-muted/40 text-foreground h-9 w-full text-xs">
-                    <SelectValue placeholder={t('agentPlaceholder')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      {t('agentPlaceholder')}
-                    </SelectItem>
-                    {profiles.map((p) => (
-                      <SelectItem key={p.id} value={p.user_id}>
-                        {p.full_name || p.email}
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase">
+                    <User className="size-3.5" />
+                    {t('agentLabel')}
+                  </Label>
+                  {!isManager && (
+                    <span className="text-muted-foreground/80 flex items-center gap-1 text-[11px] font-medium">
+                      <Lock className="size-3" />
+                      {tPage('reassignManagerOnly')}
+                    </span>
+                  )}
+                </div>
+                {isManager ? (
+                  <Select
+                    value={assignedAgentId || 'none'}
+                    onValueChange={(val) =>
+                      setAssignedAgentId(val === 'none' ? '' : (val ?? ''))
+                    }
+                  >
+                    <SelectTrigger className="border-border bg-muted/40 text-foreground h-9 w-full text-xs">
+                      <SelectValue placeholder={t('agentPlaceholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        {t('agentPlaceholder')}
                       </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                      {profiles.map((p) => (
+                        <SelectItem key={p.id} value={p.user_id}>
+                          {p.full_name || p.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="border-border bg-muted/30 text-foreground flex h-9 w-full items-center justify-between rounded-md border px-3 text-xs">
+                    <div className="flex items-center gap-2 truncate">
+                      <div className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
+                        {initialsForName(
+                          assignedAgentProfile?.full_name ||
+                            user?.email ||
+                            'U'
+                        )}
+                      </div>
+                      <span className="truncate font-medium">
+                        {assignedAgentProfile?.full_name ||
+                          assignedAgentProfile?.email ||
+                          user?.email ||
+                          t('agentPlaceholder')}
+                      </span>
+                    </div>
+                    <span className="text-muted-foreground shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                      {isEditMode ? 'Assigned' : 'You'}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* ── Status on create or edit ── */}

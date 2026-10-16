@@ -880,14 +880,12 @@ export interface QuickReply {
 }
 
 export const PROPERTY_CONFIGURATIONS = [
+  'Studio',
   '1BHK',
   '2BHK',
   '3BHK',
   '4BHK',
-  'Studio',
-  'Villa',
-  'Plot',
-  'Commercial',
+  '5+ BHK',
 ];
 
 export type BroadcastAudienceType =

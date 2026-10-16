@@ -48,6 +48,7 @@ import {
   CalendarPlus,
   Phone,
   Sparkles,
+  Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -621,9 +622,17 @@ export function DealForm({
 
               {/* Assigned To */}
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">
-                  {t('assignedTo')}
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground">
+                    {t('assignedTo')}
+                  </Label>
+                  {!isManager && (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+                      <Lock className="size-3" />
+                      {t('reassignManagerOnly')}
+                    </span>
+                  )}
+                </div>
                 <select
                   disabled={!isManager}
                   value={assignedTo}

@@ -7,7 +7,6 @@ import { canManageMembers } from '@/lib/auth/roles';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, Profile } from '@/types';
-import { PROPERTY_CONFIGURATIONS } from '@/types';
 import {
   findExistingContact,
   isExactMatch,
@@ -56,6 +55,7 @@ import {
   Target,
   Clock,
   FileText,
+  Info,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -90,7 +90,15 @@ const PROPERTY_TYPES = [
   'Commercial',
   'Penthouse',
   'Builder Floor',
+];
+
+const BHK_CONFIGURATIONS = [
   'Studio',
+  '1BHK',
+  '2BHK',
+  '3BHK',
+  '4BHK',
+  '5+ BHK',
 ];
 
 const INTENT_OPTIONS = ['End Use', 'Investment', 'Rental Yield'];
@@ -143,6 +151,19 @@ export function ContactForm({
   const [propertyType, setPropertyType] = useState('all');
   const [intent, setIntent] = useState('all');
   const [possessionPreference, setPossessionPreference] = useState('any');
+
+  const isNonBhkPropertyType =
+    propertyType === 'Plot' || propertyType === 'Commercial';
+
+  const availableBhkOptions = useMemo(() => {
+    const list = [...BHK_CONFIGURATIONS];
+    for (const cfg of configurationPreference) {
+      if (!list.includes(cfg)) {
+        list.push(cfg);
+      }
+    }
+    return list;
+  }, [configurationPreference]);
 
   // Assignment & pipeline stage
   const [assignedAgentId, setAssignedAgentId] = useState('unassigned');
@@ -501,7 +522,9 @@ export function ContactForm({
           location_preference: locationPreference.trim() || null,
           budget_min: parsedMin ?? null,
           budget_max: parsedMax ?? null,
-          configuration_preference: configurationPreference,
+          configuration_preference: isNonBhkPropertyType
+            ? []
+            : configurationPreference,
           possession_preference: possessionPreference || 'any',
           property_type: propertyType === 'all' ? null : propertyType,
           intent: intent === 'all' ? null : intent,
@@ -1017,38 +1040,49 @@ export function ContactForm({
                   <Label className="text-foreground text-xs font-medium">
                     {t('configLabel')}
                   </Label>
-                  {configurationPreference.length > 0 && (
-                    <span className="text-primary text-[11px] font-medium">
-                      {configurationPreference.length} selected
+                  {!isNonBhkPropertyType &&
+                    configurationPreference.length > 0 && (
+                      <span className="text-primary text-[11px] font-medium">
+                        {configurationPreference.length} selected
+                      </span>
+                    )}
+                </div>
+                {isNonBhkPropertyType ? (
+                  <div className="border-border/60 bg-muted/40 text-muted-foreground flex items-center gap-2 rounded-lg border px-3 py-2 text-xs">
+                    <Info className="text-muted-foreground/80 size-3.5 shrink-0" />
+                    <span>
+                      {t('configNotApplicable', { type: propertyType })}
                     </span>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {PROPERTY_CONFIGURATIONS.map((config) => {
-                    const isSelected = configurationPreference.includes(config);
-                    return (
-                      <button
-                        key={config}
-                        type="button"
-                        onClick={() => {
-                          setConfigurationPreference((prev) =>
-                            prev.includes(config)
-                              ? prev.filter((c) => c !== config)
-                              : [...prev, config]
-                          );
-                        }}
-                        className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
-                          isSelected
-                            ? 'bg-primary border-primary text-primary-foreground font-semibold shadow-xs'
-                            : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground'
-                        }`}
-                      >
-                        {isSelected && <Check className="size-3" />}
-                        {config}
-                      </button>
-                    );
-                  })}
-                </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {availableBhkOptions.map((config) => {
+                      const isSelected =
+                        configurationPreference.includes(config);
+                      return (
+                        <button
+                          key={config}
+                          type="button"
+                          onClick={() => {
+                            setConfigurationPreference((prev) =>
+                              prev.includes(config)
+                                ? prev.filter((c) => c !== config)
+                                : [...prev, config]
+                            );
+                          }}
+                          className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
+                            isSelected
+                              ? 'bg-primary border-primary text-primary-foreground font-semibold shadow-xs'
+                              : 'bg-card border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          {isSelected && <Check className="size-3" />}
+                          {config}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Possession Preference */}

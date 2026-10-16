@@ -20,7 +20,7 @@ const DEFAULT_TEMPLATE = `🏠 *Property Details*
 Title: {{property_title}}
 Location: {{location}}
 Price: {{price}}
-Type: {{property_type}} | {{configuration}} | {{bedrooms}} BHK
+Type: {{property_type}} | {{configuration}}
 RERA: {{rera_id}}
 Builder: {{builder_name}}
 Possession: {{possession_status}}

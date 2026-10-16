@@ -363,7 +363,10 @@
       "finalUrl": "최종 URL: {url}",
       "back": "뒤로",
       "cancel": "취소",
-      "send": "템플릿 보내기"
+      "send": "템플릿 보내기",
+      "syncFromMeta": "Meta에서 동기화",
+      "syncing": "동기화 중...",
+      "refresh": "새로고침"
     },
     "sidebar": {
       "contactInfo": "연락처 정보",
@@ -480,6 +483,7 @@
       "budgetMinPlaceholder": "최소 (예: 50L 또는 50,00,000)",
       "budgetMaxPlaceholder": "최대 (예: 1.5Cr 또는 1,50,00,000)",
       "configLabel": "구조 / BHK 선호도",
+      "configNotApplicable": "{type} 매물에는 BHK 구조가 적용되지 않습니다.",
       "possessionLabel": "입주 시기",
       "possessionAny": "상관없음",
       "possessionReady": "즉시 입주만",
@@ -592,6 +596,7 @@
       "leadSource": "유입 경로",
       "notSpecified": "미지정",
       "anyConfig": "모든 구조",
+      "configNotApplicable": "{type}에 해당 없음",
       "anyTimeline": "모든 시기",
       "copyInfo": "리드 정보 복사",
       "toastInfoCopied": "리드 정보가 클립보드에 복사되었습니다",
@@ -837,7 +842,8 @@
       "estBrokerage": "예상 중개수수료 ({pct}%): {amount}",
       "scheduleVisitForBuyer": "이 고객을 위한 현장 방문 예약",
       "buyerPhone": "전화번호",
-      "buyerLocation": "선호 지역"
+      "buyerLocation": "선호 지역",
+      "reassignManagerOnly": "관리자와 소유자만 재배정할 수 있습니다"
     },
     "lostModal": {
       "title": "실패로 표시",
@@ -2332,6 +2338,9 @@
       "allConfigs": "모든 구조",
       "allPickups": "모든 물류",
       "allAgents": "모든 상담원",
+      "filterMyVisits": "내 방문",
+      "myVisits": "내 방문",
+      "reassignManagerOnly": "관리자와 소유자만 담당자를 재배정할 수 있습니다",
       "timeframeToday": "오늘",
       "timeframeUpcoming": "예정",
       "timeframePast": "지난 방문",
@@ -2500,6 +2509,7 @@
       "selectType": "유형 선택",
       "labelConfig": "구조 (Configuration)",
       "selectConfig": "구조 선택",
+      "configNotApplicable": "{type} 매물에는 해당 없음",
       "labelBedrooms": "침실 수",
       "labelCarpetArea": "전용 면적 (sq ft)",
       "labelFacing": "방향 (Facing)",
@@ -2524,6 +2534,7 @@
       "updateBtn": "매물 업데이트",
       "errorTitleRequired": "매물 명칭은 필수입니다.",
       "errorNoAccount": "계정 컨텍스트를 찾을 수 없습니다.",
+      "errorManagerOnly": "관리자 및 소유자만 매물을 추가하거나 수정할 수 있습니다.",
       "toastCreated": "매물이 성공적으로 등록되었습니다.",
       "toastUpdated": "매물 정보가 성공적으로 수정되었습니다.",
       "toastSaveFailed": "매물 저장에 실패했습니다. 입력값을 확인해주세요."

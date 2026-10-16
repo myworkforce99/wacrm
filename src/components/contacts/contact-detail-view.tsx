@@ -636,8 +636,15 @@ export function ContactDetailView({
               {t('configuration')}
             </span>
             <div className="flex flex-wrap gap-1.5">
-              {leadDetail?.configuration_preference &&
-              leadDetail.configuration_preference.length > 0 ? (
+              {leadDetail?.property_type === 'Plot' ||
+              leadDetail?.property_type === 'Commercial' ? (
+                <span className="text-muted-foreground text-xs italic">
+                  {t('configNotApplicable', {
+                    type: leadDetail.property_type,
+                  })}
+                </span>
+              ) : leadDetail?.configuration_preference &&
+                leadDetail.configuration_preference.length > 0 ? (
                 leadDetail.configuration_preference.map((cfg) => (
                   <span
                     key={cfg}
