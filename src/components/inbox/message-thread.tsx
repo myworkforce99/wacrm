@@ -874,6 +874,7 @@ export function MessageThread({
       if (!conversation) return;
 
       const supabase = createClient();
+      const prevAgentId = conversation.assigned_agent_id;
       const { error } = await supabase
         .from('conversations')
         .update({ assigned_agent_id: agentId })
@@ -883,6 +884,26 @@ export function MessageThread({
         console.error('Failed to update assignment:', error);
         toast.error(t('assignmentUpdateFailed'));
         return;
+      }
+
+      // Enrich assignment_history reason from generic DB trigger value to 'claim' or 'manual_reassign'
+      if (conversation.contact_id && agentId !== prevAgentId) {
+        const reason = agentId && agentId === user?.id ? 'claim' : 'manual_reassign';
+        const { data: recent } = await supabase
+          .from('assignment_history')
+          .select('id')
+          .eq('contact_id', conversation.contact_id)
+          .eq('to_agent_id', agentId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (recent) {
+          await supabase
+            .from('assignment_history')
+            .update({ reason })
+            .eq('id', recent.id);
+        }
       }
 
       onAssignChange(conversation.id, agentId);

@@ -191,6 +191,7 @@ export async function getCurrentAccount(): Promise<AccountContext> {
       subscription_status: account.subscription_status,
       plan_tier: account.plan_tier,
       portal_connections: account.portal_connections,
+      cost_sheet_template_id: account.cost_sheet_template_id,
     },
   };
 }

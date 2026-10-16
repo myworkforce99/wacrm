@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
-import type { Contact, Deal, ContactNote, Tag } from '@/types';
+import type { Contact, Deal, ContactNote, Tag, LeadDetail } from '@/types';
 import {
   Phone,
   Mail,
@@ -14,18 +14,57 @@ import {
   IndianRupee,
   StickyNote,
   Plus,
+  Pencil,
+  MapPin,
+  Clock,
+  Home,
+  Calendar,
+  Zap,
+  X,
+  Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SourceBadge } from '@/components/ui/source-badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { formatINRRange } from '@/lib/currency';
 import { format } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { contactHandle } from '@/lib/whatsapp/wa-identity';
+import { ScheduleVisitSheet } from '@/components/site-visits/schedule-visit-sheet';
+import { CostSheetModal } from '@/components/contacts/cost-sheet-modal';
+import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
+import { toast } from 'sonner';
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  onUpdated?: () => void;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+const CONFIG_OPTIONS = ['1BHK', '2BHK', '3BHK', '4BHK', '5BHK+', 'Villa'];
+
+export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
   const tSidebar = useTranslations('Inbox.sidebar');
   const tThread = useTranslations('Inbox.messageThread');
 
@@ -34,16 +73,34 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
   const [tags, setTags] = useState<(Tag & { contact_tag_id: string })[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [leadDetail, setLeadDetail] = useState<LeadDetail | null>(null);
+
   const [newNote, setNewNote] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+
+  // Cross-module action modals
+  const [scheduleVisitOpen, setScheduleVisitOpen] = useState(false);
+  const [costSheetOpen, setCostSheetOpen] = useState(false);
+  const [editRequirementsOpen, setEditRequirementsOpen] = useState(false);
+
+  // Requirements edit form state
+  const [budgetMin, setBudgetMin] = useState<string>('');
+  const [budgetMax, setBudgetMax] = useState<string>('');
+  const [selectedConfigs, setSelectedConfigs] = useState<string[]>([]);
+  const [locationPref, setLocationPref] = useState<string>('');
+  const [possessionPref, setPossessionPref] = useState<string>('any');
+  const [propertyType, setPropertyType] = useState<string>('Apartment');
+  const [intent, setIntent] = useState<string>('Self Use');
+  const [savingRequirements, setSavingRequirements] = useState(false);
 
   const fetchContactData = useCallback(async () => {
     if (!contact) return;
 
     const supabase = createClient();
 
-    // Fetch deals, notes, and tags in parallel
-    const [dealsRes, notesRes, tagsRes] = await Promise.all([
+    // Fetch deals, notes, tags, lead requirements, and all available tags in parallel
+    const [dealsRes, notesRes, tagsRes, leadRes, allTagsRes] = await Promise.all([
       supabase
         .from('deals')
         .select('*, stage:pipeline_stages!deals_stage_id_fkey(*)')
@@ -58,10 +115,22 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
         .from('contact_tags')
         .select('id, tag_id, tags(*)')
         .eq('contact_id', contact.id),
+      supabase
+        .from('lead_details')
+        .select('*')
+        .eq('contact_id', contact.id)
+        .maybeSingle(),
+      supabase.from('tags').select('*').order('name'),
     ]);
 
     if (dealsRes.data) setDeals(dealsRes.data);
     if (notesRes.data) setNotes(notesRes.data);
+    if (leadRes.data) {
+      setLeadDetail(leadRes.data as LeadDetail);
+    } else {
+      setLeadDetail(null);
+    }
+    if (allTagsRes.data) setAllTags(allTagsRes.data as Tag[]);
     if (tagsRes.data) {
       const mapped = tagsRes.data
         .filter((ct: Record<string, unknown>) => ct.tags)
@@ -73,24 +142,38 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
     }
   }, [contact]);
 
-  // Load on contact change. setContactData/setTags run inside async
-  // Supabase callbacks, not synchronously in the effect body.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContactData();
   }, [fetchContactData]);
 
+  // Sync requirements form when edit dialog opens or leadDetail changes
+  useEffect(() => {
+    if (leadDetail) {
+      setBudgetMin(leadDetail.budget_min ? String(leadDetail.budget_min) : '');
+      setBudgetMax(leadDetail.budget_max ? String(leadDetail.budget_max) : '');
+      setSelectedConfigs(leadDetail.configuration_preference || []);
+      setLocationPref(leadDetail.location_preference || '');
+      setPossessionPref(leadDetail.possession_preference || 'any');
+      setPropertyType(leadDetail.property_type || 'Apartment');
+      setIntent(leadDetail.intent || 'Self Use');
+    } else {
+      setBudgetMin('');
+      setBudgetMax('');
+      setSelectedConfigs([]);
+      setLocationPref('');
+      setPossessionPref('any');
+      setPropertyType('Apartment');
+      setIntent('Self Use');
+    }
+  }, [leadDetail, editRequirementsOpen]);
+
   const handleCopyPhone = useCallback(async () => {
-    // Copies whatever the row displays — a BSUID-only contact has no
-    // phone number to copy, but its @username still identifies them.
     const handle = contact ? contactHandle(contact) : '';
     if (!handle) return;
     await navigator.clipboard.writeText(handle);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    // Dep is the whole `contact` object (not `contact?.phone`) so the
-    // React Compiler's inference agrees with the manual dep list —
-    // fixes the `preserve-manual-memoization` lint error.
   }, [contact]);
 
   const handleAddNote = useCallback(async () => {
@@ -118,13 +201,92 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
     if (!error && data) {
       setNotes((prev) => [data, ...prev]);
       setNewNote('');
+      toast.success('Internal note added');
+    } else {
+      toast.error('Failed to add note');
     }
     setAddingNote(false);
   }, [contact, newNote, accountId]);
 
+  const handleToggleConfig = (cfg: string) => {
+    setSelectedConfigs((prev) =>
+      prev.includes(cfg) ? prev.filter((c) => c !== cfg) : [...prev, cfg]
+    );
+  };
+
+  const handleSaveRequirements = async () => {
+    if (!contact || !accountId) return;
+    setSavingRequirements(true);
+    try {
+      const supabase = createClient();
+      const minVal = budgetMin.trim() ? Number(budgetMin.trim()) : null;
+      const maxVal = budgetMax.trim() ? Number(budgetMax.trim()) : null;
+
+      const payload = {
+        account_id: accountId,
+        contact_id: contact.id,
+        budget_min: minVal,
+        budget_max: maxVal,
+        configuration_preference: selectedConfigs,
+        location_preference: locationPref.trim() || null,
+        possession_preference: possessionPref === 'any' ? null : possessionPref,
+        property_type: propertyType || null,
+        intent: intent || null,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('lead_details')
+        .upsert(payload, { onConflict: 'contact_id' })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setLeadDetail(data as LeadDetail);
+      toast.success('Requirements updated! ✓');
+      setEditRequirementsOpen(false);
+      onUpdated?.();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save requirements');
+    } finally {
+      setSavingRequirements(false);
+    }
+  };
+
+  const handleAddTag = async (tagId: string) => {
+    if (!contact) return;
+    try {
+      await addContactTag(contact.id, tagId);
+      const targetTag = allTags.find((t) => t.id === tagId);
+      if (targetTag) {
+        setTags((prev) => [
+          ...prev,
+          { ...targetTag, contact_tag_id: `temp_${Date.now()}` },
+        ]);
+      }
+      toast.success('Tag added');
+      fetchContactData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to add tag');
+    }
+  };
+
+  const handleDeleteTag = async (tagId: string) => {
+    if (!contact) return;
+    try {
+      await deleteContactTag(contact.id, tagId);
+      setTags((prev) => prev.filter((t) => t.id !== tagId));
+      toast.success('Tag removed');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to remove tag');
+    }
+  };
+
   if (!contact) {
     return (
-      <div className="border-border bg-card flex h-full w-70 items-center justify-center border-l">
+      <div className="border-border bg-card flex h-full w-80 items-center justify-center border-l">
         <p className="text-muted-foreground text-sm">
           {tThread('selectConversation')}
         </p>
@@ -134,26 +296,27 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
 
   const displayName = contact.name || contactHandle(contact);
   const initials = displayName.charAt(0).toUpperCase();
+  const availableTags = allTags.filter((at) => !tags.some((t) => t.id === at.id));
 
   return (
-    <div className="border-border bg-card flex h-full w-70 flex-col border-l">
+    <div className="border-border bg-card flex h-full w-80 flex-col border-l">
       <ScrollArea className="flex-1">
-        <div className="p-4">
-          {/* Contact Info */}
+        <div className="p-4 space-y-4">
+          {/* Contact Info Header */}
           <div className="flex flex-col items-center text-center">
-            <div className="bg-muted text-foreground flex h-16 w-16 items-center justify-center rounded-full text-lg font-semibold">
+            <div className="bg-muted text-foreground flex h-14 w-14 items-center justify-center rounded-full text-base font-semibold shadow-xs">
               {contact.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={contact.avatar_url}
                   alt={displayName}
-                  className="h-16 w-16 rounded-full object-cover"
+                  className="h-14 w-14 rounded-full object-cover"
                 />
               ) : (
                 initials
               )}
             </div>
-            <h3 className="text-foreground mt-3 text-sm font-semibold">
+            <h3 className="text-foreground mt-2.5 text-sm font-semibold">
               {displayName}
             </h3>
             {contact.company && (
@@ -161,39 +324,173 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             )}
           </div>
 
-          {/* Phone */}
-          <div className="mt-4 space-y-2">
+          {/* Quick Contact & Action Buttons */}
+          <div className="space-y-2">
             <button
               onClick={handleCopyPhone}
-              className="text-muted-foreground hover:bg-muted flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors"
+              className="text-muted-foreground hover:bg-muted flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors border border-border/50"
             >
-              <Phone className="text-muted-foreground h-4 w-4" />
-              <span className="flex-1 text-left">{contactHandle(contact)}</span>
+              <Phone className="text-muted-foreground h-3.5 w-3.5" />
+              <span className="flex-1 text-left font-mono">{contactHandle(contact)}</span>
               {copied ? (
-                <Check className="text-primary h-3 w-3" />
+                <Check className="text-primary h-3.5 w-3.5" />
               ) : (
-                <Copy className="text-muted-foreground h-3 w-3" />
+                <Copy className="text-muted-foreground h-3.5 w-3.5" />
               )}
             </button>
 
             {contact.email && (
-              <div className="text-muted-foreground flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
-                <Mail className="text-muted-foreground h-4 w-4" />
+              <div className="text-muted-foreground flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs border border-border/50">
+                <Mail className="text-muted-foreground h-3.5 w-3.5" />
                 <span className="truncate">{contact.email}</span>
+              </div>
+            )}
+
+            {/* In-Chat Action Buttons: Schedule Visit & Send Cost Sheet */}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setScheduleVisitOpen(true)}
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium"
+              >
+                <Calendar className="text-primary h-3.5 w-3.5" />
+                <span>Schedule Visit</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCostSheetOpen(true)}
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium"
+              >
+                <Zap className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Cost Sheet</span>
+              </Button>
+            </div>
+          </div>
+
+          {/* Real Estate Requirements / Lead Qualification Card */}
+          <div className="border-border/80 rounded-xl border bg-muted/20 p-3 space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between">
+              <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
+                <Home className="text-primary h-3.5 w-3.5" />
+                <span>Requirements</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setEditRequirementsOpen(true)}
+                className="text-muted-foreground hover:text-foreground h-6 px-1.5 text-xs"
+              >
+                <Pencil className="mr-1 h-3 w-3 text-primary" />
+                Edit
+              </Button>
+            </div>
+
+            {/* Budget Range */}
+            <div className="bg-background flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-1.5 text-xs">
+              <span className="text-muted-foreground flex items-center gap-1 font-medium">
+                <IndianRupee className="text-primary h-3 w-3" />
+                Budget
+              </span>
+              <span className="text-primary bg-primary/10 rounded-full px-2 py-0.5 text-xs font-bold">
+                {formatINRRange(leadDetail?.budget_min, leadDetail?.budget_max)}
+              </span>
+            </div>
+
+            {/* Configuration / BHK Preferences */}
+            <div className="text-xs">
+              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+                BHK Preference
+              </span>
+              <div className="mt-1 flex flex-wrap gap-1">
+                {leadDetail?.configuration_preference &&
+                leadDetail.configuration_preference.length > 0 ? (
+                  leadDetail.configuration_preference.map((cfg) => (
+                    <span
+                      key={cfg}
+                      className="border-primary/40 bg-primary/10 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                    >
+                      {cfg}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted-foreground text-[11px] italic">
+                    Any configuration
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Location & Possession Grid */}
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50 text-xs">
+              <div>
+                <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
+                  <MapPin className="text-primary h-3 w-3" />
+                  Location
+                </span>
+                <p className="text-foreground truncate font-medium text-[11px] mt-0.5">
+                  {leadDetail?.location_preference || 'Not specified'}
+                </p>
+              </div>
+              <div>
+                <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
+                  <Clock className="h-3 w-3 text-primary" />
+                  Possession
+                </span>
+                <p className="text-foreground truncate font-medium text-[11px] mt-0.5">
+                  {leadDetail?.possession_preference === 'ready_to_move_only'
+                    ? 'Ready to move'
+                    : leadDetail?.possession_preference === 'under_construction_ok'
+                      ? 'Under constr.'
+                      : 'Any'}
+                </p>
+              </div>
+            </div>
+
+            {/* Source */}
+            {leadDetail?.source && (
+              <div className="flex items-center justify-between border-t border-border/50 pt-1.5 text-xs">
+                <span className="text-muted-foreground text-[10px] font-semibold uppercase">
+                  Source
+                </span>
+                <SourceBadge source={leadDetail.source} />
               </div>
             )}
           </div>
 
-          {/* Divider */}
-          <div className="border-border my-4 border-t" />
-
           {/* Tags */}
           <div>
-            <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs font-medium tracking-wider uppercase">
-              <TagIcon className="h-3 w-3" />
-              {tSidebar('tags')}
+            <div className="flex items-center justify-between px-1">
+              <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+                <TagIcon className="h-3.5 w-3.5" />
+                <span>{tSidebar('tags')}</span>
+              </div>
+              {availableTags.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center rounded-md h-6 px-1.5 text-xs transition-colors hover:bg-muted">
+                    <Plus className="mr-0.5 h-3 w-3" />
+                    Add
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-36">
+                    {availableTags.map((at) => (
+                      <DropdownMenuItem
+                        key={at.id}
+                        onClick={() => handleAddTag(at.id)}
+                        className="text-xs flex items-center gap-1.5"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: at.color }}
+                        />
+                        <span>{at.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-            <div className="mt-2 flex flex-wrap gap-1">
+            <div className="mt-2 flex flex-wrap gap-1.5">
               {tags.length === 0 ? (
                 <p className="text-muted-foreground px-1 text-xs">
                   {tSidebar('noTags')}
@@ -201,28 +498,32 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
               ) : (
                 tags.map((tag) => (
                   <span
-                    key={tag.contact_tag_id}
-                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    key={tag.contact_tag_id || tag.id}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
                     style={{
                       backgroundColor: `${tag.color}20`,
                       color: tag.color,
                     }}
                   >
-                    {tag.name}
+                    <span>{tag.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTag(tag.id)}
+                      className="hover:opacity-75 focus:outline-hidden"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </span>
                 ))
               )}
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-border my-4 border-t" />
-
           {/* Active Deals */}
           <div>
-            <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs font-medium tracking-wider uppercase">
-              <IndianRupee className="h-3 w-3" />
-              {tSidebar('deals')}
+            <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs font-semibold tracking-wider uppercase">
+              <IndianRupee className="h-3.5 w-3.5" />
+              <span>{tSidebar('deals')}</span>
             </div>
             <div className="mt-2 space-y-2">
               {deals.length === 0 ? (
@@ -231,12 +532,12 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
                 </p>
               ) : (
                 deals.map((deal) => (
-                  <div key={deal.id} className="bg-muted rounded-lg px-3 py-2">
-                    <p className="text-foreground text-sm font-medium">
+                  <div key={deal.id} className="bg-muted/50 border border-border/50 rounded-lg px-3 py-2">
+                    <p className="text-foreground text-xs font-medium">
                       {deal.title}
                     </p>
                     <div className="text-muted-foreground mt-1 flex items-center justify-between text-xs">
-                      <span>
+                      <span className="font-semibold">
                         {deal.currency ?? '₹'}
                         {deal.value.toLocaleString()}
                       </span>
@@ -258,41 +559,38 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="border-border my-4 border-t" />
-
-          {/* Notes */}
+          {/* Internal Notes */}
           <div>
-            <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs font-medium tracking-wider uppercase">
-              <StickyNote className="h-3 w-3" />
-              {tSidebar('notes')}
+            <div className="text-muted-foreground flex items-center gap-2 px-1 text-xs font-semibold tracking-wider uppercase">
+              <StickyNote className="h-3.5 w-3.5" />
+              <span>{tSidebar('notes')}</span>
             </div>
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
               <div className="flex gap-2">
                 <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   placeholder={tSidebar('addNotePlaceholder')}
                   rows={2}
-                  className="border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-3 py-2 text-xs outline-none"
+                  className="border-border bg-muted/50 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs outline-none"
                 />
                 <Button
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 h-auto px-2"
+                  className="bg-primary hover:bg-primary/90 h-auto px-2.5"
                   onClick={handleAddNote}
                   disabled={!newNote.trim() || addingNote}
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
               </div>
 
-              <div className="mt-2 space-y-2">
+              <div className="space-y-2">
                 {notes.map((note) => (
-                  <div key={note.id} className="bg-muted rounded-lg px-3 py-2">
+                  <div key={note.id} className="bg-muted/40 border border-border/40 rounded-lg p-2.5">
                     <p className="text-muted-foreground text-xs whitespace-pre-wrap">
                       {note.note_text}
                     </p>
-                    <p className="text-muted-foreground mt-1 text-[10px]">
+                    <p className="text-muted-foreground/80 mt-1 text-[10px]">
                       {format(new Date(note.created_at), 'MMM d, yyyy HH:mm')}
                     </p>
                   </div>
@@ -302,6 +600,170 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
           </div>
         </div>
       </ScrollArea>
+
+      {/* Schedule Visit Sheet */}
+      <ScheduleVisitSheet
+        open={scheduleVisitOpen}
+        onOpenChange={setScheduleVisitOpen}
+        onSuccess={() => fetchContactData()}
+        defaultContactId={contact.id}
+      />
+
+      {/* Cost Sheet Modal */}
+      <CostSheetModal
+        open={costSheetOpen}
+        onOpenChange={setCostSheetOpen}
+        contactId={contact.id}
+      />
+
+      {/* Edit Real Estate Requirements Dialog */}
+      <Dialog open={editRequirementsOpen} onOpenChange={setEditRequirementsOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Real Estate Requirements</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2">
+            {/* Budget Range */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Min Budget (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 12000000"
+                  value={budgetMin}
+                  onChange={(e) => setBudgetMin(e.target.value)}
+                  className="mt-1 h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Max Budget (₹)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 18000000"
+                  value={budgetMax}
+                  onChange={(e) => setBudgetMax(e.target.value)}
+                  className="mt-1 h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* BHK Preferences */}
+            <div>
+              <Label className="text-xs">BHK Configuration</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {CONFIG_OPTIONS.map((cfg) => {
+                  const selected = selectedConfigs.includes(cfg);
+                  return (
+                    <button
+                      key={cfg}
+                      type="button"
+                      onClick={() => handleToggleConfig(cfg)}
+                      className={`rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border bg-background hover:bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {cfg}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Location Preference */}
+            <div>
+              <Label className="text-xs">Preferred Location</Label>
+              <Input
+                placeholder="e.g. Powai, Mumbai"
+                value={locationPref}
+                onChange={(e) => setLocationPref(e.target.value)}
+                className="mt-1 h-8 text-xs"
+              />
+            </div>
+
+            {/* Possession Timeline & Property Type */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-xs">Possession Timeline</Label>
+                <Select
+                  value={possessionPref}
+                  onValueChange={(val) => {
+                    if (val) setPossessionPref(val);
+                  }}
+                >
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="any">Any Timeline</SelectItem>
+                    <SelectItem value="ready_to_move_only">Ready to Move</SelectItem>
+                    <SelectItem value="under_construction_ok">Under Construction OK</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-xs">Property Type</Label>
+                <Select
+                  value={propertyType}
+                  onValueChange={(val) => {
+                    if (val) setPropertyType(val);
+                  }}
+                >
+                  <SelectTrigger className="mt-1 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Apartment">Apartment</SelectItem>
+                    <SelectItem value="Villa">Villa</SelectItem>
+                    <SelectItem value="Plot">Plot</SelectItem>
+                    <SelectItem value="Commercial">Commercial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Buyer Intent */}
+            <div>
+              <Label className="text-xs">Buyer Intent</Label>
+              <Select
+                value={intent}
+                onValueChange={(val) => {
+                  if (val) setIntent(val);
+                }}
+              >
+                <SelectTrigger className="mt-1 h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Self Use">Self Use / End Use</SelectItem>
+                  <SelectItem value="Investment">Investment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setEditRequirementsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSaveRequirements}
+              disabled={savingRequirements}
+            >
+              {savingRequirements && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              Save Requirements
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
