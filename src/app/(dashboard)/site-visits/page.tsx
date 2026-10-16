@@ -956,10 +956,26 @@ export default function SiteVisitsPage() {
 
     if (error) {
       toast.error(t('toastStatusError'));
-    } else {
-      toast.success(t('toastStatusUpdated'));
-      void fetchVisits();
+      return;
     }
+
+    // Synchronize linked task in `tasks` table
+    try {
+      const isCompleted = newStatus === 'completed';
+      await supabase
+        .from('tasks')
+        .update({
+          done: isCompleted,
+          done_at: isCompleted ? new Date().toISOString() : null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('site_visit_id', id);
+    } catch (taskErr) {
+      console.error('Failed to sync linked site visit task:', taskErr);
+    }
+
+    toast.success(t('toastStatusUpdated'));
+    void fetchVisits();
   }
 
   function handleEdit(visit: VisitWithDetails) {

@@ -68,13 +68,15 @@ export function TeamDashboardClient() {
   useEffect(() => {
     if (isPrint && !loading) {
       document.documentElement.classList.add('print-mode');
-      const timer = setTimeout(() => {
-        window.print();
-      }, 500);
-      return () => {
-        document.documentElement.classList.remove('print-mode');
-        clearTimeout(timer);
-      };
+      if (typeof window !== 'undefined' && !navigator.webdriver) {
+        const timer = setTimeout(() => {
+          window.print();
+        }, 500);
+        return () => {
+          document.documentElement.classList.remove('print-mode');
+          clearTimeout(timer);
+        };
+      }
     }
   }, [isPrint, loading]);
 
@@ -263,9 +265,9 @@ export function TeamDashboardClient() {
         />
 
         {/* Situational Awareness KPI Strip */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:grid-cols-4 print:gap-2 print:break-inside-avoid">
           {/* Card 1: Team Strength */}
-          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md">
+          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {tKpis('teamStrength')}
@@ -299,7 +301,7 @@ export function TeamDashboardClient() {
           </div>
 
           {/* Card 2: Active Workload */}
-          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md">
+          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {tKpis('openLeads')}
@@ -322,7 +324,7 @@ export function TeamDashboardClient() {
           </div>
 
           {/* Card 3: Monthly Site Visits */}
-          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md">
+          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {tKpis('monthlyVisits')}
@@ -353,7 +355,7 @@ export function TeamDashboardClient() {
           </div>
 
           {/* Card 4: Team SLA / Stale Attention */}
-          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md">
+          <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {tKpis('teamSla')}
@@ -589,7 +591,7 @@ export function TeamDashboardClient() {
         )}
 
         {/* Pipeline Funnel Section */}
-        {isAdmin && (
+        {isAdmin && !isPrint && (
           <div className="mt-8">
             <PipelineFunnelChart />
           </div>

@@ -201,4 +201,23 @@ describe('generateReply — Anthropic', () => {
     expect(body.messages[0].role).toBe('user');
     expect(body.messages).toHaveLength(1);
   });
+
+  it('routes to gemini provider when configured', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      okResponse({
+        candidates: [{ content: { parts: [{ text: 'Gemini reply' }] } }],
+        usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2, totalTokenCount: 7 },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const res = await generateReply({
+      config: config({ provider: 'gemini', model: 'gemini-2.5-flash', apiKey: 'test-gemini-key' }),
+      systemPrompt: 'sys',
+      messages: [{ role: 'user', content: 'Hi' }],
+    });
+
+    expect(res.text).toBe('Gemini reply');
+    expect(res.usage?.totalTokens).toBe(7);
+  });
 });

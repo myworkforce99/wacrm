@@ -82,7 +82,7 @@ export function AgentCard({
   }
 
   return (
-    <Card className="border-border bg-card flex flex-col overflow-hidden shadow-xs transition-shadow hover:shadow-md">
+    <Card className="border-border bg-card flex flex-col overflow-hidden shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
       <CardHeader className="border-border/50 bg-muted/20 flex flex-row items-center gap-3 border-b pb-3">
         <Avatar className="ring-border size-11 ring-1">
           <AvatarImage src={agent.avatarUrl ?? undefined} />
@@ -224,7 +224,7 @@ export function AgentCard({
         </div>
 
         {/* 1-Tap Quick Action Buttons */}
-        <div className="border-border/60 mt-4 flex items-center gap-2 border-t pt-3">
+        <div className="border-border/60 mt-4 flex items-center gap-2 border-t pt-3 print:hidden">
           <Link
             href={`/contacts?assigned_to=${agent.agentId}`}
             className={cn(

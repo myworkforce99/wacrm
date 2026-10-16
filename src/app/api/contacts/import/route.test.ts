@@ -49,9 +49,19 @@ describe('POST /api/contacts/import', () => {
     mocks.supabase.from.mockImplementation((table: string) => {
       if (table === 'contacts') {
         return {
-          upsert: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: [],
+                error: null,
+              }),
+            }),
+          }),
+          insert: vi.fn().mockReturnValue({
             select: vi.fn().mockResolvedValue({
-              data: [{ id: 'contact-uuid-1', phone_normalized: '919876543210' }],
+              data: [
+                { id: 'contact-uuid-1', phone_normalized: '919876543210' },
+              ],
               error: null,
             }),
           }),

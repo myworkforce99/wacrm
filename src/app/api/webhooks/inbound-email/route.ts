@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           const { error: ldErr } = await db
             .from('lead_details')
             .upsert(
-              { contact_id: id, source: lead.source },
+              { account_id: accountId, contact_id: id, source: lead.source },
               { onConflict: 'contact_id', ignoreDuplicates: false }
             );
           if (ldErr) {

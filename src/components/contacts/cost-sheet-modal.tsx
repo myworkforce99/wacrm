@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+// import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { formatINR } from '@/lib/currency';
 import type { Contact, Property, LeadDetail } from '@/types';
@@ -37,6 +38,28 @@ export function CostSheetModal({
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [sending, setSending] = useState(false);
   const [templateContent, setTemplateContent] = useState<string | null>(null);
+
+  /* ============================================================
+   * [ADVANCE COST SHEET STATE - Disabled for now, to be re-enabled in future development]
+   * const [isAdvanced, setIsAdvanced] = useState(false);
+   * const [accountRates, setAccountRates] = useState<{
+   *   base_rate?: number;
+   *   floor_rise?: number;
+   *   floor_rise_from?: number;
+   *   parking?: number;
+   *   gst_percent?: number;
+   *   stamp_duty_percent?: number;
+   *   registration_fee?: number;
+   * }>({
+   *   base_rate: 8500,
+   *   floor_rise: 50,
+   *   floor_rise_from: 5,
+   *   parking: 400000,
+   *   gst_percent: 5,
+   *   stamp_duty_percent: 6,
+   *   registration_fee: 30000,
+   * });
+   * ============================================================ */
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<
@@ -129,6 +152,15 @@ export function CostSheetModal({
         const agentPhone = 'Agent Phone'; // Usually would come from profile or whatsapp config, fallback to placeholder
         setAgentDetails({ name: agentName, phone: agentPhone });
 
+        /* ============================================================
+         * [ADVANCE COST SHEET MODE & RATES - Disabled for now]
+         * const accountMode = accountData.account?.settings?.cost_sheet_mode;
+         * setIsAdvanced(accountMode === 'advance');
+         * if (accountData.account?.settings?.cost_sheet_rates) {
+         *   setAccountRates(accountData.account.settings.cost_sheet_rates);
+         * }
+         * ============================================================ */
+
         const costSheetId = accountData.account?.cost_sheet_template_id;
         if (costSheetId) {
           const qrRes = await fetch('/api/quick-replies');
@@ -200,6 +232,41 @@ export function CostSheetModal({
     return matchingProperties.find((p) => p.id === selectedPropertyId);
   }, [matchingProperties, selectedPropertyId]);
 
+  /* ============================================================
+   * [ADVANCE COST SHEET CALCULATION - Disabled for now, to be re-enabled in future development]
+   * const calculation = useMemo(() => {
+   *   if (!selectedProperty) return null;
+   *   const carpetArea = selectedProperty.carpet_area || 1000;
+   *   const baseRate = accountRates.base_rate || 8500;
+   *   const agreementValue = selectedProperty.price
+   *     ? Number(selectedProperty.price)
+   *     : carpetArea * baseRate;
+   *   const parkingCost = accountRates.parking ?? 400000;
+   *   const subtotal = agreementValue + parkingCost;
+   *   const gstAmount = Math.round(
+   *     (subtotal * (accountRates.gst_percent ?? 5)) / 100
+   *   );
+   *   const stampDutyAmount = Math.round(
+   *     (agreementValue * (accountRates.stamp_duty_percent ?? 6)) / 100
+   *   );
+   *   const regFee = accountRates.registration_fee ?? 30000;
+   *   const totalAllInclusive =
+   *     subtotal + gstAmount + stampDutyAmount + regFee;
+   *
+   *   return {
+   *     agreementValue,
+   *     carpetArea,
+   *     baseRate,
+   *     parkingCost,
+   *     subtotal,
+   *     gstAmount,
+   *     stampDutyAmount,
+   *     regFee,
+   *     totalAllInclusive,
+   *   };
+   * }, [selectedProperty, accountRates]);
+   * ============================================================ */
+
   const filledTemplate = useMemo(() => {
     if (!templateContent) return '';
     const leadDetails = (contactData as { lead_details?: LeadDetail | null })
@@ -228,13 +295,40 @@ export function CostSheetModal({
         : '',
       agent_name: agentDetails.name,
       agent_phone: agentDetails.phone,
+      /* ============================================================
+       * [ADVANCE COST SHEET MACROS - Disabled for now]
+       * base_rate: calculation?.baseRate
+       *   ? `${formatINR(calculation.baseRate)} / sq ft`
+       *   : '₹8,500 / sq ft',
+       * parking: calculation ? formatINR(calculation.parkingCost) : '₹4,00,000',
+       * gst: calculation ? formatINR(calculation.gstAmount) : '5%',
+       * stamp_duty: calculation ? formatINR(calculation.stampDutyAmount) : '6%',
+       * registration: calculation ? formatINR(calculation.regFee) : '₹30,000',
+       * total_cost: calculation
+       *   ? formatINR(calculation.totalAllInclusive)
+       *   : '',
+       * ============================================================ */
     };
 
-    return templateContent.replace(
+    let template = templateContent;
+    // Sanitize any residual advance breakdown or base_rate to simple single price
+    template = template
+      .replace(/📊?\s*\*?Itemized Cost Breakdown[\s\S]*?(?=(\n\s*\n\s*[💰📞]|$))/i, '')
+      .trim();
+    if (template.includes('Base Rate: {{base_rate}}')) {
+      template = template.replace('Base Rate: {{base_rate}}', 'Price: {{price}}');
+    }
+
+    return template.replace(
       /\{\{(\w+)\}\}/g,
       (_, key) => dataMap[key] ?? ''
     );
-  }, [templateContent, selectedProperty, contactData, agentDetails]);
+  }, [
+    templateContent,
+    selectedProperty,
+    contactData,
+    agentDetails,
+  ]);
 
   const handleSend = async () => {
     if (!templateContent || !selectedContactId) return;
@@ -323,6 +417,29 @@ export function CostSheetModal({
           </div>
         ) : (
           <div className="mt-6 space-y-6">
+            {/* ============================================================
+             * [ADVANCE COST SHEET TOGGLE - Disabled for now, to be re-enabled in future development]
+             *
+             * <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-xs">
+             *   <div className="space-y-0.5">
+             *     <Label
+             *       htmlFor="advance-cost-sheet-toggle"
+             *       className="text-foreground text-sm font-semibold cursor-pointer"
+             *     >
+             *       Advance Cost Sheet
+             *     </Label>
+             *     <p className="text-muted-foreground text-xs">
+             *       Itemized breakdown with GST, Stamp Duty & Parking
+             *     </p>
+             *   </div>
+             *   <Switch
+             *     id="advance-cost-sheet-toggle"
+             *     checked={isAdvanced}
+             *     onCheckedChange={setIsAdvanced}
+             *   />
+             * </div>
+             * ============================================================ */}
+
             <div className="space-y-3">
               <Label>Select Property</Label>
               {matchingProperties.length > 0 ? (
@@ -361,6 +478,22 @@ export function CostSheetModal({
                   No matching properties found.
                 </p>
               )}
+
+              {/* ============================================================
+               * [ADVANCE COST SHEET ITEMIZED BREAKDOWN - Disabled for now, to be re-enabled in future development]
+               *
+               * {isAdvanced && calculation && (
+               *   <div className="rounded-lg border bg-card p-4 space-y-2.5 text-sm">
+               *     <div className="flex justify-between items-center font-semibold border-b pb-2">
+               *       <span className="text-foreground">Itemized Cost Estimate (Indian Standard)</span>
+               *       <span className="text-primary text-base font-bold">
+               *         {formatINR(calculation.totalAllInclusive)}
+               *       </span>
+               *     </div>
+               *     ...
+               *   </div>
+               * )}
+               * ============================================================ */}
             </div>
 
             <div className="space-y-2">

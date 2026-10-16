@@ -53,33 +53,62 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, created, skipped, errors });
     }
 
-    const contactsPayload = rowsToProcess.map((row) => ({
-      account_id: account.accountId,
-      user_id: account.userId,
-      name: row.name || null,
-      phone: row.phone,
-      phone_normalized: normalizeKey(row.phone),
-      email: row.email || null,
-    }));
+    // Check existing contacts in the database to prevent duplicate key errors and properly account for skipped dupes
+    const normalizedKeys = rowsToProcess
+      .map((r) => normalizeKey(r.phone))
+      .filter((k): k is string => Boolean(k));
 
-    const { data: insertedContacts, error: contactError } = await supabase
+    const { data: existingContacts, error: queryError } = await supabase
       .from('contacts')
-      .upsert(contactsPayload, {
-        onConflict: 'account_id,phone_normalized',
-        ignoreDuplicates: true,
-      })
-      .select('id, phone_normalized');
+      .select('id, phone_normalized')
+      .eq('account_id', account.accountId)
+      .in('phone_normalized', normalizedKeys);
 
-    if (contactError) {
-      console.error('Batch insert error:', contactError);
+    if (queryError) {
+      console.error('Error checking existing contacts:', queryError);
       return NextResponse.json(
-        { error: 'Failed to insert contacts' },
+        { error: 'Failed to verify existing contacts' },
         { status: 500 }
       );
     }
 
-    created = insertedContacts ? insertedContacts.length : 0;
-    skipped += rowsToProcess.length - created;
+    const existingPhoneSet = new Set(
+      (existingContacts || []).map(
+        (c: { phone_normalized: string }) => c.phone_normalized
+      )
+    );
+
+    const rowsToInsert = rowsToProcess.filter(
+      (row) => !existingPhoneSet.has(normalizeKey(row.phone))
+    );
+    skipped += rowsToProcess.length - rowsToInsert.length;
+
+    let insertedContacts: { id: string; phone_normalized: string }[] = [];
+    if (rowsToInsert.length > 0) {
+      const contactsPayload = rowsToInsert.map((row) => ({
+        account_id: account.accountId,
+        user_id: account.userId,
+        name: row.name || null,
+        phone: row.phone,
+        email: row.email || null,
+      }));
+
+      const { data, error: contactError } = await supabase
+        .from('contacts')
+        .insert(contactsPayload)
+        .select('id, phone_normalized');
+
+      if (contactError) {
+        console.error('Batch insert error:', contactError);
+        return NextResponse.json(
+          { error: 'Failed to insert contacts' },
+          { status: 500 }
+        );
+      }
+      insertedContacts = data || [];
+    }
+
+    created = insertedContacts.length;
 
     if (created > 0 && insertedContacts) {
       const insertedMap = new Map(
@@ -120,9 +149,10 @@ export async function POST(request: Request) {
 
         if (row.notes) {
           notesPayload.push({
+            account_id: account.accountId,
             contact_id: contactId,
             user_id: account.userId,
-            content: row.notes,
+            note_text: row.notes,
           });
         }
       }

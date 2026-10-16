@@ -103,6 +103,11 @@ export interface AccountContext {
       }
     >;
     cost_sheet_template_id?: string | null;
+    settings?: {
+      cost_sheet_mode?: 'standard' | 'advance';
+      cost_sheet_rates?: Record<string, number>;
+      [key: string]: unknown;
+    } | null;
   };
 }
 
@@ -165,7 +170,7 @@ export async function getCurrentAccount(): Promise<AccountContext> {
   const { data: account, error: accountErr } = await supabase
     .from('accounts')
     .select(
-      'id, name, subscription_status, plan_tier, portal_connections, cost_sheet_template_id'
+      'id, name, subscription_status, plan_tier, portal_connections, cost_sheet_template_id, settings'
     )
     .eq('id', data.account_id)
     .maybeSingle();
