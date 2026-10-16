@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { SlaBadge } from '@/components/ui/sla-badge';
 
 interface ConversationListProps {
   activeConversationId: string | null;
@@ -647,9 +648,17 @@ function ConversationItem({
           <span className="text-foreground truncate text-sm font-medium">
             {displayName}
           </span>
-          <span className="text-muted-foreground shrink-0 text-[10px]">
-            {timeAgo}
-          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {conversation.first_unanswered_at && (
+              <SlaBadge
+                firstUnansweredAt={conversation.first_unanswered_at}
+                className="h-4 px-1.5 py-0 text-[10px]"
+              />
+            )}
+            <span className="text-muted-foreground text-[10px]">
+              {timeAgo}
+            </span>
+          </div>
         </div>
         <div className="mt-0.5 flex items-center justify-between gap-2">
           <p className="text-muted-foreground truncate text-xs">

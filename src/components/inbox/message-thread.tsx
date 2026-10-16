@@ -32,6 +32,7 @@ import {
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { SlaBadge } from '@/components/ui/sla-badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -1003,6 +1004,12 @@ export function MessageThread({
             <Clock className="h-3 w-3" />
             {sessionInfo.remaining}
           </Badge>
+          {conversation.first_unanswered_at && (
+            <SlaBadge
+              firstUnansweredAt={conversation.first_unanswered_at}
+              className="ml-1 hidden sm:inline-flex text-[10px] py-0.5 px-2"
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-2">
