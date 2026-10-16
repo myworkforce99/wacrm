@@ -268,6 +268,7 @@ export function WhatsAppConfig() {
         .eq('account_id', accountId);
       if (error) throw new Error(error.message);
       setConfig({ ...config, mirror_inbound_media: next });
+      toast.success(t('mirrorInboundSaved'));
     } catch (error) {
       console.error('Failed to update media retention setting:', error);
       setMirrorMedia(previous);
