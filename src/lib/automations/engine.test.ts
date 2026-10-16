@@ -93,6 +93,20 @@ vi.mock('./admin-client', () => {
         error: null,
       };
     }
+    if (table === 'assignment_history') {
+      if (type === 'select') {
+        return { data: { id: 'hist1' }, error: null };
+      }
+      if (type === 'update') {
+        state.updateCalls.push({
+          table,
+          filters: ops.filters,
+          payload: ops.payload,
+        });
+        return { data: null, error: null };
+      }
+      return { data: null, error: null };
+    }
     return { data: null, error: null };
   }
 
@@ -677,6 +691,14 @@ describe('assign_conversation — round_robin', () => {
       expect.objectContaining({
         table: 'conversations',
         payload: expect.objectContaining({ assigned_agent_id: 'agent2' }),
+      })
+    );
+
+    // It should have enriched assignment_history reason to auto_round_robin
+    expect(h.state.updateCalls).toContainEqual(
+      expect.objectContaining({
+        table: 'assignment_history',
+        payload: expect.objectContaining({ reason: 'auto_round_robin' }),
       })
     );
   });

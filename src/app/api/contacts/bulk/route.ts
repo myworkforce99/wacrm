@@ -60,22 +60,39 @@ export async function POST(request: Request) {
 
       if (updateError) throw updateError;
 
-      const historyPayload = (convs || []).map((conv) => ({
-        account_id: account.accountId,
-        contact_id: conv.contact_id,
-        from_agent_id: conv.assigned_agent_id,
-        to_agent_id: target_agent_id,
-        actor_id: account.userId,
-        reason: 'bulk_reassign',
-      }));
+      // The trigger_log_assignment DB trigger automatically inserts an audit row
+      // for every conversation assignment. Enrich the trigger-created row with
+      // the descriptive reason 'bulk_reassign' rather than inserting a duplicate row.
+      for (const conv of convs || []) {
+        const { data: recent } = await supabase
+          .from('assignment_history')
+          .select('id')
+          .eq('contact_id', conv.contact_id)
+          .eq('to_agent_id', target_agent_id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (historyPayload.length > 0) {
-        await supabase.from('assignment_history').insert(historyPayload);
+        if (recent) {
+          await supabase
+            .from('assignment_history')
+            .update({ reason: 'bulk_reassign' })
+            .eq('id', recent.id);
+        } else {
+          await supabase.from('assignment_history').insert({
+            account_id: account.accountId,
+            contact_id: conv.contact_id,
+            from_agent_id: conv.assigned_agent_id,
+            to_agent_id: target_agent_id,
+            actor_id: account.userId,
+            reason: 'bulk_reassign',
+          });
+        }
       }
 
       return NextResponse.json({
         success: true,
-        updated: historyPayload.length,
+        updated: (convs || []).length,
       });
     }
 

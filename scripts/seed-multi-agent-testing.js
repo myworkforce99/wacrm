@@ -436,7 +436,52 @@ async function main() {
   ]);
   console.log('  Seeded priority routing rules (Luxury to Admin, 3BHK to Agent).');
 
-  // 8. Seed Agent Monthly Targets
+  // 8b. Seed Auto Lead Assignment Automation
+  console.log('\nStep 8b: Seeding Auto Lead Assignment Automation...');
+  const { data: existingAuto } = await supabase
+    .from('automations')
+    .select('id')
+    .eq('account_id', accountId)
+    .eq('trigger_type', 'new_contact_created')
+    .maybeSingle();
+
+  let autoId = existingAuto?.id;
+  if (!autoId) {
+    const { data: newAuto } = await supabase
+      .from('automations')
+      .insert({
+        account_id: accountId,
+        user_id: ownerUserId,
+        name: 'Auto Lead Assignment',
+        description: 'Round-robin and rule-based auto-assignment for incoming leads',
+        trigger_type: 'new_contact_created',
+        is_active: true,
+      })
+      .select('id')
+      .single();
+    autoId = newAuto?.id;
+  }
+
+  if (autoId) {
+    const { data: existingStep } = await supabase
+      .from('automation_steps')
+      .select('id')
+      .eq('automation_id', autoId)
+      .eq('step_type', 'assign_conversation')
+      .maybeSingle();
+
+    if (!existingStep) {
+      await supabase.from('automation_steps').insert({
+        automation_id: autoId,
+        step_type: 'assign_conversation',
+        step_config: { mode: 'round_robin' },
+        position: 0,
+      });
+    }
+  }
+  console.log('  Seeded Auto Lead Assignment automation with round_robin mode.');
+
+  // 9. Seed Agent Monthly Targets
   console.log('\nStep 9: Seeding Agent Targets...');
   const now = new Date();
   const periodStart = new Date(now.getFullYear(), now.getMonth(), 1)

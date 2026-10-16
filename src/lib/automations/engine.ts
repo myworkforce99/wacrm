@@ -659,6 +659,24 @@ async function runStep(
         .update({ assigned_agent_id: agentId })
         .eq('account_id', args.automation.account_id)
         .eq('contact_id', args.contactId);
+
+      // Section S3: Auto-assignment audit enrichment per MULTI_AGENT_WORKFLOW_TESTING_PLAN.md
+      const { data: recentHistory } = await db
+        .from('assignment_history')
+        .select('id')
+        .eq('contact_id', args.contactId)
+        .eq('to_agent_id', agentId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recentHistory) {
+        await db
+          .from('assignment_history')
+          .update({ reason: 'auto_round_robin' })
+          .eq('id', recentHistory.id);
+      }
+
       return `assigned to ${agentId}`;
     }
 

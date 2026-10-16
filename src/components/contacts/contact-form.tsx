@@ -538,14 +538,33 @@ export function ContactForm({
             .eq('id', convData.id);
 
           if (nextAgentUserId) {
-            await supabase.from('assignment_history').insert({
-              account_id: accountId,
-              contact_id: contactId,
-              from_agent_id: convData.assigned_agent_id,
-              to_agent_id: nextAgentUserId,
-              actor_id: user.id,
-              reason: isEdit ? 'contact_edit_modal' : 'contact_create_modal',
-            });
+            // Enrich the trigger-created assignment_history row with the modal reason rather than inserting a duplicate
+            const { data: recent } = await supabase
+              .from('assignment_history')
+              .select('id')
+              .eq('contact_id', contactId)
+              .eq('to_agent_id', nextAgentUserId)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (recent) {
+              await supabase
+                .from('assignment_history')
+                .update({
+                  reason: isEdit ? 'contact_edit_modal' : 'contact_create_modal',
+                })
+                .eq('id', recent.id);
+            } else {
+              await supabase.from('assignment_history').insert({
+                account_id: accountId,
+                contact_id: contactId,
+                from_agent_id: convData.assigned_agent_id,
+                to_agent_id: nextAgentUserId,
+                actor_id: user.id,
+                reason: isEdit ? 'contact_edit_modal' : 'contact_create_modal',
+              });
+            }
           }
         }
       }
