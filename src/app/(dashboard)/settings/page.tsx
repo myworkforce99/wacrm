@@ -95,15 +95,17 @@ function SettingsPageInner() {
   if ((isAgent || isViewer) && restrictedForAgent) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <h2 className="mb-2 text-xl font-semibold">Access Restricted</h2>
+        <h2 className="mb-2 text-xl font-semibold">
+          {t('accessRestrictedTitle')}
+        </h2>
         <p className="text-muted-foreground">
-          Contact your admin to manage account settings.
+          {t('accessRestrictedDesc')}
         </p>
         <button
           onClick={() => go('profile')}
           className="text-primary mt-6 hover:underline"
         >
-          Go to Profile Settings
+          {t('goToProfile')}
         </button>
       </div>
     );

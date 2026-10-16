@@ -143,7 +143,6 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
   }, [contact]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchContactData();
   }, [fetchContactData]);
 

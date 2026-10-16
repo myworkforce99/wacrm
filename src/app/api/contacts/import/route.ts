@@ -112,6 +112,7 @@ export async function POST(request: Request) {
             budget_max: row.budget_max || null,
             location_preference: row.location || null,
             property_type: row.bhk_config || null,
+            configuration_preference: row.bhk_config ? [row.bhk_config] : null,
             intent: row.stage || null,
             source: row.source || null,
           });

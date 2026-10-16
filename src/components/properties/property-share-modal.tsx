@@ -14,10 +14,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Copy, Check, MessageCircle, Search } from 'lucide-react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface PropertyShareModalProps {
   open: boolean;
@@ -250,17 +252,28 @@ export function PropertyShareModal({
                       {contact.phone || t('noPhone')}
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSendToContact(contact)}
-                    disabled={!contact.phone}
-                    className="h-7 shrink-0 gap-1 text-xs text-emerald-600 dark:text-emerald-400"
-                  >
-                    <MessageCircle className="size-3" />
-                    {t('sendBtn')}
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Link
+                      href={`/inbox?contactId=${contact.id}`}
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'sm' }),
+                        'text-muted-foreground hover:text-foreground h-7 px-2 text-xs'
+                      )}
+                    >
+                      {t('chatInCrm')}
+                    </Link>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSendToContact(contact)}
+                      disabled={!contact.phone}
+                      className="h-7 gap-1 text-xs text-emerald-600 dark:text-emerald-400"
+                    >
+                      <MessageCircle className="size-3" />
+                      {t('sendBtn')}
+                    </Button>
+                  </div>
                 </div>
               ))
             )}

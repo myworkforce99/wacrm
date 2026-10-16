@@ -1593,6 +1593,9 @@
     "pageTitle": "Settings",
     "pageDesc": "Everything in one place — your account and your workspace. Pick a section to manage it.",
     "sectionsNav": "Settings sections",
+    "accessRestrictedTitle": "Access Restricted",
+    "accessRestrictedDesc": "Contact your admin to manage account settings.",
+    "goToProfile": "Go to Profile Settings",
     "overview": {
       "notSetup": "Not set up yet",
       "connected": "Connected",
@@ -2162,6 +2165,19 @@
       "editDoc": "Edit",
       "deleteDoc": "Delete",
       "loading": "Loading…"
+    },
+    "billingTab": {
+      "accessRestrictedTitle": "Access Restricted",
+      "accessRestrictedDesc": "Only the account owner can manage billing.",
+      "title": "Billing & Plan",
+      "description": "Manage your subscription and billing details.",
+      "planSuffix": "Plan",
+      "renewsOn": "Renews on {date}",
+      "noActiveRenewal": "No active renewal",
+      "upgradePlan": "Upgrade Plan",
+      "managePlan": "Manage Plan",
+      "seatUsage": "Seat Usage",
+      "seatsUsed": "{usage} of {limit} seats used"
     }
   },
   "SignupPage": {
@@ -2553,6 +2569,7 @@
       "unnamedLead": "Unnamed Lead",
       "noPhone": "No phone number",
       "sendBtn": "Send",
+      "chatInCrm": "Chat in CRM",
       "contactNoPhone": "This contact does not have a valid phone number.",
       "toastCopied": "Brochure message copied to clipboard!",
       "toastCopyFailed": "Failed to copy message to clipboard."

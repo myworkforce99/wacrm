@@ -1593,6 +1593,9 @@
     "pageTitle": "Configuración",
     "pageDesc": "Todo en un solo lugar: tu cuenta y tu espacio de trabajo. Elige una sección para administrarla.",
     "sectionsNav": "Secciones de configuración",
+    "accessRestrictedTitle": "Acceso restringido",
+    "accessRestrictedDesc": "Comuníquese con su administrador para gestionar la configuración de la cuenta.",
+    "goToProfile": "Ir a la configuración de perfil",
     "overview": {
       "notSetup": "Aún sin configurar",
       "connected": "Conectado",
@@ -2162,6 +2165,19 @@
       "editDoc": "Editar",
       "deleteDoc": "Eliminar",
       "loading": "Cargando…"
+    },
+    "billingTab": {
+      "accessRestrictedTitle": "Acceso restringido",
+      "accessRestrictedDesc": "Solo el propietario de la cuenta puede gestionar la facturación.",
+      "title": "Facturación y plan",
+      "description": "Administre su suscripción y detalles de facturación.",
+      "planSuffix": "Plan",
+      "renewsOn": "Se renueva el {date}",
+      "noActiveRenewal": "Sin renovación activa",
+      "upgradePlan": "Mejorar plan",
+      "managePlan": "Administrar plan",
+      "seatUsage": "Uso de licencias",
+      "seatsUsed": "{usage} de {limit} licencias usadas"
     }
   },
   "SignupPage": {
@@ -2553,6 +2569,7 @@
       "unnamedLead": "Prospecto sin nombre",
       "noPhone": "Sin número de teléfono",
       "sendBtn": "Enviar",
+      "chatInCrm": "Chat en CRM",
       "contactNoPhone": "Este contacto no tiene un número de teléfono válido.",
       "toastCopied": "¡Mensaje del folleto copiado al portapapeles!",
       "toastCopyFailed": "Error al copiar el mensaje al portapapeles."

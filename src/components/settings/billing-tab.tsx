@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function BillingTab() {
+  const t = useTranslations('Settings.billingTab');
   const { isOwner, accountId } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -73,9 +75,11 @@ export function BillingTab() {
   if (!isOwner) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <h2 className="mb-2 text-xl font-semibold">Access Restricted</h2>
+        <h2 className="mb-2 text-xl font-semibold">
+          {t('accessRestrictedTitle')}
+        </h2>
         <p className="text-muted-foreground">
-          Only the account owner can manage billing.
+          {t('accessRestrictedDesc')}
         </p>
       </div>
     );
@@ -128,15 +132,15 @@ export function BillingTab() {
   };
 
   const renewalText = data.current_period_end
-    ? `Renews on ${new Date(data.current_period_end).toLocaleDateString()}`
-    : 'No active renewal';
+    ? t('renewsOn', { date: new Date(data.current_period_end).toLocaleDateString() })
+    : t('noActiveRenewal');
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-medium">Billing & Plan</h2>
+        <h2 className="text-lg font-medium">{t('title')}</h2>
         <p className="text-muted-foreground text-sm">
-          Manage your subscription and billing details.
+          {t('description')}
         </p>
       </div>
 
@@ -145,7 +149,7 @@ export function BillingTab() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <span className="capitalize">{data.plan_tier} Plan</span>
+                <span className="capitalize">{data.plan_tier} {t('planSuffix')}</span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[data.subscription_status] || statusColors.canceled}`}
                 >
@@ -162,7 +166,7 @@ export function BillingTab() {
                 {actionLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                Upgrade Plan
+                {t('upgradePlan')}
               </Button>
             ) : (
               <Button
@@ -173,14 +177,14 @@ export function BillingTab() {
                 {actionLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : null}
-                Manage Plan
+                {t('managePlan')}
               </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
           <div className="mt-4 border-t pt-4">
-            <h3 className="mb-2 text-sm font-medium">Seat Usage</h3>
+            <h3 className="mb-2 text-sm font-medium">{t('seatUsage')}</h3>
             <div className="flex items-center gap-4">
               <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
                 <div
@@ -191,7 +195,7 @@ export function BillingTab() {
                 />
               </div>
               <span className="text-muted-foreground text-sm whitespace-nowrap">
-                {data.seat_usage} of {data.seat_limit} seats used
+                {t('seatsUsed', { usage: data.seat_usage, limit: data.seat_limit })}
               </span>
             </div>
           </div>

@@ -133,7 +133,7 @@ export function TemplatePicker({
         `Synced ${data.total ?? 0} templates (${data.inserted ?? 0} new, ${data.updated ?? 0} updated)`
       );
       await fetchTemplates();
-    } catch (err) {
+    } catch {
       toast.error('Network error syncing templates');
     } finally {
       setSyncing(false);

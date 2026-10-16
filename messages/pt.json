@@ -1593,6 +1593,9 @@
     "pageTitle": "Configurações",
     "pageDesc": "Tudo em um só lugar — sua conta e seu espaço de trabalho. Escolha uma seção para gerenciá-la.",
     "sectionsNav": "Seções de configurações",
+    "accessRestrictedTitle": "Acesso restrito",
+    "accessRestrictedDesc": "Entre em contato com seu administrador para gerenciar as configurações da conta.",
+    "goToProfile": "Ir para as configurações de perfil",
     "overview": {
       "notSetup": "Ainda não configurado",
       "connected": "Conectado",
@@ -2162,6 +2165,19 @@
       "editDoc": "Editar",
       "deleteDoc": "Excluir",
       "loading": "Carregando…"
+    },
+    "billingTab": {
+      "accessRestrictedTitle": "Acesso restrito",
+      "accessRestrictedDesc": "Apenas o proprietário da conta pode gerenciar a faturação.",
+      "title": "Faturamento e Plano",
+      "description": "Gerencie sua assinatura e detalhes de faturamento.",
+      "planSuffix": "Plano",
+      "renewsOn": "Renova em {date}",
+      "noActiveRenewal": "Nenhuma renovação ativa",
+      "upgradePlan": "Atualizar plano",
+      "managePlan": "Gerenciar plano",
+      "seatUsage": "Uso de licenças",
+      "seatsUsed": "{usage} de {limit} licenças usadas"
     }
   },
   "SignupPage": {
@@ -2553,6 +2569,7 @@
       "unnamedLead": "Lead sem nome",
       "noPhone": "Sem telefone",
       "sendBtn": "Enviar",
+      "chatInCrm": "Chat no CRM",
       "contactNoPhone": "Este contato não possui um número de telefone válido.",
       "toastCopied": "Mensagem do folheto copiada para a área de transferência!",
       "toastCopyFailed": "Falha ao copiar a mensagem para a área de transferência."

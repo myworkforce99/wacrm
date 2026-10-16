@@ -71,6 +71,7 @@ export function DealTable({
 }: DealTableProps) {
   const t = useTranslations('Pipelines.table');
   const tCard = useTranslations('Pipelines.card');
+  const tForm = useTranslations('Pipelines.form');
 
   const stageById = new Map<string, PipelineStage>(
     stages.map((s) => [s.id, s])
@@ -356,7 +357,7 @@ export function DealTable({
                       <button
                         type="button"
                         onClick={() => onEditDeal(deal)}
-                        title="Edit Deal"
+                        title={tForm('editDeal')}
                         className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-md p-1.5 transition-colors"
                       >
                         <Pencil className="size-3.5" />

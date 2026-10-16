@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { supabaseAdmin } from '@/lib/automations/admin-client';
-import { canMoveDeal } from '@/lib/auth/roles';
+import { canMoveDeal, canManageMembers } from '@/lib/auth/roles';
 import type { DealStatus } from '@/types';
 
 /**
@@ -163,7 +163,19 @@ export async function PATCH(
   if (notes !== undefined) updatePayload.notes = notes;
   if (expected_close_date !== undefined)
     updatePayload.expected_close_date = expected_close_date;
-  if (assigned_to !== undefined) updatePayload.assigned_to = assigned_to;
+  if (assigned_to !== undefined) {
+    if (assigned_to !== deal.assigned_to && !canManageMembers(ctx.role)) {
+      return NextResponse.json(
+        {
+          error: 'CANNOT_REASSIGN_DEAL',
+          message:
+            'Only managers and admins can reassign deal ownership.',
+        },
+        { status: 403 }
+      );
+    }
+    updatePayload.assigned_to = assigned_to;
+  }
   if (incomingStageId !== undefined) updatePayload.stage_id = incomingStageId;
 
   // Status transition logic

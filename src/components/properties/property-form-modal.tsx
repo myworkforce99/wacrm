@@ -7,7 +7,6 @@ import { canManageMembers } from '@/lib/auth/roles';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import type { Property } from '@/types';
-import { PROPERTY_CONFIGURATIONS } from '@/types';
 import { parseBudget } from '@/lib/contacts/parse-budget';
 import { formatINR } from '@/lib/currency';
 import {

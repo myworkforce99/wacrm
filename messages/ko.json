@@ -1593,6 +1593,9 @@
     "pageTitle": "설정",
     "pageDesc": "계정과 워크스페이스에 관한 모든 것을 한곳에서 관리하세요. 관리할 섹션을 선택하세요.",
     "sectionsNav": "설정 섹션",
+    "accessRestrictedTitle": "접근 제한됨",
+    "accessRestrictedDesc": "계정 설정을 관리하려면 관리자에게 문의하세요.",
+    "goToProfile": "프로필 설정으로 이동",
     "overview": {
       "notSetup": "아직 설정되지 않음",
       "connected": "연결됨",
@@ -2162,6 +2165,19 @@
       "editDoc": "수정",
       "deleteDoc": "삭제",
       "loading": "불러오는 중…"
+    },
+    "billingTab": {
+      "accessRestrictedTitle": "접근 제한됨",
+      "accessRestrictedDesc": "계정 소유자만 결제를 관리할 수 있습니다.",
+      "title": "결제 및 플랜",
+      "description": "구독 및 결제 세부 정보를 관리하세요.",
+      "planSuffix": "플랜",
+      "renewsOn": "{date}에 갱신됨",
+      "noActiveRenewal": "활성 갱신 없음",
+      "upgradePlan": "플랜 업그레이드",
+      "managePlan": "플랜 관리",
+      "seatUsage": "시트 사용량",
+      "seatsUsed": "{limit}개 중 {usage}개 사용 중"
     }
   },
   "SignupPage": {
@@ -2553,6 +2569,7 @@
       "unnamedLead": "이름 없는 리드",
       "noPhone": "전화번호 없음",
       "sendBtn": "전송",
+      "chatInCrm": "CRM에서 채팅",
       "contactNoPhone": "이 연락처에는 유효한 전화번호가 없습니다.",
       "toastCopied": "브로슈어 메시지가 클립보드에 복사되었습니다!",
       "toastCopyFailed": "메시지 복사에 실패했습니다."
