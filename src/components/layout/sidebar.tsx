@@ -230,7 +230,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
         aria-label={t('closeMenu')}
         onClick={onClose}
         className={cn(
-          'bg-background/70 fixed inset-0 z-30 backdrop-blur-sm transition-opacity lg:hidden',
+          'bg-background/70 fixed inset-0 z-40 backdrop-blur-sm transition-opacity lg:hidden',
           open
             ? 'pointer-events-auto opacity-100'
             : 'pointer-events-none opacity-0'
@@ -239,7 +239,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
 
       <aside
         className={cn(
-          'border-border bg-sidebar fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:translate-x-0 lg:transition-none',
+          'border-border bg-sidebar fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r transition-transform duration-200 ease-out will-change-transform lg:static lg:z-0 lg:translate-x-0 lg:transition-none',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
         aria-label={t('primaryNav')}

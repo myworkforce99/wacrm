@@ -12,6 +12,12 @@ import { BrowserNotificationsListener } from '@/components/notifications/browser
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopAppBar } from '@/components/layout/top-app-bar';
 
+import Link from 'next/link';
+import { Menu, Search } from 'lucide-react';
+import { ModeToggle } from '@/components/layout/mode-toggle';
+import { CommandPalette } from '@/components/layout/command-palette';
+import { NotificationPopover } from '@/components/layout/notification-popover';
+
 const pageTitles: Record<string, string> = {
   '/dashboard': 'dashboard',
   '/inbox': 'inbox',
@@ -24,6 +30,9 @@ const pageTitles: Record<string, string> = {
   '/site-visits': 'visits',
   '/flows': 'flows',
   '/agents': 'aiAgents',
+  '/properties': 'properties',
+  '/team': 'team',
+  '/integrations': 'integrations',
 };
 
 function getPageTitleKey(pathname: string): string {
@@ -34,12 +43,46 @@ function getPageTitleKey(pathname: string): string {
   return match ? match[1] : 'dashboard';
 }
 
-function MobileHeader() {
+function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
   const t = useTranslations('Header');
   const pathname = usePathname();
   const titleKey = getPageTitleKey(pathname);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <TopAppBar title={t(titleKey as any)} className="md:hidden" />;
+  const [commandOpen, setCommandOpen] = useState(false);
+
+  return (
+    <>
+      <TopAppBar
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        title={t(titleKey as any)}
+        className="md:hidden"
+        leftAction={
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            aria-label={t('openMenu')}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-10 w-10 items-center justify-center rounded-md transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        }
+        rightAction={
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setCommandOpen(true)}
+              aria-label="Search"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground flex h-9 w-9 items-center justify-center rounded-md transition-colors"
+            >
+              <Search className="h-4 w-4" />
+            </button>
+            <NotificationPopover />
+            <ModeToggle />
+          </div>
+        }
+      />
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+    </>
+  );
 }
 
 // Auth-gated dashboard shell. Extracted from the layout so the layout
@@ -90,7 +133,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
       <div className="relative flex flex-1 flex-col overflow-hidden print:overflow-visible">
         <div className="print:hidden">
-          <MobileHeader />
+          <MobileHeader onOpenSidebar={() => setSidebarOpen(true)} />
         </div>
         <div className="hidden md:block print:hidden">
           <Header onOpenSidebar={() => setSidebarOpen(true)} />

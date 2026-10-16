@@ -18,6 +18,7 @@ import {
   Blocks,
   Settings as SettingsIcon,
   Plug,
+  Building,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -37,6 +38,7 @@ const mainNavItems = [
 ];
 
 const moreNavItems = [
+  { href: '/properties', labelKey: 'properties', icon: Building },
   { href: '/automations', labelKey: 'automations', icon: Zap },
   { href: '/flows', labelKey: 'flows', icon: Workflow },
   { href: '/broadcasts', labelKey: 'broadcasts', icon: Radio },
