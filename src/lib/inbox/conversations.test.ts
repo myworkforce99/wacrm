@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { matchesContactFilters, normalizeConversation } from './conversations';
+import {
+  matchesAssigneeFilter,
+  matchesContactFilters,
+  normalizeConversation,
+} from './conversations';
 import type { Conversation } from '@/types';
 
 function makeConversation(
@@ -138,5 +142,68 @@ describe('normalizeConversation', () => {
     };
     // A contactless row passes through untouched (consumers use `?.`).
     expect(normalizeConversation(raw).contact).toBeNull();
+  });
+});
+
+describe('matchesAssigneeFilter', () => {
+  const convMine: Conversation = {
+    id: 'c1',
+    user_id: 'u1',
+    contact_id: 'ct1',
+    assigned_agent_id: 'agent-123',
+    status: 'open',
+    unread_count: 0,
+    created_at: '',
+    updated_at: '',
+  };
+
+  const convOther: Conversation = {
+    id: 'c2',
+    user_id: 'u1',
+    contact_id: 'ct2',
+    assigned_agent_id: 'agent-456',
+    status: 'open',
+    unread_count: 0,
+    created_at: '',
+    updated_at: '',
+  };
+
+  const convUnassigned: Conversation = {
+    id: 'c3',
+    user_id: 'u1',
+    contact_id: 'ct3',
+    status: 'open',
+    unread_count: 0,
+    created_at: '',
+    updated_at: '',
+  };
+
+  it('matches all conversations when filter is "all"', () => {
+    expect(matchesAssigneeFilter(convMine, 'all', 'agent-123')).toBe(true);
+    expect(matchesAssigneeFilter(convOther, 'all', 'agent-123')).toBe(true);
+    expect(matchesAssigneeFilter(convUnassigned, 'all', 'agent-123')).toBe(
+      true
+    );
+  });
+
+  it('matches only assigned conversations belonging to current user when filter is "mine"', () => {
+    expect(matchesAssigneeFilter(convMine, 'mine', 'agent-123')).toBe(true);
+    expect(matchesAssigneeFilter(convOther, 'mine', 'agent-123')).toBe(false);
+    expect(matchesAssigneeFilter(convUnassigned, 'mine', 'agent-123')).toBe(
+      false
+    );
+    expect(matchesAssigneeFilter(convMine, 'mine', null)).toBe(false);
+  });
+
+  it('matches only unassigned conversations when filter is "unassigned"', () => {
+    expect(matchesAssigneeFilter(convMine, 'unassigned', 'agent-123')).toBe(
+      false
+    );
+    expect(matchesAssigneeFilter(convOther, 'unassigned', 'agent-123')).toBe(
+      false
+    );
+    expect(
+      matchesAssigneeFilter(convUnassigned, 'unassigned', 'agent-123')
+    ).toBe(true);
   });
 });

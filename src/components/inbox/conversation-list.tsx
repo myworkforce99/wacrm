@@ -4,14 +4,18 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
   CONVERSATION_SELECT,
+  matchesAssigneeFilter,
   matchesContactFilters,
   normalizeConversations,
+  type AssigneeFilter,
 } from '@/lib/inbox/conversations';
 import { cn } from '@/lib/utils';
 import type { Conversation, ConversationStatus, Tag } from '@/types';
 import { Search, ChevronDown, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
@@ -34,6 +38,8 @@ interface ConversationListProps {
    * or the tab was throttled. Optional so existing callers keep working.
    */
   resyncToken?: number;
+  /** Current logged in user ID for "Mine" filtering. */
+  currentUserId?: string | null;
 }
 
 const STATUS_COLORS: Record<ConversationStatus, string> = {
@@ -50,8 +56,45 @@ export function ConversationList({
   conversations,
   onConversationsLoaded,
   resyncToken = 0,
+  currentUserId: initialUserId,
 }: ConversationListProps) {
   const t = useTranslations('Inbox.conversationList');
+
+  const { user: authUser, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
+  const [fetchedUserId, setFetchedUserId] = useState<string | null>(null);
+  const currentUserId = initialUserId ?? authUser?.id ?? fetchedUserId;
+  const [assigneeFilter, setAssigneeFilter] = useState<AssigneeFilter>('mine');
+  const effectiveAssigneeFilter =
+    !isManager && assigneeFilter === 'all' ? 'mine' : assigneeFilter;
+
+  // When deep-linking to an unassigned conversation, switch to unassigned tab
+  useEffect(() => {
+    if (!activeConversationId) return;
+    const activeConv = conversations.find((c) => c.id === activeConversationId);
+    if (
+      activeConv &&
+      !activeConv.assigned_agent_id &&
+      effectiveAssigneeFilter === 'mine'
+    ) {
+      const timer = setTimeout(() => {
+        setAssigneeFilter('unassigned');
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [activeConversationId, conversations, effectiveAssigneeFilter]);
+
+  useEffect(() => {
+    if (initialUserId || authUser?.id) return;
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!cancelled && user) setFetchedUserId(user.id);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialUserId, authUser?.id]);
 
   const FILTER_OPTIONS: { label: string; value: InboxFilter }[] = useMemo(
     () => [
@@ -159,8 +202,32 @@ export function ConversationList({
     return m;
   }, [tags]);
 
+  const counts = useMemo(() => {
+    let mine = 0;
+    let unassigned = 0;
+    for (const c of conversations) {
+      if (currentUserId && c.assigned_agent_id === currentUserId) {
+        mine++;
+      }
+      if (!c.assigned_agent_id) {
+        unassigned++;
+      }
+    }
+    return {
+      all: conversations.length,
+      mine,
+      unassigned,
+    };
+  }, [conversations, currentUserId]);
+
   const filtered = useMemo(() => {
     let result = conversations;
+
+    if (effectiveAssigneeFilter !== 'all') {
+      result = result.filter((c) =>
+        matchesAssigneeFilter(c, effectiveAssigneeFilter, currentUserId)
+      );
+    }
 
     if (filter === 'unread') {
       result = result.filter((c) => c.unread_count > 0);
@@ -189,7 +256,15 @@ export function ConversationList({
     }
 
     return result;
-  }, [conversations, filter, search, selectedTagIds, selectedCompany]);
+  }, [
+    conversations,
+    effectiveAssigneeFilter,
+    currentUserId,
+    filter,
+    search,
+    selectedTagIds,
+    selectedCompany,
+  ]);
 
   const toggleTag = useCallback((id: string) => {
     setSelectedTagIds((prev) =>
@@ -231,6 +306,85 @@ export function ConversationList({
     <div className="border-border bg-card flex h-full w-full flex-col border-r lg:w-80">
       {/* Search + Filter */}
       <div className="border-border space-y-2 border-b p-3">
+        {/* Assignee Filter Tabs (Mine / Unassigned for agents; + All for managers) */}
+        <div
+          className={cn(
+            'bg-muted grid gap-1 rounded-lg p-1 text-xs',
+            isManager ? 'grid-cols-3' : 'grid-cols-2'
+          )}
+        >
+          <button
+            type="button"
+            onClick={() => setAssigneeFilter('mine')}
+            className={cn(
+              'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+              effectiveAssigneeFilter === 'mine'
+                ? 'bg-card text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <span>{t('tabMine')}</span>
+            <span
+              className={cn(
+                'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                effectiveAssigneeFilter === 'mine'
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-muted-foreground/15 text-muted-foreground'
+              )}
+            >
+              {counts.mine}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setAssigneeFilter('unassigned')}
+            className={cn(
+              'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+              effectiveAssigneeFilter === 'unassigned'
+                ? 'bg-card text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            <span>{t('tabUnassigned')}</span>
+            {counts.unassigned > 0 && (
+              <span
+                className={cn(
+                  'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                  effectiveAssigneeFilter === 'unassigned'
+                    ? 'bg-amber-500/15 text-amber-500'
+                    : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                )}
+              >
+                {counts.unassigned}
+              </span>
+            )}
+          </button>
+          {isManager && (
+            <button
+              type="button"
+              onClick={() => setAssigneeFilter('all')}
+              className={cn(
+                'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+                effectiveAssigneeFilter === 'all'
+                  ? 'bg-card text-foreground shadow-xs'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <span>{t('tabAll')}</span>
+              <span
+                className={cn(
+                  'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                  effectiveAssigneeFilter === 'all'
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted-foreground/15 text-muted-foreground'
+                )}
+              >
+                {counts.all}
+              </span>
+            </button>
+          )}
+        </div>
+
         <div className="relative">
           <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
@@ -502,6 +656,14 @@ function ConversationItem({
             {conversation.last_message_text || t('noMessagesYet')}
           </p>
           <div className="flex shrink-0 items-center gap-1.5">
+            {!conversation.assigned_agent_id && (
+              <span
+                className="py-0.2 rounded-sm bg-amber-500/10 px-1 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+                title={t('tabUnassigned')}
+              >
+                {t('tabUnassigned')}
+              </span>
+            )}
             {conversation.unread_count > 0 && (
               <span className="bg-primary text-primary-foreground flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
                 {conversation.unread_count}

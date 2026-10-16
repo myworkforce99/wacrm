@@ -359,6 +359,31 @@ describe('sendMessageToConversation — template persistence (#483)', () => {
     expect(captured.message?.content_text).toBeNull();
     expect(captured.conversation?.last_message_text).toBe('[template]');
   });
+
+  it('persists sender_id on the message row when senderId is provided', async () => {
+    const captured: CapturedWrites = {};
+    await sendMessageToConversation(sendPathDb([], captured), 'acct-1', {
+      conversationId: 'cv-1',
+      messageType: 'template',
+      templateName: 'never_synced',
+      templateParams: ['A123'],
+      senderId: 'agent-user-uuid-123',
+    });
+    expect(captured.message?.sender_id).toBe('agent-user-uuid-123');
+  });
+
+  it('auto-claims unassigned conversation by setting assigned_agent_id to senderId on reply', async () => {
+    const captured: CapturedWrites = {};
+    await sendMessageToConversation(sendPathDb([], captured), 'acct-1', {
+      conversationId: 'cv-1',
+      messageType: 'text',
+      contentText: 'Hello, how can I help you?',
+      senderId: 'agent-user-uuid-123',
+    });
+    expect(captured.conversation?.assigned_agent_id).toBe(
+      'agent-user-uuid-123'
+    );
+  });
 });
 
 // ============================================================

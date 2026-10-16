@@ -87,6 +87,7 @@ export interface SendMessageParams {
   /** Structured payload for `messageType === 'interactive'`. */
   interactivePayload?: InteractiveMessagePayload | null;
   replyToMessageId?: string | null;
+  senderId?: string | null;
 }
 
 export interface SendMessageResult {
@@ -205,6 +206,7 @@ export async function sendMessageToConversation(
     templateMessageParams,
     interactivePayload,
     replyToMessageId,
+    senderId,
   } = params;
 
   if (!conversationId) {
@@ -485,6 +487,7 @@ export async function sendMessageToConversation(
     .insert({
       conversation_id: conversationId,
       sender_type: 'agent',
+      sender_id: senderId || null,
       content_type: messageType,
       content_text: persistedText,
       media_url: mediaUrl || null,
@@ -512,14 +515,20 @@ export async function sendMessageToConversation(
       ? interactivePayloadPreviewText(interactivePayload!)
       : persistedText || `[${messageType}]`;
 
-  await db
-    .from('conversations')
-    .update({
-      last_message_text: lastMessageText,
-      last_message_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', conversationId);
+  const convUpdates: Record<string, unknown> = {
+    last_message_text: lastMessageText,
+    last_message_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  // Speed-to-lead auto-claim: If the conversation is currently unassigned
+  // and an authenticated agent dispatches a reply, automatically claim and
+  // lock the conversation to that agent to prevent collision/double-texting.
+  if (!conversation.assigned_agent_id && senderId) {
+    convUpdates.assigned_agent_id = senderId;
+  }
+
+  await db.from('conversations').update(convUpdates).eq('id', conversationId);
 
   // Pause any active Flow run for this contact — the agent stepping in
   // is the strongest "yield, human is here" signal. Best-effort.

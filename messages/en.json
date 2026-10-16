@@ -214,7 +214,10 @@
       "clearAll": "Clear all",
       "noConversations": "No conversations found",
       "noMessagesYet": "No messages yet",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "tabAll": "All",
+      "tabMine": "Mine",
+      "tabUnassigned": "Unassigned"
     },
     "messageThread": {
       "backToConversations": "Back to conversations",
@@ -245,7 +248,10 @@
       "sendTemplateFailed": "Failed to send template: {reason}",
       "waitForSending": "Wait for the message to finish sending",
       "reactionFailed": "Reaction failed: {reason}",
-      "assignmentUpdateFailed": "Failed to update assignment"
+      "assignmentUpdateFailed": "Failed to update assignment",
+      "claimLead": "Claim Lead",
+      "claimLeadTooltip": "Claim this unassigned lead and assign it to you",
+      "leadClaimed": "Lead claimed successfully"
     },
     "sessionTimer": {
       "expired": "Expired",
@@ -436,6 +442,7 @@
       "filterAssignee": "Assignee",
       "filterAllAssignees": "All Agents",
       "filterUnassigned": "Unassigned",
+      "filterMyLeads": "Assigned to Me",
       "callAction": "Call lead",
       "whatsappAction": "Chat on WhatsApp",
       "scheduleVisitAction": "Schedule site visit",
@@ -737,6 +744,7 @@
       "filterAssignee": "Agent",
       "filterAllAssignees": "All Agents",
       "filterUnassigned": "Unassigned",
+      "filterMyDeals": "Assigned to Me",
       "filterValueRange": "Deal Value",
       "filterAllValues": "All Values",
       "filterUnder50L": "Under ₹50 L",

@@ -21,6 +21,7 @@ import {
   MessageSquare,
   ChevronDown,
   UserPlus,
+  UserCheck,
   Check,
   Clock,
   ArrowLeft,
@@ -31,6 +32,7 @@ import {
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -522,6 +524,9 @@ export function MessageThread({
         // with the real DB row. If realtime hasn't arrived yet, at least
         // flip status to 'sent' so the UI stops showing "sending".
         onUpdateMessage(tempId, { status: 'sent' });
+        if (!conversation.assigned_agent_id && user?.id) {
+          onAssignChange(conversation.id, user.id);
+        }
       } catch (err) {
         console.error('Failed to send message:', err);
         const reason = err instanceof Error ? err.message : 'network error';
@@ -529,7 +534,7 @@ export function MessageThread({
         onUpdateMessage(tempId, { status: 'failed' });
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t]
+    [conversation, onAssignChange, onNewMessage, onUpdateMessage, t, user?.id]
   );
 
   const handleSendMedia = useCallback(
@@ -589,6 +594,9 @@ export function MessageThread({
         }
 
         onUpdateMessage(tempId, { status: 'sent' });
+        if (!conversation.assigned_agent_id && user?.id) {
+          onAssignChange(conversation.id, user.id);
+        }
       } catch (err) {
         console.error('Failed to send media:', err);
         const reason = err instanceof Error ? err.message : 'network error';
@@ -599,7 +607,7 @@ export function MessageThread({
         );
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t]
+    [conversation, onAssignChange, onNewMessage, onUpdateMessage, t, user?.id]
   );
 
   const handleSendInteractive = useCallback(
@@ -645,6 +653,9 @@ export function MessageThread({
         }
 
         onUpdateMessage(tempId, { status: 'sent' });
+        if (!conversation.assigned_agent_id && user?.id) {
+          onAssignChange(conversation.id, user.id);
+        }
       } catch (err) {
         console.error('Failed to send interactive message:', err);
         const reason = err instanceof Error ? err.message : 'network error';
@@ -652,7 +663,7 @@ export function MessageThread({
         onUpdateMessage(tempId, { status: 'failed' });
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t]
+    [conversation, onAssignChange, onNewMessage, onUpdateMessage, t, user?.id]
   );
 
   const handleStatusChange = useCallback(
@@ -734,6 +745,9 @@ export function MessageThread({
         }
 
         onUpdateMessage(tempId, { status: 'sent' });
+        if (!conversation.assigned_agent_id && user?.id) {
+          onAssignChange(conversation.id, user.id);
+        }
       } catch (err) {
         console.error('Failed to send template:', err);
         const reason = err instanceof Error ? err.message : 'network error';
@@ -741,7 +755,7 @@ export function MessageThread({
         onUpdateMessage(tempId, { status: 'failed' });
       }
     },
-    [conversation, onNewMessage, onUpdateMessage, t]
+    [conversation, onAssignChange, onNewMessage, onUpdateMessage, t, user?.id]
   );
 
   // Build a quick id → Message map so reply quotes can be rendered without
@@ -872,9 +886,17 @@ export function MessageThread({
       }
 
       onAssignChange(conversation.id, agentId);
+      if (agentId && agentId === user?.id) {
+        toast.success(t('leadClaimed'));
+      }
     },
-    [conversation, onAssignChange, t]
+    [conversation, onAssignChange, user?.id, t]
   );
+
+  const handleClaimLead = useCallback(() => {
+    if (!user?.id) return;
+    void handleAssignChange(user.id);
+  }, [handleAssignChange, user?.id]);
 
   // Empty state — same WhatsApp-style doodle background as the active
   // thread below, so swapping between empty/selected doesn't change the
@@ -1038,6 +1060,21 @@ export function MessageThread({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Claim Lead Button (Lead Pond Speed-to-Lead) */}
+          {!assignedAgentId && user?.id && (
+            <Button
+              type="button"
+              size="sm"
+              variant="default"
+              onClick={handleClaimLead}
+              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2.5 text-xs font-medium text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+              title={t('claimLeadTooltip')}
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              <span>{t('claimLead')}</span>
+            </Button>
+          )}
 
           {/* Assign dropdown */}
           <DropdownMenu>

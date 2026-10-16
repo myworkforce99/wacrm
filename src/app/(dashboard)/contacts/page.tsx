@@ -96,6 +96,7 @@ import { useRouter } from 'next/navigation';
 import { CustomFieldsManager } from '@/components/contacts/custom-fields-manager';
 import { BulkReassignModal } from '@/components/contacts/bulk-reassign-modal';
 import { useCan } from '@/hooks/use-can';
+import { canManageMembers } from '@/lib/auth/roles';
 import { GatedButton } from '@/components/ui/gated-button';
 import { SlaBadge } from '@/components/ui/sla-badge';
 import { useTranslations } from 'next-intl';
@@ -191,6 +192,7 @@ export default function ContactsPage() {
   const router = useRouter();
   const supabase = createClient();
   const { accountRole, user, profile, defaultCurrency } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
 
@@ -600,9 +602,20 @@ export default function ContactsPage() {
     setBulkDeleteOpen(false);
   }
 
+  // Role-based scoping for individual sales agents:
+  // Non-manager agents only view their own assigned leads.
+  const scopedContacts = useMemo(() => {
+    if (!isManager && user?.id) {
+      return contacts.filter(
+        (c) => c.assignee?.id === user.id || c.user_id === user.id
+      );
+    }
+    return contacts;
+  }, [contacts, isManager, user]);
+
   // Multi-dimensional filtering across source, stage, and assignee
   const filteredContacts = useMemo(() => {
-    return contacts.filter((c) => {
+    return scopedContacts.filter((c) => {
       if (selectedSource !== 'all') {
         const src = c.lead_details?.source || 'Manual Entry';
         if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
@@ -616,7 +629,7 @@ export default function ContactsPage() {
           return false;
         }
       }
-      if (selectedAssignee !== 'all') {
+      if (isManager && selectedAssignee !== 'all') {
         if (selectedAssignee === 'unassigned') {
           if (c.assignee) return false;
         } else {
@@ -625,21 +638,28 @@ export default function ContactsPage() {
       }
       return true;
     });
-  }, [contacts, selectedSource, selectedStage, selectedAssignee]);
+  }, [
+    scopedContacts,
+    isManager,
+    selectedSource,
+    selectedStage,
+    selectedAssignee,
+  ]);
 
   // Lead statistics for summary metrics bar
   const stats = useMemo(() => {
-    const total = totalCount;
-    const hotCount = contacts.filter((c) =>
+    const list = scopedContacts;
+    const total = !isManager ? list.length : totalCount;
+    const hotCount = list.filter((c) =>
       c.tags?.some((t) => t.name.toLowerCase().includes('hot'))
     ).length;
-    const dealsCount = contacts.filter((c) =>
+    const dealsCount = list.filter((c) =>
       c.deals?.some((d) => d.status === 'open')
     ).length;
-    const attentionCount = contacts.filter((c) =>
+    const attentionCount = list.filter((c) =>
       Boolean(c.first_unanswered_at)
     ).length;
-    const freshCount = contacts.filter(
+    const freshCount = list.filter(
       (c) =>
         c.deals?.[0]?.pipeline_stages?.name === 'New' ||
         !c.deals ||
@@ -653,7 +673,7 @@ export default function ContactsPage() {
       attention: attentionCount,
       fresh: freshCount,
     };
-  }, [contacts, totalCount]);
+  }, [scopedContacts, isManager, totalCount]);
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
   const hasNext = page < totalPages - 1;
@@ -668,14 +688,14 @@ export default function ContactsPage() {
     selectedTagIds.length > 0 ||
     selectedSource !== 'all' ||
     selectedStage !== 'all' ||
-    selectedAssignee !== 'all';
+    (isManager && selectedAssignee !== 'all');
 
   const activeFiltersCount =
     (search.trim().length > 0 ? 1 : 0) +
     selectedTagIds.length +
     (selectedSource !== 'all' ? 1 : 0) +
     (selectedStage !== 'all' ? 1 : 0) +
-    (selectedAssignee !== 'all' ? 1 : 0);
+    (isManager && selectedAssignee !== 'all' ? 1 : 0);
 
   function toggleTagFilter(tagId: string) {
     setSelectedTagIds((prev) =>
@@ -1015,7 +1035,7 @@ export default function ContactsPage() {
               </Popover>
 
               {/* Assignee Filter (for managers / admins) */}
-              {profiles.length > 0 && (
+              {isManager && profiles.length > 0 && (
                 <Select
                   value={selectedAssignee}
                   onValueChange={(val) => setSelectedAssignee(val || 'all')}
@@ -1046,6 +1066,17 @@ export default function ContactsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              )}
+
+              {/* Agent Scoped Indicator (for individual sales agents) */}
+              {!isManager && (
+                <div
+                  className="bg-primary/10 border-primary/20 text-primary flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium shadow-2xs"
+                  title={t('filterMyLeads')}
+                >
+                  <UserCheck className="size-3.5" />
+                  <span>{t('filterMyLeads')}</span>
+                </div>
               )}
             </div>
 

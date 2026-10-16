@@ -69,3 +69,25 @@ export function matchesContactFilters(
 
   return true;
 }
+
+export type AssigneeFilter = 'all' | 'mine' | 'unassigned';
+
+/**
+ * Filter conversations by assignment status:
+ *  - 'all': includes all conversations
+ *  - 'mine': only conversations where assigned_agent_id matches currentUserId
+ *  - 'unassigned': only conversations where assigned_agent_id is null / undefined
+ */
+export function matchesAssigneeFilter(
+  conversation: Conversation,
+  filter: AssigneeFilter,
+  currentUserId: string | null
+): boolean {
+  if (filter === 'mine') {
+    return !!currentUserId && conversation.assigned_agent_id === currentUserId;
+  }
+  if (filter === 'unassigned') {
+    return !conversation.assigned_agent_id;
+  }
+  return true;
+}

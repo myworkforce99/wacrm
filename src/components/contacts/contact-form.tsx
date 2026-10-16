@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, Profile } from '@/types';
@@ -120,7 +121,8 @@ export function ContactForm({
 }: ContactFormProps) {
   const t = useTranslations('Contacts.form');
   const supabase = createClient();
-  const { accountId } = useAuth();
+  const { accountId, accountRole, profile } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isEdit = !!contact;
 
   // Basic contact info
@@ -353,13 +355,24 @@ export function ContactForm({
         setPropertyType('all');
         setIntent('all');
         setPossessionPreference('any');
-        setAssignedAgentId('unassigned');
+        if (!isManager && profile?.id) {
+          setAssignedAgentId(profile.id);
+        } else {
+          setAssignedAgentId('unassigned');
+        }
         setSelectedStageId('');
         setSelectedTagIds([]);
         setExistingDealId(null);
       }
     }
-  }, [open, contact, fetchReferenceData, fetchExistingLeadData]);
+  }, [
+    open,
+    contact,
+    isManager,
+    profile?.id,
+    fetchReferenceData,
+    fetchExistingLeadData,
+  ]);
 
   async function checkDuplicate() {
     if (!accountId) return;
@@ -552,7 +565,9 @@ export function ContactForm({
               await supabase
                 .from('assignment_history')
                 .update({
-                  reason: isEdit ? 'contact_edit_modal' : 'contact_create_modal',
+                  reason: isEdit
+                    ? 'contact_edit_modal'
+                    : 'contact_create_modal',
                 })
                 .eq('id', recent.id);
             } else {
@@ -1091,6 +1106,7 @@ export function ContactForm({
                     {t('agentLabel')}
                   </Label>
                   <Select
+                    disabled={!isManager}
                     value={assignedAgentId}
                     onValueChange={(val) =>
                       setAssignedAgentId(val || 'unassigned')

@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { CURRENCIES, formatCurrency, formatINR } from '@/lib/currency';
 import { parseBudget } from '@/lib/contacts/parse-budget';
 import type {
@@ -79,7 +80,8 @@ export function DealForm({
 }: DealFormProps) {
   const t = useTranslations('Pipelines.form');
   const supabase = createClient();
-  const { accountId, defaultCurrency } = useAuth();
+  const { accountId, accountRole, profile, defaultCurrency } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [title, setTitle] = useState('');
   const [value, setValue] = useState('');
@@ -125,11 +127,19 @@ export function DealForm({
       setCurrency(defaultCurrency);
       setContactId('');
       setStageId(defaultStageId || stages[0]?.id || '');
-      setAssignedTo('');
+      setAssignedTo(!isManager && profile?.id ? profile.id : '');
       setExpectedCloseDate('');
       setNotes('');
     }
-  }, [open, deal, defaultStageId, stages, defaultCurrency]);
+  }, [
+    open,
+    deal,
+    defaultStageId,
+    stages,
+    defaultCurrency,
+    isManager,
+    profile?.id,
+  ]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Load account settings (brokerage %)
@@ -615,9 +625,10 @@ export function DealForm({
                   {t('assignedTo')}
                 </Label>
                 <select
+                  disabled={!isManager}
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
-                  className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
+                  className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-75"
                 >
                   <option value="">{t('unassigned')}</option>
                   {profiles.map((p) => (

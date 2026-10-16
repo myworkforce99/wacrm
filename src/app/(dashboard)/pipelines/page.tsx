@@ -74,10 +74,12 @@ import {
   TableProperties,
   Search,
   X,
+  UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCan } from '@/hooks/use-can';
 import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
 import { GatedButton } from '@/components/ui/gated-button';
 import { useTranslations } from 'next-intl';
 
@@ -115,7 +117,8 @@ export default function PipelinesPage() {
   const supabase = createClient();
   const canEditSettings = useCan('edit-settings');
   const canCreateDeals = useCan('send-messages');
-  const { accountId, accountRole, defaultCurrency } = useAuth();
+  const { accountId, accountRole, profile, defaultCurrency } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>('');
@@ -451,30 +454,39 @@ export default function PipelinesPage() {
 
   const selectedPipeline = pipelines.find((p) => p.id === selectedPipelineId);
 
+  // Role-based scoping for individual sales agents:
+  // Non-manager agents only view their own assigned deals.
+  const scopedDeals = useMemo(() => {
+    if (!isManager && profile?.id) {
+      return deals.filter((d) => d.assigned_to === profile.id);
+    }
+    return deals;
+  }, [deals, isManager, profile]);
+
   // Status counts for tabs
   const openDeals = useMemo(
-    () => deals.filter((d) => d.status === 'open' || !d.status),
-    [deals]
+    () => scopedDeals.filter((d) => d.status === 'open' || !d.status),
+    [scopedDeals]
   );
   const wonDeals = useMemo(
-    () => deals.filter((d) => d.status === 'won'),
-    [deals]
+    () => scopedDeals.filter((d) => d.status === 'won'),
+    [scopedDeals]
   );
   const lostDeals = useMemo(
-    () => deals.filter((d) => d.status === 'lost'),
-    [deals]
+    () => scopedDeals.filter((d) => d.status === 'lost'),
+    [scopedDeals]
   );
 
   const filterCounts: Record<StatusFilter, number> = {
     open: openDeals.length,
     won: wonDeals.length,
     lost: lostDeals.length,
-    all: deals.length,
+    all: scopedDeals.length,
   };
 
   // Multi-dimensional filtering across omni-search, status, source, assignee, value range
   const filteredDeals = useMemo(() => {
-    return deals.filter((deal) => {
+    return scopedDeals.filter((deal) => {
       // 1. Status Filter
       if (statusFilter === 'open' && deal.status !== 'open' && deal.status)
         return false;
@@ -512,8 +524,8 @@ export default function PipelinesPage() {
         if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
       }
 
-      // 4. Assignee Filter
-      if (selectedAssignee !== 'all') {
+      // 4. Assignee Filter (for managers)
+      if (isManager && selectedAssignee !== 'all') {
         if (selectedAssignee === 'unassigned') {
           if (deal.assigned_to) return false;
         } else {
@@ -541,7 +553,8 @@ export default function PipelinesPage() {
       return true;
     });
   }, [
-    deals,
+    scopedDeals,
+    isManager,
     statusFilter,
     search,
     selectedSource,
@@ -552,13 +565,13 @@ export default function PipelinesPage() {
   const hasActiveFilters =
     search.trim() !== '' ||
     selectedSource !== 'all' ||
-    selectedAssignee !== 'all' ||
+    (isManager && selectedAssignee !== 'all') ||
     selectedValueRange !== 'all';
 
   const activeFiltersCount =
     (search.trim() ? 1 : 0) +
     (selectedSource !== 'all' ? 1 : 0) +
-    (selectedAssignee !== 'all' ? 1 : 0) +
+    (isManager && selectedAssignee !== 'all' ? 1 : 0) +
     (selectedValueRange !== 'all' ? 1 : 0);
 
   function clearAllFilters() {
@@ -706,7 +719,7 @@ export default function PipelinesPage() {
         {pipelines.length > 0 && (
           <PipelineAnalytics
             stages={stages}
-            deals={deals}
+            deals={scopedDeals}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
           />
@@ -760,8 +773,8 @@ export default function PipelinesPage() {
                   </SelectContent>
                 </Select>
 
-                {/* Assignee / Agent Filter */}
-                {profiles.length > 0 && (
+                {/* Assignee / Agent Filter (for managers) */}
+                {isManager && profiles.length > 0 && (
                   <Select
                     value={selectedAssignee}
                     onValueChange={(val) => setSelectedAssignee(val || 'all')}
@@ -788,6 +801,17 @@ export default function PipelinesPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                )}
+
+                {/* Agent Scoped Indicator (for individual sales agents) */}
+                {!isManager && (
+                  <div
+                    className="bg-primary/10 border-primary/20 text-primary flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-medium shadow-2xs"
+                    title={t('filterMyDeals')}
+                  >
+                    <UserCheck className="size-3.5" />
+                    <span>{t('filterMyDeals')}</span>
+                  </div>
                 )}
 
                 {/* Deal Value Range Filter */}
