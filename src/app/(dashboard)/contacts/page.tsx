@@ -157,13 +157,15 @@ function formatBudgetDisplay(
   max: number | null | undefined,
   currency = 'INR'
 ): string {
-  if (!min && !max) return '-';
+  if (min == null && max == null) return '-';
   const format = (v: number) =>
     currency === 'INR' ? formatINR(v) : formatCurrency(v, currency);
-  if (min && !max) return format(min);
-  if (!min && max) return format(max);
+  if (min != null && max == null) return `${format(min)}+`;
+  if (min == null && max != null) return `Up to ${format(max)}`;
+  if (min === max) return format(min as number);
   return `${format(min as number)} – ${format(max as number)}`;
 }
+
 
 interface ContactWithTags extends Contact {
   tags?: Tag[];
@@ -804,10 +806,10 @@ export default function ContactsPage() {
                 canAct={canEdit}
                 gateReason="add or import contacts"
                 onClick={openAddForm}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full px-4 py-2 text-sm font-medium shadow-xs"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-full px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium shadow-xs shrink-0 flex items-center gap-1.5 whitespace-nowrap"
               >
-                <Plus className="size-4 sm:mr-1" />
-                <span className="hidden sm:inline">{t('addContactBtn')}</span>
+                <Plus className="size-4 shrink-0" />
+                <span>{t('addContactBtn')}</span>
               </GatedButton>
             </div>
           }
@@ -1228,16 +1230,27 @@ export default function ContactsPage() {
                 >
                   {/* Top: Avatar, Name, Phone, StatusBadge */}
                   <div className="flex items-start justify-between gap-3">
+                    {/* Separate Touch-Optimized Checkbox (Propagation Isolated) */}
                     <div
-                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
-                      onClick={() => openDetail(contact.id)}
+                      className="flex size-9 -ml-1 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(contact.id);
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      title={`Select ${contact.name || contact.phone}`}
                     >
                       <Checkbox
                         checked={selected.has(contact.id)}
                         onCheckedChange={() => toggleSelect(contact.id)}
-                        onClick={(e) => e.stopPropagation()}
                         aria-label={`Select ${contact.name || contact.phone}`}
                       />
+                    </div>
+
+                    <div
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
+                      onClick={() => openDetail(contact.id)}
+                    >
                       <Avatar className="size-10 shrink-0">
                         <AvatarFallback
                           className="text-sm font-semibold text-white"
@@ -1250,7 +1263,10 @@ export default function ContactsPage() {
                       </Avatar>
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="text-foreground truncate text-sm font-semibold">
+                          <span
+                            title={contact.name || undefined}
+                            className="text-foreground truncate text-sm font-semibold"
+                          >
                             {contact.name || t('unnamed')}
                           </span>
                           {isHotLead(contact) && (
@@ -1264,7 +1280,53 @@ export default function ContactsPage() {
                         </p>
                       </div>
                     </div>
-                    {dealStage && <StatusBadge status={dealStage} />}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {dealStage && <StatusBadge status={dealStage} />}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="hover:bg-muted text-muted-foreground hover:text-foreground flex size-8 items-center justify-center rounded-lg transition-colors focus:outline-none"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="More options"
+                        >
+                          <MoreVertical className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditForm(contact);
+                            }}
+                          >
+                            <Pencil className="mr-2 size-4" />
+                            {t('editContactAction') || 'Edit Details'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              await navigator.clipboard.writeText(contact.phone);
+                              toast.success(
+                                t('copyPhoneAction') ||
+                                  'Phone copied to clipboard'
+                              );
+                            }}
+                          >
+                            <Copy className="mr-2 size-4" />
+                            {t('copyPhoneAction') || 'Copy Phone'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmDelete(contact);
+                            }}
+                          >
+                            <Trash2 className="mr-2 size-4" />
+                            {t('deleteAction') || 'Delete Lead'}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
 
                   {/* Real Estate Info Block */}
@@ -1338,10 +1400,10 @@ export default function ContactsPage() {
                     <a
                       href={`tel:${contact.phone}`}
                       className="bg-muted hover:bg-muted/80 text-foreground flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
-                      title={t('callAction') || 'Call lead'}
+                      title={t('callAction')}
                     >
                       <Phone className="size-3.5 text-blue-600" />
-                      <span>{t('callAction') || 'Call'}</span>
+                      <span>{t('callAction')}</span>
                     </a>
                     <Link
                       href={`/inbox?contact=${contact.id}`}
@@ -1362,12 +1424,12 @@ export default function ContactsPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => openEditForm(contact)}
+                      onClick={() => openDetail(contact.id)}
                       className="bg-muted hover:bg-muted/80 text-foreground flex cursor-pointer items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-colors"
-                      title={t('editContactAction') || 'Edit details'}
+                      title={t('viewDetailsAction') || 'View details'}
                     >
-                      <Pencil className="text-muted-foreground size-3.5" />
-                      <span>{t('editAction') || 'Edit'}</span>
+                      <Eye className="text-muted-foreground size-3.5" />
+                      <span>{t('detailsAction') || 'Details'}</span>
                     </button>
                   </div>
                 </div>
@@ -1377,18 +1439,20 @@ export default function ContactsPage() {
         </div>
 
         {/* Desktop Table View */}
-        <div className="border-border bg-card hidden overflow-hidden rounded-xl border shadow-xs md:block">
+        <div className="border-border bg-card hidden overflow-x-auto rounded-xl border shadow-xs md:block">
           <Table>
             <TableHeader>
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-10">
-                  <Checkbox
-                    checked={allOnPageSelected}
-                    indeterminate={!allOnPageSelected && someOnPageSelected}
-                    onCheckedChange={toggleSelectAll}
-                    disabled={contacts.length === 0}
-                    aria-label={t('selectAllOnPage')}
-                  />
+                <TableHead className="w-12 px-3 text-center">
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      checked={allOnPageSelected}
+                      indeterminate={!allOnPageSelected && someOnPageSelected}
+                      onCheckedChange={toggleSelectAll}
+                      disabled={contacts.length === 0}
+                      aria-label={t('selectAllOnPage')}
+                    />
+                  </div>
                 </TableHead>
                 <TableHead className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   LEAD
@@ -1420,8 +1484,8 @@ export default function ContactsPage() {
               {loading ? (
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
-                    <TableCell className="w-10">
-                      <Skeleton className="size-4" />
+                    <TableCell className="w-12 px-3 text-center">
+                      <Skeleton className="size-4 rounded-[4px] mx-auto" />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2.5">
@@ -1490,12 +1554,21 @@ export default function ContactsPage() {
                       className="border-border hover:bg-muted/40 cursor-pointer transition-colors"
                       onClick={() => openDetail(contact.id)}
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        <Checkbox
-                          checked={selected.has(contact.id)}
-                          onCheckedChange={() => toggleSelect(contact.id)}
-                          aria-label={`Select ${contact.name || contact.phone}`}
-                        />
+                      <TableCell
+                        className="w-12 px-3 text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div
+                          className="flex items-center justify-center p-1"
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                        >
+                          <Checkbox
+                            checked={selected.has(contact.id)}
+                            onCheckedChange={() => toggleSelect(contact.id)}
+                            aria-label={`Select ${contact.name || contact.phone}`}
+                          />
+                        </div>
                       </TableCell>
 
                       {/* LEAD Cell */}
@@ -1513,7 +1586,10 @@ export default function ContactsPage() {
                           </Avatar>
                           <div className="max-w-[200px] min-w-0">
                             <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-foreground truncate text-sm font-semibold">
+                              <span
+                                title={contact.name || undefined}
+                                className="text-foreground truncate text-sm font-semibold"
+                              >
                                 {contact.name || 'Unknown'}
                               </span>
                               {isHotLead(contact) && (

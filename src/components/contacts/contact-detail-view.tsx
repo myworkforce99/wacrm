@@ -1393,6 +1393,7 @@ export function ContactDetailView({
                   <Button
                     size="sm"
                     variant="outline"
+                    nativeButton={false}
                     render={<Link href={`/inbox?contact=${contact.id}`} />}
                     className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                   >
@@ -1403,6 +1404,7 @@ export function ContactDetailView({
                     <Button
                       size="sm"
                       variant="outline"
+                      nativeButton={false}
                       render={<a href={`tel:${contact.phone}`} />}
                       className="border-border text-foreground hover:bg-muted h-7.5 px-2.5 text-xs"
                     >

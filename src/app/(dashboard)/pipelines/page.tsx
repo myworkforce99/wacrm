@@ -917,9 +917,9 @@ export default function PipelinesPage() {
                   </Button>
                 )}
 
-                {/* View Switcher: Kanban vs Table (desktop) */}
+                {/* View Switcher: Kanban vs Table (unified design across mobile and desktop) */}
                 {statusFilter === 'open' && (
-                  <div className="border-border bg-muted/40 hidden items-center rounded-lg border p-0.5 sm:flex">
+                  <div className="border-border bg-muted/40 flex items-center rounded-lg border p-0.5">
                     <button
                       type="button"
                       onClick={() => setViewMode('kanban')}

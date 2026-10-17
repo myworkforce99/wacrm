@@ -61,6 +61,7 @@ export default function ImportLeadsPage() {
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [headers, setHeaders] = useState<string[]>([]);
   const [data, setData] = useState<unknown[][]>([]);
   const [mapping, setMapping] = useState<Record<number, string>>({});
@@ -81,9 +82,7 @@ export default function ImportLeadsPage() {
     );
   }
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
+  const processFile = (f: File) => {
     setFile(f);
 
     const reader = new FileReader();
@@ -131,6 +130,11 @@ export default function ImportLeadsPage() {
       }
     };
     reader.readAsBinaryString(f);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) processFile(f);
   };
 
   const handleImport = async () => {
@@ -219,7 +223,24 @@ export default function ImportLeadsPage() {
       </div>
 
       {step === 1 && (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-24">
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={() => setIsDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setIsDragging(false);
+            const f = e.dataTransfer.files?.[0];
+            if (f) processFile(f);
+          }}
+          className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-24 transition-colors ${
+            isDragging
+              ? 'border-primary bg-primary/5'
+              : 'border-border/80 bg-card hover:border-primary/50'
+          }`}
+        >
           <input
             type="file"
             ref={fileInputRef}
@@ -227,12 +248,16 @@ export default function ImportLeadsPage() {
             accept=".csv,.xlsx"
             onChange={handleFileUpload}
           />
-          <Upload className="text-muted-foreground mb-4 size-10" />
-          <h3 className="mb-2 text-lg font-medium">Select a file to upload</h3>
+          <div className="bg-primary/10 text-primary mb-4 flex size-14 items-center justify-center rounded-full">
+            <Upload className="size-7" />
+          </div>
+          <h3 className="text-foreground mb-2 text-lg font-semibold">
+            {isDragging ? 'Drop file here' : 'Select or drop a file to upload'}
+          </h3>
           <p className="text-muted-foreground mb-6 text-sm">
             Supported formats: .csv, .xlsx (Max 2000 rows)
           </p>
-          <Button onClick={() => fileInputRef.current?.click()}>
+          <Button onClick={() => fileInputRef.current?.click()} className="rounded-full px-6">
             Browse Files
           </Button>
         </div>
@@ -240,24 +265,24 @@ export default function ImportLeadsPage() {
 
       {step === 2 && (
         <div className="space-y-6">
-          <div className="rounded-md border">
+          <div className="border-border bg-card rounded-xl border shadow-xs overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left">
-                <tr>
-                  <th className="p-3 font-medium">File Column Header</th>
-                  <th className="p-3 font-medium">CRM Field</th>
-                  <th className="text-muted-foreground p-3 font-medium">
+                <tr className="border-border border-b">
+                  <th className="p-3 font-medium whitespace-nowrap text-muted-foreground">File Column Header</th>
+                  <th className="p-3 font-medium whitespace-nowrap text-muted-foreground">CRM Field</th>
+                  <th className="text-muted-foreground p-3 font-medium whitespace-nowrap">
                     Preview (Row 1)
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-border/60 divide-y">
                 {headers.map((header, idx) => (
-                  <tr key={idx}>
-                    <td className="p-3 font-medium">{header}</td>
+                  <tr key={idx} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3 font-medium text-foreground whitespace-nowrap">{header}</td>
                     <td className="p-3">
                       <select
-                        className="bg-background rounded-md border px-3 py-1.5 text-sm"
+                        className="bg-background border-border text-foreground rounded-lg border px-3 py-1.5 text-xs focus:ring-2 focus:ring-primary/30 focus:outline-none"
                         value={mapping[idx]}
                         onChange={(e) =>
                           setMapping((prev) => ({
@@ -273,7 +298,7 @@ export default function ImportLeadsPage() {
                         ))}
                       </select>
                     </td>
-                    <td className="text-muted-foreground max-w-[200px] truncate p-3">
+                    <td className="text-muted-foreground max-w-[200px] truncate p-3 text-xs">
                       {data[0] ? String(data[0][idx] || '') : ''}
                     </td>
                   </tr>
@@ -282,8 +307,8 @@ export default function ImportLeadsPage() {
             </table>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setStep(1)}>
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
+            <Button variant="outline" onClick={() => setStep(1)} className="border-border">
               Cancel
             </Button>
             <Button onClick={handleImport} disabled={importing}>
@@ -294,26 +319,26 @@ export default function ImportLeadsPage() {
       )}
 
       {step === 3 && result && (
-        <div className="space-y-4 rounded-lg border p-6 text-center">
-          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-green-100 text-green-600">
+        <div className="bg-card border-border space-y-4 rounded-xl border p-6 text-center shadow-xs">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <PlayCircle className="size-6" />
           </div>
-          <h2 className="text-xl font-semibold">Import Complete</h2>
+          <h2 className="text-foreground text-xl font-semibold">Import Complete</h2>
           <div className="flex justify-center gap-8 pt-4">
             <div>
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {result.created}
               </p>
               <p className="text-muted-foreground text-sm">Imported</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-amber-500">
+              <p className="text-3xl font-bold text-amber-500 dark:text-amber-400">
                 {result.skipped}
               </p>
               <p className="text-muted-foreground text-sm">Skipped (Dupes)</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-red-500">{result.errors}</p>
+              <p className="text-3xl font-bold text-rose-500 dark:text-rose-400">{result.errors}</p>
               <p className="text-muted-foreground text-sm">Errors</p>
             </div>
           </div>

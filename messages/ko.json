@@ -447,6 +447,8 @@
       "filterUnassigned": "미지정",
       "filterMyLeads": "내게 배정됨",
       "callAction": "전화 걸기",
+      "editAction": "편집",
+      "detailsAction": "상세",
       "whatsappAction": "WhatsApp 채팅",
       "scheduleVisitAction": "현장 방문 예약",
       "viewDetailsAction": "상세 보기",

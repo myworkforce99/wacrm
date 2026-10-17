@@ -98,7 +98,7 @@ export function DealTable({
         <Table>
           <TableHeader>
             <TableRow className="border-border hover:bg-transparent">
-              <TableHead className="text-muted-foreground w-[260px] text-xs font-semibold">
+              <TableHead className="text-muted-foreground w-[260px] text-xs font-semibold sticky left-0 bg-card z-10">
                 {t('deal')}
               </TableHead>
               <TableHead className="text-muted-foreground w-[220px] text-xs font-semibold">
@@ -140,7 +140,7 @@ export function DealTable({
                   onClick={() => onEditDeal(deal)}
                 >
                   {/* Deal Title & Details */}
-                  <TableCell className="py-3">
+                  <TableCell className="py-3 sticky left-0 bg-card group-hover:bg-muted/50 z-10 transition-colors shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]">
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5">
                         <span className="text-foreground text-sm font-semibold hover:underline">

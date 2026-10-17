@@ -209,10 +209,10 @@ export function DealCard({
               )}
             </div>
 
-            {/* Desktop-only horizontal action buttons (in narrow kanban columns) */}
+            {/* Quick action buttons with touch-friendly tap targets */}
             {!isOverlay && (
               <div
-                className="hidden lg:flex items-center gap-1"
+                className="flex items-center gap-1.5"
                 onClick={(e) => e.stopPropagation()}
                 onPointerDown={(e) => e.stopPropagation()}
               >
@@ -220,9 +220,9 @@ export function DealCard({
                   <Link
                     href={`/inbox?contactId=${deal.contact.id}`}
                     title={t('chatWhatsAppTooltip')}
-                    className="text-muted-foreground rounded-md p-1 transition-colors hover:bg-emerald-500/10 hover:text-emerald-500"
+                    className="size-8.5 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all shadow-2xs"
                   >
-                    <MessageCircle className="h-3.5 w-3.5" />
+                    <MessageCircle className="h-4 w-4" />
                   </Link>
                 )}
 
@@ -230,88 +230,43 @@ export function DealCard({
                   <a
                     href={`tel:${deal.contact.phone}`}
                     title={t('callTooltip')}
-                    className="text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md p-1 transition-colors"
+                    className="size-8.5 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 transition-all shadow-2xs"
                   >
-                    <Phone className="h-3.5 w-3.5" />
+                    <Phone className="h-4 w-4" />
                   </a>
                 )}
 
                 {deal.contact_id && onScheduleVisit && (
                   <button
                     type="button"
-                    onClick={() => onScheduleVisit(deal)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleVisit(deal);
+                    }}
                     title={t('scheduleVisitTooltip')}
-                    className="text-muted-foreground rounded-md p-1 transition-colors hover:bg-blue-500/10 hover:text-blue-500"
+                    className="size-8.5 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs cursor-pointer"
                   >
-                    <CalendarPlus className="h-3.5 w-3.5" />
+                    <CalendarPlus className="h-4 w-4" />
                   </button>
                 )}
 
                 {onMove && deal.status === 'open' && (
                   <button
                     type="button"
-                    onClick={() => onMove(deal)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onMove(deal);
+                    }}
                     title={t('moveStageTooltip')}
-                    className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-md p-1 transition-colors"
+                    className="size-8.5 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 active:scale-95 transition-all shadow-2xs cursor-pointer"
                   >
-                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                    <ArrowRightLeft className="h-4 w-4" />
                   </button>
                 )}
               </div>
             )}
           </div>
         </div>
-
-        {/* Mobile & Tablet: Vertical Action Menu on the Right */}
-        {!isOverlay && (
-          <div
-            className="flex lg:hidden flex-col items-center justify-center gap-2 pl-3 border-l border-border/40 shrink-0 my-auto py-1"
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {deal.contact?.id && (
-              <Link
-                href={`/inbox?contactId=${deal.contact.id}`}
-                title={t('chatWhatsAppTooltip')}
-                className="size-8 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 transition-colors shadow-xs"
-              >
-                <MessageCircle className="h-4 w-4" />
-              </Link>
-            )}
-
-            {deal.contact?.phone && (
-              <a
-                href={`tel:${deal.contact.phone}`}
-                title={t('callTooltip')}
-                className="size-8 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 transition-colors shadow-xs"
-              >
-                <Phone className="h-4 w-4" />
-              </a>
-            )}
-
-            {deal.contact_id && onScheduleVisit && (
-              <button
-                type="button"
-                onClick={() => onScheduleVisit(deal)}
-                title={t('scheduleVisitTooltip')}
-                className="size-8 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors shadow-xs cursor-pointer"
-              >
-                <CalendarPlus className="h-4 w-4" />
-              </button>
-            )}
-
-            {onMove && deal.status === 'open' && (
-              <button
-                type="button"
-                onClick={() => onMove(deal)}
-                title={t('moveStageTooltip')}
-                className="size-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 transition-colors shadow-xs cursor-pointer"
-              >
-                <ArrowRightLeft className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
