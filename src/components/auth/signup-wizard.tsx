@@ -206,7 +206,7 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       required
-                      className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                      className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
 
@@ -221,7 +221,7 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary/20"
+                      className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </div>
 
@@ -317,11 +317,10 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
           <div className="flex flex-col gap-6">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
-                Connect WhatsApp
+                {t('step2Title')}
               </h2>
               <p className="text-muted-foreground">
-                Link your WhatsApp Business API account to start messaging
-                leads.
+                {t('step2Desc')}
               </p>
             </div>
 
@@ -329,10 +328,10 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
 
             <div className="flex justify-end gap-3 pt-4">
               <Button variant="outline" onClick={() => setStep(3)}>
-                Skip for now
+                {t('skipForNow')}
               </Button>
               <Button onClick={() => setStep(3)}>
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
+                {t('continue')} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -345,11 +344,10 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                 <Settings2 className="text-primary h-8 w-8" />
               </div>
               <h2 className="text-2xl font-semibold tracking-tight">
-                Choose your Pipeline
+                {t('step3Title')}
               </h2>
               <p className="text-muted-foreground mt-2">
-                Select the template that best fits your business. We&apos;ve
-                pre-configured stages and automations to get you started.
+                {t('step3Desc')}
               </p>
             </div>
 
@@ -370,15 +368,13 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                         htmlFor="real-estate"
                         className="flex items-center gap-2 text-base font-medium"
                       >
-                        Real Estate Pipeline
+                        {t('pipelineRealEstateTitle')}
                         <span className="bg-primary/20 text-primary rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-                          Recommended
+                          {t('recommended')}
                         </span>
                       </Label>
                       <p className="text-muted-foreground mt-1 text-sm">
-                        Includes standard real estate stages (New, Contacted,
-                        Site Visit, Negotiation, Closed) and pre-built site
-                        visit reminders.
+                        {t('pipelineRealEstateDesc')}
                       </p>
                     </div>
                   </div>
@@ -395,13 +391,13 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                         htmlFor="general"
                         className="text-muted-foreground flex items-center gap-2 text-base font-medium"
                       >
-                        General CRM
+                        {t('pipelineGeneralTitle')}
                         <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase">
-                          Coming Soon
+                          {t('comingSoon')}
                         </span>
                       </Label>
                       <p className="text-muted-foreground mt-1 text-sm">
-                        A basic pipeline for general sales and lead tracking.
+                        {t('pipelineGeneralDesc')}
                       </p>
                     </div>
                   </div>
@@ -411,7 +407,7 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
 
             <div className="flex justify-end pt-4">
               <Button onClick={() => setStep(4)} className="w-full sm:w-auto">
-                Continue <ArrowRight className="ml-2 h-4 w-4" />
+                {t('continue')} <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -424,11 +420,10 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
             </div>
             <div>
               <h2 className="text-3xl font-semibold tracking-tight">
-                You&apos;re all set!
+                {t('step4Title')}
               </h2>
               <p className="text-muted-foreground mx-auto mt-2 max-w-md">
-                Your real estate CRM is ready. Invite your team members now or
-                skip this step to do it later.
+                {t('step4Desc')}
               </p>
             </div>
 
@@ -440,18 +435,18 @@ export function SignupWizard({ inviteToken }: { inviteToken: string | null }) {
                 className="gap-2"
               >
                 <Plus className="h-5 w-5" />
-                Invite Team Members
+                {t('inviteTeamMembers')}
               </Button>
               <Link href="/dashboard">
                 <Button size="lg" className="w-full gap-2 sm:w-auto">
-                  Go to Dashboard <ArrowRight className="h-5 w-5" />
+                  {t('goToDashboard')} <ArrowRight className="h-5 w-5" />
                 </Button>
               </Link>
             </div>
 
             {invitesSent > 0 && (
               <p className="mt-4 text-sm font-medium text-emerald-500">
-                {invitesSent} invitation{invitesSent > 1 ? 's' : ''} created.
+                {t('invitationsCreated', { count: invitesSent })}
               </p>
             )}
 

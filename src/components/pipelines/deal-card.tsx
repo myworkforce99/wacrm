@@ -95,7 +95,7 @@ export function DealCard({
       <span
         aria-hidden
         className="absolute top-0 left-0 h-full w-1.5 rounded-l-xl"
-        style={{ backgroundColor: stage?.color ?? '#94a3b8' }}
+        style={{ backgroundColor: stage?.color ?? 'var(--muted-foreground)' }}
       />
 
       <div className="flex items-stretch justify-between gap-3">

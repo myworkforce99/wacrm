@@ -222,7 +222,7 @@ export function DealTable({
                     <div className="flex items-center gap-2">
                       <span
                         className="size-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: stage?.color ?? '#94a3b8' }}
+                        style={{ backgroundColor: stage?.color ?? 'var(--muted-foreground)' }}
                       />
                       <span className="text-foreground max-w-[120px] truncate text-xs font-medium">
                         {stage?.name ?? '—'}

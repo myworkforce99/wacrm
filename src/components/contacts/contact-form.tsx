@@ -1193,7 +1193,7 @@ export function ContactForm({
                             <span
                               className="size-2 shrink-0 rounded-full"
                               style={{
-                                backgroundColor: s.color || '#3b82f6',
+                                backgroundColor: s.color || 'var(--primary)',
                               }}
                             />
                             {s.name}
