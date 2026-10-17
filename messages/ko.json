@@ -66,6 +66,8 @@
     "menuSignOut": "로그아웃",
     "visits": "Site Visits",
     "properties": "Properties",
+    "integrations": "연동",
+    "team": "팀",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2625,6 +2627,12 @@
       },
       "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
+      },
+      "MetaLeadAds": {
+        "instructions": "1. Meta Business Suite > 인스턴트 양식에 로그인합니다.\n2. CRM 연동 또는 웹훅 메뉴로 이동합니다.\n3. 아래의 웹훅 URL을 붙여넣고 웹훅 비밀키를 입력합니다.\n4. 양식 필드(성명, 전화번호, 이메일)를 매핑하고 리드 생성 이벤트를 구독합니다."
+      },
+      "CustomWebhooks": {
+        "instructions": "1. 타사 리드 수집 양식 또는 랜딩 페이지에서 JSON 페이로드를 POST하도록 구성합니다.\n2. API 키와 함께 아래 제공된 실시간 웹훅 URL을 사용합니다.\n3. 연락처 필드(전화번호, 이름, 이메일, 매물 선호도)를 포함합니다.\n4. 설정을 저장하고 테스트 페이로드를 전송합니다."
       },
       "Gmail": {
         "instructions": "1. Open Gmail settings.\n2. Go to 'Forwarding and POP/IMAP'.\n3. Click 'Add a forwarding address' and enter the capture email above.\n4. Verify the forwarding address and set up a filter to forward real estate leads."

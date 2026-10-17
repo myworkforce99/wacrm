@@ -9,17 +9,7 @@ export const metadata = {
 
 export default async function IntegrationsPage() {
   const { account, accountId, role } = await getCurrentAccount();
-
-  if (role === 'agent') {
-    return (
-      <div className="flex h-full flex-col items-center justify-center p-4">
-        <h2 className="text-xl font-bold">Access Denied</h2>
-        <p className="text-muted-foreground mt-2 text-center">
-          Contact your admin to manage integrations.
-        </p>
-      </div>
-    );
-  }
+  const canManage = role === 'owner' || role === 'admin';
 
   const db = await createClient();
   const { data: whatsappConfig } = await db
@@ -41,6 +31,7 @@ export default async function IntegrationsPage() {
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: !!portalConnections['99acres']?.test_lead_received,
+      apiKey: portalConnections['99acres']?.api_key || '',
     },
     {
       name: 'MagicBricks',
@@ -50,6 +41,7 @@ export default async function IntegrationsPage() {
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: !!portalConnections['MagicBricks']?.test_lead_received,
+      apiKey: portalConnections['MagicBricks']?.api_key || '',
     },
     {
       name: 'Housing.com',
@@ -59,6 +51,27 @@ export default async function IntegrationsPage() {
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: !!portalConnections['HousingCom']?.test_lead_received,
+      apiKey: portalConnections['HousingCom']?.api_key || '',
+    },
+    {
+      name: 'Meta Lead Ads',
+      slug: 'MetaLeadAds',
+      icon: 'Layers',
+      status: (portalConnections['MetaLeadAds']?.connected
+        ? 'connected'
+        : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
+      test_lead: !!portalConnections['MetaLeadAds']?.test_lead_received,
+      apiKey: portalConnections['MetaLeadAds']?.api_key || '',
+    },
+    {
+      name: 'Custom Webhooks',
+      slug: 'CustomWebhooks',
+      icon: 'Webhook',
+      status: (portalConnections['CustomWebhooks']?.connected
+        ? 'connected'
+        : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
+      test_lead: !!portalConnections['CustomWebhooks']?.test_lead_received,
+      apiKey: portalConnections['CustomWebhooks']?.api_key || '',
     },
     {
       name: 'Gmail',
@@ -68,6 +81,7 @@ export default async function IntegrationsPage() {
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: !!portalConnections['Gmail']?.test_lead_received,
+      apiKey: portalConnections['Gmail']?.api_key || '',
     },
     {
       name: 'NoBroker',
@@ -77,6 +91,7 @@ export default async function IntegrationsPage() {
         ? 'connected'
         : 'not_connected') as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: !!portalConnections['NoBroker']?.test_lead_received,
+      apiKey: portalConnections['NoBroker']?.api_key || '',
     },
     {
       name: 'WhatsApp Business',
@@ -105,5 +120,13 @@ export default async function IntegrationsPage() {
     },
   ];
 
-  return <IntegrationsClient captureEmail={capture_email} portals={portals} />;
+  return (
+    <IntegrationsClient
+      accountId={accountId}
+      captureEmail={capture_email}
+      portals={portals}
+      canManage={canManage}
+      role={role}
+    />
+  );
 }

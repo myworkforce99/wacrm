@@ -66,6 +66,8 @@
     "menuSignOut": "Cerrar sesión",
     "visits": "Site Visits",
     "properties": "Properties",
+    "integrations": "Integraciones",
+    "team": "Equipo",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2625,6 +2627,12 @@
       },
       "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
+      },
+      "MetaLeadAds": {
+        "instructions": "1. Inicie sesión en Meta Business Suite > Formularios instantáneos.\n2. Vaya a Integración CRM o Webhooks.\n3. Pegue la URL del Webhook e ingrese el Secreto del Webhook abajo.\n4. Asigne los campos del formulario (Nombre completo, Teléfono, Correo) y suscríbase a eventos de leadgen."
+      },
+      "CustomWebhooks": {
+        "instructions": "1. Configure su formulario de clientes potenciales o página de aterrizaje para enviar cargas útiles JSON vía POST.\n2. Utilice la URL de Webhook en vivo provista abajo con su Clave API.\n3. Incluya campos de contacto: teléfono, nombre, correo y preferencias de propiedad.\n4. Guarde la configuración y envíe una carga útil de prueba."
       },
       "Gmail": {
         "instructions": "1. Open Gmail settings.\n2. Go to 'Forwarding and POP/IMAP'.\n3. Click 'Add a forwarding address' and enter the capture email above.\n4. Verify the forwarding address and set up a filter to forward real estate leads."

@@ -100,6 +100,7 @@ export interface AccountContext {
         connected: boolean;
         connected_at?: string;
         test_lead_received?: boolean;
+        api_key?: string;
       }
     >;
     cost_sheet_template_id?: string | null;

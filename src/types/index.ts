@@ -75,7 +75,12 @@ export interface Account {
   seat_limit: number;
   portal_connections: Record<
     string,
-    { connected: boolean; connected_at?: string; test_lead_received?: boolean }
+    {
+      connected: boolean;
+      connected_at?: string;
+      test_lead_received?: boolean;
+      api_key?: string;
+    }
   >;
   settings?: Record<string, unknown> | null;
   cost_sheet_template_id?: string | null;

@@ -34,6 +34,12 @@ const pageTitles: Record<string, string> = {
   '/broadcasts': 'broadcasts',
   '/automations': 'automations',
   '/settings': 'settings',
+  '/site-visits': 'visits',
+  '/flows': 'flows',
+  '/agents': 'aiAgents',
+  '/properties': 'properties',
+  '/team': 'team',
+  '/integrations': 'integrations',
 };
 
 function getPageTitleKey(pathname: string): string {

@@ -66,6 +66,8 @@
     "menuSignOut": "Sign out",
     "visits": "Site Visits",
     "properties": "Properties",
+    "integrations": "Integrations",
+    "team": "Team",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2626,6 +2628,12 @@
       },
       "HousingCom": {
         "instructions": "1. Log in to your Housing.com dashboard.\n2. Navigate to Account Settings > Communications.\n3. Add the capture email above to the 'CC Email' field.\n4. Save settings and send a test lead."
+      },
+      "MetaLeadAds": {
+        "instructions": "1. Log in to Meta Business Suite > Instant Forms.\n2. Navigate to CRM Integration or Webhooks.\n3. Paste the Webhook URL and enter the Webhook Secret below.\n4. Map form fields (Full Name, Phone, Email) and subscribe to leadgen events."
+      },
+      "CustomWebhooks": {
+        "instructions": "1. Configure your third-party lead form or landing page to POST JSON payloads.\n2. Use the live Webhook URL provided below with your API Key.\n3. Include contact fields: phone, name, email, and property preferences.\n4. Save settings and send a test payload."
       },
       "Gmail": {
         "instructions": "1. Open Gmail settings.\n2. Go to 'Forwarding and POP/IMAP'.\n3. Click 'Add a forwarding address' and enter the capture email above.\n4. Verify the forwarding address and set up a filter to forward real estate leads."

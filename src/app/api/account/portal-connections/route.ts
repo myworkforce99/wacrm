@@ -29,6 +29,7 @@ export async function PATCH(request: Request) {
     const body = (await request.json().catch(() => null)) as {
       portal?: string;
       connected?: boolean;
+      api_key?: string;
     } | null;
 
     if (
@@ -39,7 +40,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
 
-    const { portal, connected } = body;
+    const { portal, connected, api_key } = body;
     const currentConnections = ctx.account.portal_connections || {};
 
     const updatedConnections = {
@@ -48,6 +49,7 @@ export async function PATCH(request: Request) {
         ...currentConnections[portal],
         connected,
         connected_at: new Date().toISOString(),
+        ...(typeof api_key === 'string' ? { api_key } : {}),
       },
     };
 
