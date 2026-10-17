@@ -111,6 +111,7 @@ interface MessageThreadProps {
   contactPanelOpen?: boolean;
   onToggleContactPanel?: () => void;
   onOpenContactSidebar?: () => void;
+  initialDraftText?: string | null;
 }
 
 function formatDateSeparator(
@@ -177,6 +178,7 @@ export function MessageThread({
   contactPanelOpen,
   onToggleContactPanel,
   onOpenContactSidebar,
+  initialDraftText,
 }: MessageThreadProps) {
   const t = useTranslations('Inbox.messageThread');
   const tTimer = useTranslations('Inbox.sessionTimer');
@@ -1297,6 +1299,7 @@ export function MessageThread({
         onOpenTemplates={handleOpenTemplates}
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
+        initialText={initialDraftText}
       />
 
       <TemplatePicker

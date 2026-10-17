@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
@@ -14,12 +15,20 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Copy, Check, MessageCircle, Search } from 'lucide-react';
-import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import {
+  Copy,
+  Check,
+  MessageCircle,
+  Search,
+  ExternalLink,
+  User,
+  X,
+  Phone,
+  MessageSquare,
+} from 'lucide-react';
 
 interface PropertyShareModalProps {
   open: boolean;
@@ -33,12 +42,22 @@ export function PropertyShareModal({
   property,
 }: PropertyShareModalProps) {
   const t = useTranslations('Properties.share');
+  const router = useRouter();
   const supabase = createClient();
 
   const [copied, setCopied] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      setSelectedContact(null);
+      setContactSearch('');
+    }
+    onOpenChange(nextOpen);
+  }
 
   // Fetch recent contacts for quick WhatsApp dispatch
   useEffect(() => {
@@ -68,7 +87,7 @@ export function PropertyShareModal({
   }, [open, supabase]);
 
   const filteredContacts = useMemo(() => {
-    if (!contactSearch.trim()) return contacts.slice(0, 5);
+    if (!contactSearch.trim()) return contacts.slice(0, 6);
     const q = contactSearch.toLowerCase();
     return contacts
       .filter(
@@ -76,7 +95,7 @@ export function PropertyShareModal({
           c.name?.toLowerCase().includes(q) ||
           c.phone?.toLowerCase().includes(q)
       )
-      .slice(0, 5);
+      .slice(0, 8);
   }, [contacts, contactSearch]);
 
   const formattedMessage = useMemo(() => {
@@ -164,24 +183,33 @@ export function PropertyShareModal({
     window.open(url, '_blank');
   }
 
+  function handleChatInCrm(contact: Contact) {
+    onOpenChange(false);
+    const targetUrl = `/inbox?contactId=${contact.id}&text=${encodeURIComponent(formattedMessage)}`;
+    router.push(targetUrl);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto p-4 sm:max-w-xl sm:p-6">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold sm:text-lg">
             <MessageCircle className="size-5 text-emerald-500" />
             {t('title')}
           </DialogTitle>
-          <DialogDescription>{t('description')}</DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
+            {t('description')}
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Message preview block */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-              {t('previewLabel')}
-            </Label>
-            <div className="flex items-center gap-2">
+        {/* Content Container */}
+        <div className="space-y-4">
+          {/* Message preview block */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                {t('previewLabel')}
+              </Label>
               <Button
                 type="button"
                 variant="outline"
@@ -196,86 +224,148 @@ export function PropertyShareModal({
                 )}
                 {copied ? t('copied') : t('copy')}
               </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleShareWhatsAppGeneric}
-                className="h-8 gap-1.5 bg-emerald-600 text-xs text-white hover:bg-emerald-700"
-              >
-                <MessageCircle className="size-3.5" />
-                {t('openWhatsApp')}
-              </Button>
+            </div>
+
+            <div className="border-border bg-muted/40 text-foreground rounded-lg border p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap select-all">
+              {formattedMessage}
             </div>
           </div>
 
-          <div className="border-border bg-muted/40 text-foreground rounded-lg border p-3.5 font-mono text-xs leading-relaxed whitespace-pre-wrap select-all">
-            {formattedMessage}
-          </div>
-        </div>
-
-        {/* Send directly to lead/contact */}
-        <div className="border-border space-y-3 border-t pt-4">
-          <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-            {t('sendToLeadLabel')}
-          </Label>
-
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
-            <Input
-              value={contactSearch}
-              onChange={(e) => setContactSearch(e.target.value)}
-              placeholder={t('searchContactPlaceholder')}
-              className="h-9 pl-8 text-xs"
-            />
-          </div>
-
-          <div className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
-            {loadingContacts ? (
-              <p className="text-muted-foreground py-4 text-center text-xs">
-                {t('loadingContacts')}
-              </p>
-            ) : filteredContacts.length === 0 ? (
-              <p className="text-muted-foreground py-3 text-center text-xs">
-                {t('noContactsFound')}
-              </p>
-            ) : (
-              filteredContacts.map((contact) => (
-                <div
-                  key={contact.id}
-                  className="hover:bg-muted/60 hover:border-border flex items-center justify-between rounded-md border border-transparent p-2 text-xs transition-colors"
-                >
-                  <div className="min-w-0 pr-2">
-                    <p className="text-foreground truncate font-medium">
-                      {contact.name || t('unnamedLead')}
-                    </p>
-                    <p className="text-muted-foreground text-[11px]">
-                      {contact.phone || t('noPhone')}
-                    </p>
+          {/* Contact Selection & Dual Primary Actions */}
+          <div className="border-border space-y-3 border-t pt-3">
+            {selectedContact ? (
+              <div className="border-border/80 bg-primary/5 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-full">
+                      <User className="size-4" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-xs font-semibold">
+                        {selectedContact.name || t('unnamedLead')}
+                      </p>
+                      <p className="text-muted-foreground flex items-center gap-1 text-[11px]">
+                        <Phone className="size-3" />
+                        {selectedContact.phone || t('noPhone')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <Link
-                      href={`/inbox?contactId=${contact.id}`}
-                      className={cn(
-                        buttonVariants({ variant: 'ghost', size: 'sm' }),
-                        'text-muted-foreground hover:text-foreground h-7 px-2 text-xs'
-                      )}
-                    >
-                      {t('chatInCrm')}
-                    </Link>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleSendToContact(contact)}
-                      disabled={!contact.phone}
-                      className="h-7 gap-1 text-xs text-emerald-600 dark:text-emerald-400"
-                    >
-                      <MessageCircle className="size-3" />
-                      {t('sendBtn')}
-                    </Button>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedContact(null)}
+                    className="h-7 text-xs"
+                  >
+                    <X className="mr-1 size-3" />
+                    Change
+                  </Button>
                 </div>
-              ))
+
+                {/* Primary Dual Action Buttons for Selected Contact */}
+                <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleSendToContact(selectedContact)}
+                    disabled={!selectedContact.phone}
+                    className="h-10 gap-2 bg-emerald-600 text-xs font-medium text-white hover:bg-emerald-700"
+                  >
+                    <MessageCircle className="size-4" />
+                    {t('openWhatsApp')}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleChatInCrm(selectedContact)}
+                    className="border-primary/30 text-primary hover:bg-primary/10 h-10 gap-2 text-xs font-medium"
+                  >
+                    <MessageSquare className="size-4" />
+                    {t('chatInCrm')}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                    {t('sendToLeadLabel')}
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleShareWhatsAppGeneric}
+                    className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 h-7 gap-1 text-xs"
+                  >
+                    <ExternalLink className="size-3" />
+                    {t('openWhatsApp')} (Direct)
+                  </Button>
+                </div>
+
+                <div className="relative">
+                  <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
+                  <Input
+                    value={contactSearch}
+                    onChange={(e) => setContactSearch(e.target.value)}
+                    placeholder={t('searchContactPlaceholder')}
+                    className="h-9 pl-8 text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  {loadingContacts ? (
+                    <p className="text-muted-foreground py-4 text-center text-xs">
+                      {t('loadingContacts')}
+                    </p>
+                  ) : filteredContacts.length === 0 ? (
+                    <p className="text-muted-foreground py-3 text-center text-xs">
+                      {t('noContactsFound')}
+                    </p>
+                  ) : (
+                    filteredContacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="hover:bg-muted/60 hover:border-border flex items-center justify-between rounded-md border border-transparent p-2 text-xs transition-colors"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setSelectedContact(contact)}
+                          className="min-w-0 flex-1 pr-2 text-left"
+                        >
+                          <p className="text-foreground truncate font-medium">
+                            {contact.name || t('unnamedLead')}
+                          </p>
+                          <p className="text-muted-foreground text-[11px]">
+                            {contact.phone || t('noPhone')}
+                          </p>
+                        </button>
+                        <div className="flex shrink-0 items-center gap-1.5">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleChatInCrm(contact)}
+                            className="text-muted-foreground hover:text-foreground h-8 px-2 text-xs"
+                          >
+                            {t('chatInCrm')}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleSendToContact(contact)}
+                            disabled={!contact.phone}
+                            className="h-8 gap-1 px-2.5 text-xs text-emerald-600 dark:text-emerald-400"
+                          >
+                            <MessageCircle className="size-3" />
+                            {t('sendBtn')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
             )}
           </div>
         </div>

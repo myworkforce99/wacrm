@@ -946,12 +946,43 @@ export default function PropertiesPage() {
               {filteredProperties.map((property) => (
                 <Card
                   key={property.id}
-                  className="border-border/70 hover:border-primary/50 flex flex-col justify-between overflow-hidden shadow-xs transition-colors"
+                  className="border-border/70 hover:border-primary/50 flex h-full flex-col justify-between overflow-hidden shadow-xs transition-colors"
                 >
-                  <CardContent className="space-y-3 p-4">
-                    {/* Header: Title, Builder & Price */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
+                  {/* Property Visual Header / Thumbnail Placeholder */}
+                  <div className="bg-muted/40 border-border/50 group relative flex h-32 w-full items-center justify-center overflow-hidden border-b">
+                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] opacity-30 [background-size:14px_14px] dark:bg-[radial-gradient(#475569_1px,transparent_1px)]" />
+                    <div className="text-muted-foreground/60 z-10 flex flex-col items-center justify-center gap-1 transition-transform duration-200 group-hover:scale-105">
+                      <Building className="size-7" />
+                      <span className="text-[10px] font-semibold tracking-wider uppercase">
+                        {property.property_type || 'Residential'}
+                      </span>
+                    </div>
+
+                    {/* Possession Badge overlay (top-left) */}
+                    <div className="absolute top-2.5 left-2.5 z-10">
+                      {renderPossessionBadge(
+                        property.possession_status,
+                        property.possession_date
+                      )}
+                    </div>
+
+                    {/* Price Badge overlay (top-right) */}
+                    {property.price && (
+                      <div className="absolute top-2.5 right-2.5 z-10">
+                        <Badge
+                          variant="secondary"
+                          className="border-border/60 bg-background/90 text-foreground text-xs font-bold shadow-xs backdrop-blur-xs"
+                        >
+                          {formatINR(property.price)}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+
+                  <CardContent className="flex flex-1 flex-col justify-between space-y-3 p-4">
+                    <div className="space-y-2.5">
+                      {/* Header: Title & Project */}
+                      <div>
                         <button
                           type="button"
                           onClick={() =>
@@ -970,70 +1001,57 @@ export default function PropertiesPage() {
                         )}
                       </div>
 
-                      {property.price && (
-                        <Badge
-                          variant="secondary"
-                          className="text-foreground shrink-0 text-xs font-bold"
-                        >
-                          {formatINR(property.price)}
-                        </Badge>
-                      )}
-                    </div>
-
-                    {/* Specs strip */}
-                    <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
-                      {property.configuration && (
-                        <span className="text-primary font-semibold">
-                          {property.configuration}
-                        </span>
-                      )}
-                      {property.carpet_area && (
-                        <span>
-                          • {property.carpet_area} {t('sqft')}
-                        </span>
-                      )}
-                      {property.facing && (
-                        <span>
-                          • {property.facing} {t('facingSuffix')}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Location */}
-                    {property.location && (
-                      <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-                        <MapPin className="text-muted-foreground size-3.5 shrink-0" />
-                        <span className="truncate">{property.location}</span>
-                      </div>
-                    )}
-
-                    {/* Badges: Possession + RERA */}
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      {renderPossessionBadge(
-                        property.possession_status,
-                        property.possession_date
-                      )}
-                      {renderReraBadge(property.rera_id)}
-                    </div>
-
-                    {/* Tags */}
-                    {property.tags && property.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {property.tags.slice(0, 3).map((tag, i) => (
-                          <span
-                            key={i}
-                            className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
-                          >
-                            {tag}
+                      {/* Specs row */}
+                      <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
+                        {property.configuration && (
+                          <span className="text-primary font-semibold">
+                            {property.configuration}
                           </span>
-                        ))}
-                        {property.tags.length > 3 && (
-                          <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
-                            +{property.tags.length - 3}
+                        )}
+                        {property.carpet_area && (
+                          <span>
+                            • {property.carpet_area} {t('sqft')}
+                          </span>
+                        )}
+                        {property.facing && (
+                          <span>
+                            • {property.facing} {t('facingSuffix')}
                           </span>
                         )}
                       </div>
-                    )}
+
+                      {/* Location */}
+                      {property.location && (
+                        <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                          <MapPin className="text-muted-foreground size-3.5 shrink-0" />
+                          <span className="truncate">{property.location}</span>
+                        </div>
+                      )}
+
+                      {/* RERA Badge */}
+                      <div className="pt-0.5">
+                        {renderReraBadge(property.rera_id)}
+                      </div>
+
+                      {/* Tags */}
+                      {property.tags && property.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-0.5">
+                          {property.tags.slice(0, 3).map((tag, i) => (
+                            <span
+                              key={i}
+                              className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {property.tags.length > 3 && (
+                            <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
+                              +{property.tags.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
 
                   {/* 1-Tap Mobile Action Bar */}

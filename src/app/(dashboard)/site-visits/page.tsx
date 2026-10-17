@@ -456,7 +456,7 @@ function VisitCard({
             href={`https://wa.me/${visit.contact.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noreferrer"
-            className="text-muted-foreground rounded-lg p-1.5 transition-colors hover:bg-[#25D366]/10 hover:text-[#25D366]"
+            className="text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg p-1.5 transition-colors"
             title={t('chatWhatsApp')}
           >
             <WhatsAppIcon className="size-4" />
@@ -672,7 +672,7 @@ function MobileVisitCard({
             rel="noreferrer"
             className="flex flex-col items-center justify-center rounded-xl bg-emerald-500/10 py-2 text-xs font-medium text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400"
           >
-            <WhatsAppIcon className="mb-0.5 size-4 text-[#25D366]" />
+            <WhatsAppIcon className="mb-0.5 size-4 text-emerald-600 dark:text-emerald-400" />
             <span>{t('whatsapp')}</span>
           </a>
         ) : (
@@ -1842,7 +1842,7 @@ export default function SiteVisitsPage() {
                                   href={`https://wa.me/${v.contact.phone.replace(/\D/g, '')}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-muted-foreground rounded-md p-1.5 transition-colors hover:bg-[#25D366]/10 hover:text-[#25D366]"
+                                  className="text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-md p-1.5 transition-colors"
                                   title={t('chatWhatsApp')}
                                 >
                                   <WhatsAppIcon className="size-3.5" />

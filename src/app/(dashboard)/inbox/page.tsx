@@ -49,11 +49,13 @@ function InboxPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   /**
-   * `?c=<id>` deep-link support. Used when landing here from the
-   * dashboard's recent-conversations list so the right thread opens
-   * automatically instead of showing the empty center panel.
+   * `?c=<id>` or `?contactId=<id>` deep-link support. Used when landing here from the
+   * dashboard's recent-conversations list, property share modal, or contacts list.
+   * `?text=<msg>` optionally pre-fills the message composer.
    */
   const deepLinkConvId = searchParams.get('c');
+  const deepLinkContactId = searchParams.get('contactId');
+  const deepLinkText = searchParams.get('text');
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] =
@@ -192,6 +194,50 @@ function InboxPageInner() {
       hydratingConvIdsRef.current.delete(convId);
     }
   }, []);
+
+  // Direct DB resolution for deep-linked conversation or contact
+  useEffect(() => {
+    if (!deepLinkConvId && !deepLinkContactId) return;
+    const targetKey =
+      deepLinkConvId || (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
+    if (!targetKey || autoSelectedForDeepLinkRef.current === targetKey) return;
+
+    let cancelled = false;
+    async function resolveDeepLink() {
+      const supabase = createClient();
+      let query = supabase.from('conversations').select(CONVERSATION_SELECT);
+      if (deepLinkConvId) {
+        query = query.eq('id', deepLinkConvId);
+      } else if (deepLinkContactId) {
+        query = query.eq('contact_id', deepLinkContactId);
+      }
+
+      const { data, error } = await query.maybeSingle();
+      if (!cancelled && data && !error) {
+        const fetched = normalizeConversation(data);
+        autoSelectedForDeepLinkRef.current = fetched.id;
+        setConversations((prev) => {
+          const exists = prev.find((c) => c.id === fetched.id);
+          if (exists) return prev;
+          return [fetched, ...prev];
+        });
+        setActiveConversation(fetched);
+        setActiveContact(fetched.contact ?? null);
+        setMessages([]);
+        if (deepLinkContactId) {
+          router.replace(
+            `/inbox?c=${fetched.id}${deepLinkText ? `&text=${encodeURIComponent(deepLinkText)}` : ''}`,
+            { scroll: false }
+          );
+        }
+      }
+    }
+
+    void resolveDeepLink();
+    return () => {
+      cancelled = true;
+    };
+  }, [deepLinkConvId, deepLinkContactId, deepLinkText, router]);
 
   // Check WhatsApp connection status on mount
   useEffect(() => {
@@ -427,31 +473,28 @@ function InboxPageInner() {
       // react-hooks/set-state-in-effect. Runs once per ?c=<id> URL value
       // via the ref, so realtime refreshes of the list can't snap the
       // user back to the deep-linked thread after they've navigated.
+      const deepLinkIdentifier = deepLinkConvId || (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
       if (
-        deepLinkConvId &&
-        autoSelectedForDeepLinkRef.current !== deepLinkConvId &&
+        deepLinkIdentifier &&
+        autoSelectedForDeepLinkRef.current !== deepLinkIdentifier &&
         loaded.length > 0
       ) {
-        autoSelectedForDeepLinkRef.current = deepLinkConvId;
-        // If the deep-linked conversation is already the active one
-        // (e.g. because the user clicked it in the list and we
-        // router.replace()'d the URL, which made the ConversationList
-        // refetch and land us back here), do NOT re-apply it. Doing so
-        // would setMessages([]) on a thread whose messages have
-        // already been loaded by MessageThread — and because
-        // conversationId didn't change, MessageThread wouldn't
-        // refetch. The thread would read "No messages yet" until a
-        // full page reload rehydrated state from scratch.
-        if (activeConversation?.id === deepLinkConvId) return;
-        const match = loaded.find((c) => c.id === deepLinkConvId);
+        autoSelectedForDeepLinkRef.current = deepLinkIdentifier;
+        const match = deepLinkConvId
+          ? loaded.find((c) => c.id === deepLinkConvId)
+          : deepLinkContactId
+            ? loaded.find(
+                (c) =>
+                  c.contact_id === deepLinkContactId ||
+                  c.contact?.id === deepLinkContactId
+              )
+            : null;
+
         if (match) {
+          if (activeConversation?.id === match.id) return;
           setActiveConversation(match);
           setActiveContact(match.contact ?? null);
           setMessages([]);
-          // Mirror the optimistic unread reset that handleSelectConversation
-          // does — the user just deep-linked into this conv, treat that the
-          // same as a click. Leaves activeConversation.unread_count alone so
-          // the MessageThread reset effect still fires the server UPDATE.
           if (match.unread_count > 0) {
             setConversations((prev) =>
               prev.map((c) =>
@@ -462,7 +505,7 @@ function InboxPageInner() {
         }
       }
     },
-    [deepLinkConvId, activeConversation?.id]
+    [deepLinkConvId, deepLinkContactId, activeConversation?.id]
   );
 
   const handleSelectConversation = useCallback(
@@ -585,12 +628,18 @@ function InboxPageInner() {
   }, [hasActiveConv, setHideMobileBars]);
 
   useEffect(() => {
-    if (!deepLinkConvId && activeConversation) {
+    if (
+      !deepLinkConvId &&
+      !deepLinkContactId &&
+      activeConversation &&
+      autoSelectedForDeepLinkRef.current
+    ) {
       setActiveConversation(null);
       setActiveContact(null);
       setMessages([]);
+      autoSelectedForDeepLinkRef.current = null;
     }
-  }, [deepLinkConvId, activeConversation]);
+  }, [deepLinkConvId, deepLinkContactId, activeConversation]);
 
   return (
     <div className="border-border bg-card flex h-full w-full flex-1 flex-col overflow-hidden md:rounded-xl md:border md:shadow-xs">
@@ -654,6 +703,7 @@ function InboxPageInner() {
             contactPanelOpen={contactPanelOpen}
             onToggleContactPanel={handleToggleContactPanel}
             onOpenContactSidebar={() => setMobileContactOpen(true)}
+            initialDraftText={deepLinkText}
           />
         </div>
 
