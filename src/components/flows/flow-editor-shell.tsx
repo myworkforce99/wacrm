@@ -140,7 +140,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
         )}
 
         {/* ---- stage: the active view, owning its own overflow ---- */}
-        <div className="border-border bg-card-2 relative mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border">
+        <div className="border-border bg-card-2 relative mx-3 sm:mx-6 min-h-0 flex-1 overflow-hidden rounded-xl border">
           {effectiveView === 'canvas' ? (
             <FlowCanvas />
           ) : (
@@ -151,7 +151,7 @@ export function FlowEditorShell({ initialFlow, initialNodes }: Props) {
         </div>
 
         {/* ---- validation / activate-readiness bar ---- */}
-        <div className="px-6 pt-3 pb-5">
+        <div className="px-3 sm:px-6 pt-3 pb-5">
           <ValidationPanel />
         </div>
       </div>

@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { MessageTemplate } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileText, ArrowRight } from 'lucide-react';
+import { Loader2, FileText, ArrowRight, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
 
 const categoryColors: Record<string, string> = {
@@ -31,6 +32,7 @@ export function Step1ChooseTemplate({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterTag, setFilterTag] = useState<'all' | 'real-estate'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     async function fetchTemplates() {
@@ -103,21 +105,32 @@ export function Step1ChooseTemplate({
         </p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Button
-          variant={filterTag === 'all' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterTag('all')}
-        >
-          All Templates
-        </Button>
-        <Button
-          variant={filterTag === 'real-estate' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setFilterTag('real-estate')}
-        >
-          Real Estate
-        </Button>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search templates..."
+            className="pl-8 border-border bg-muted/50 text-foreground"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={filterTag === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterTag('all')}
+          >
+            All Templates
+          </Button>
+          <Button
+            variant={filterTag === 'real-estate' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilterTag('real-estate')}
+          >
+            Real Estate
+          </Button>
+        </div>
       </div>
 
       {templates.length === 0 ? (
@@ -134,12 +147,17 @@ export function Step1ChooseTemplate({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates
             .filter((t: MessageTemplate) => {
-              if (filterTag === 'all') return true;
-              // broadcast_templates rows are spread into MessageTemplate shape but
-              // carry an extra tags?: string[] field. Use a typed intersection
-              // cast rather than `as any` to keep the compiler's structural checks.
-              const tags = (t as MessageTemplate & { tags?: string[] }).tags;
-              return Array.isArray(tags) && tags.includes(filterTag);
+              if (filterTag !== 'all') {
+                const tags = (t as MessageTemplate & { tags?: string[] }).tags;
+                if (!Array.isArray(tags) || !tags.includes(filterTag)) return false;
+              }
+              if (searchQuery.trim()) {
+                const q = searchQuery.toLowerCase();
+                const nameMatch = t.name.toLowerCase().includes(q);
+                const bodyMatch = t.body_text?.toLowerCase().includes(q);
+                if (!nameMatch && !bodyMatch) return false;
+              }
+              return true;
             })
             .map((template) => {
               const isSelected = selectedTemplate?.id === template.id;

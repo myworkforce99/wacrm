@@ -447,7 +447,6 @@
       "filterUnassigned": "Não atribuído",
       "filterMyLeads": "Atribuídos a mim",
       "callAction": "Ligar",
-      "editAction": "Editar",
       "detailsAction": "Detalhes",
       "whatsappAction": "Conversar no WhatsApp",
       "scheduleVisitAction": "Agendar visita",
@@ -1223,6 +1222,26 @@
         "time_based": {
           "label": "Por horário",
           "hint": "Em um agendamento recorrente"
+        },
+        "visit_reminder_24h": {
+          "label": "Site Visit (24h Before)",
+          "hint": "Sent 24 hours before a scheduled site visit"
+        },
+        "visit_reminder_2h": {
+          "label": "Site Visit (2h Before)",
+          "hint": "Sent 2 hours before a confirmed site visit"
+        },
+        "visit_no_show": {
+          "label": "Site Visit No-Show",
+          "hint": "Triggered when a pending visit passes its scheduled time without attendance"
+        },
+        "sla_breach": {
+          "label": "SLA Response Breach",
+          "hint": "Triggered when an inbound inquiry exceeds first response SLA"
+        },
+        "stale_lead": {
+          "label": "Stale Lead (No Activity)",
+          "hint": "Triggered when a lead has had no activity for a designated period"
         }
       },
       "trigger": "Gatilho",

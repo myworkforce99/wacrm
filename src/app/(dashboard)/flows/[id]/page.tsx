@@ -33,12 +33,6 @@ export default function FlowEditorPage() {
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    if (window.innerWidth < 768) {
-      router.push('/flows');
-    }
-  }, [router]);
-
-  useEffect(() => {
     if (!params.id) return;
     let cancelled = false;
     (async () => {

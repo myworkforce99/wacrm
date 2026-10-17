@@ -14,7 +14,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ArrowLeft, Send, Loader2, Users, Save } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Users,
+  Save,
+  Check,
+  Zap,
+  CalendarClock,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 interface AudienceConfig {
@@ -50,6 +59,18 @@ export function Step4ScheduleSend({
   const [showConfirm, setShowConfirm] = useState(false);
   const [estimatedReach, setEstimatedReach] = useState<number>(0);
   const [loadingReach, setLoadingReach] = useState(true);
+  const [sendLater, setSendLater] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState('');
+
+  const costPerMessage =
+    template.category?.toUpperCase() === 'MARKETING'
+      ? 0.78
+      : template.category?.toUpperCase() === 'UTILITY'
+        ? 0.35
+        : template.category?.toUpperCase() === 'AUTHENTICATION'
+          ? 0.15
+          : 0.5;
+  const estimatedCost = (estimatedReach * costPerMessage).toFixed(2);
 
   useEffect(() => {
     async function calculateReach() {
@@ -127,18 +148,18 @@ export function Step4ScheduleSend({
         <p className="text-foreground text-sm font-medium">
           {t('scheduleSend.summary')}
         </p>
-        <div className="grid grid-cols-2 gap-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 text-sm">
           <div>
             <p className="text-muted-foreground text-xs">
               {t('scheduleSend.template')}
             </p>
-            <p className="text-foreground">{template.name}</p>
+            <p className="text-foreground font-medium truncate">{template.name}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">
               {t('scheduleSend.audience')}
             </p>
-            <p className="text-foreground">{audienceLabel}</p>
+            <p className="text-foreground font-medium">{audienceLabel}</p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">
@@ -161,9 +182,150 @@ export function Step4ScheduleSend({
             <p className="text-muted-foreground text-xs">
               {t('scheduleSend.language')}
             </p>
-            <p className="text-foreground">{template.language ?? 'en_US'}</p>
+            <p className="text-foreground font-medium">{template.language ?? 'en_US'}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Category</p>
+            <p className="text-foreground font-medium">{template.category}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Estimated Cost</p>
+            <p className="text-foreground font-medium">
+              ₹{estimatedCost}{' '}
+              <span className="text-muted-foreground text-[10px] font-normal">
+                (~₹{costPerMessage}/msg)
+              </span>
+            </p>
           </div>
         </div>
+      </div>
+
+      {/* Delivery Schedule Section (Segmented Radio Cards) */}
+      <div className="space-y-3">
+        <div>
+          <label className="text-foreground block text-sm font-semibold">
+            Delivery Schedule
+          </label>
+          <p className="text-muted-foreground text-xs mt-0.5">
+            Select when this broadcast campaign should be dispatched.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Card 1: Send Immediately */}
+          <button
+            type="button"
+            onClick={() => setSendLater(false)}
+            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+              !sendLater
+                ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                : 'border-border bg-card/60 hover:bg-card hover:border-border'
+            }`}
+          >
+            <div
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                !sendLater
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-muted-foreground/40 bg-muted/30'
+              }`}
+            >
+              {!sendLater && <Check className="h-3 w-3 stroke-[3]" />}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <Zap
+                  className={`h-4 w-4 ${
+                    !sendLater ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                />
+                <span className="text-foreground text-sm font-semibold">
+                  Send Immediately
+                </span>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Dispatch messages to recipients right now upon confirmation.
+              </p>
+            </div>
+          </button>
+
+          {/* Card 2: Schedule for Later */}
+          <button
+            type="button"
+            onClick={() => {
+              setSendLater(true);
+              if (!scheduledTime) {
+                const inOneHour = new Date(Date.now() + 60 * 60 * 1000);
+                inOneHour.setMinutes(0, 0, 0);
+                const localISO = new Date(
+                  inOneHour.getTime() - inOneHour.getTimezoneOffset() * 60000
+                )
+                  .toISOString()
+                  .slice(0, 16);
+                setScheduledTime(localISO);
+              }
+            }}
+            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+              sendLater
+                ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                : 'border-border bg-card/60 hover:bg-card hover:border-border'
+            }`}
+          >
+            <div
+              className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                sendLater
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-muted-foreground/40 bg-muted/30'
+              }`}
+            >
+              {sendLater && <Check className="h-3 w-3 stroke-[3]" />}
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5">
+                <CalendarClock
+                  className={`h-4 w-4 ${
+                    sendLater ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                />
+                <span className="text-foreground text-sm font-semibold">
+                  Schedule for Later
+                </span>
+              </div>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                Set a future date and time for automatic background sending.
+              </p>
+            </div>
+          </button>
+        </div>
+
+        {/* Date Time Picker Drawer when Schedule for Later is active */}
+        {sendLater && (
+          <div className="border-border bg-card/60 space-y-2 rounded-xl border p-4">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="text-primary h-4 w-4" />
+              <label className="text-foreground text-sm font-medium">
+                Choose Broadcast Date & Time
+              </label>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Input
+                type="datetime-local"
+                value={scheduledTime}
+                min={new Date(
+                  Date.now() - new Date().getTimezoneOffset() * 60000
+                )
+                  .toISOString()
+                  .slice(0, 16)}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                className="border-border bg-muted text-foreground max-w-xs font-mono text-xs"
+              />
+              <span className="text-muted-foreground text-xs">
+                Local Timezone (
+                {Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'}
+                )
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Processing overlay */}
@@ -217,29 +379,60 @@ export function Step4ScheduleSend({
             <DialogTrigger
               render={
                 <Button
-                  disabled={!name.trim() || isProcessing}
+                  disabled={
+                    !name.trim() ||
+                    isProcessing ||
+                    (sendLater && !scheduledTime)
+                  }
                   className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 />
               }
             >
-              <Send className="h-4 w-4" />
-              {t('scheduleSend.sendNow')}
+              {sendLater ? (
+                <>
+                  <CalendarClock className="h-4 w-4" />
+                  Schedule Broadcast
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  {t('scheduleSend.sendNow')}
+                </>
+              )}
             </DialogTrigger>
             <DialogContent className="border-border bg-popover sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="text-popover-foreground">
-                  {t('scheduleSend.confirmTitle')}
+                  {sendLater
+                    ? 'Schedule Broadcast?'
+                    : t('scheduleSend.confirmTitle')}
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  {t.rich('scheduleSend.confirmDesc', {
-                    count: estimatedReach,
-                    template: template.name,
-                    b: (chunks) => (
+                  {sendLater ? (
+                    <>
+                      This broadcast will be queued to send to{' '}
                       <span className="text-popover-foreground font-medium">
-                        {chunks}
+                        {estimatedReach.toLocaleString()}
+                      </span>{' '}
+                      contacts on{' '}
+                      <span className="text-popover-foreground font-medium">
+                        {scheduledTime
+                          ? new Date(scheduledTime).toLocaleString()
+                          : 'the selected time'}
                       </span>
-                    ),
-                  })}
+                      .
+                    </>
+                  ) : (
+                    t.rich('scheduleSend.confirmDesc', {
+                      count: estimatedReach,
+                      template: template.name,
+                      b: (chunks) => (
+                        <span className="text-popover-foreground font-medium">
+                          {chunks}
+                        </span>
+                      ),
+                    })
+                  )}
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
@@ -257,8 +450,17 @@ export function Step4ScheduleSend({
                   }}
                   className="bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  <Send className="h-4 w-4" />
-                  {t('scheduleSend.sendNow')}
+                  {sendLater ? (
+                    <>
+                      <CalendarClock className="h-4 w-4" />
+                      Confirm Schedule
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      {t('scheduleSend.sendNow')}
+                    </>
+                  )}
                 </Button>
               </DialogFooter>
             </DialogContent>

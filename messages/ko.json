@@ -418,7 +418,7 @@
       "noContactsYet": "아직 연락처가 없습니다.",
       "addFirstContact": "첫 연락처 추가하기",
       "unnamed": "이름 없음",
-      "editAction": "수정",
+      "editAction": "편집",
       "deleteAction": "삭제",
       "showingPagination": "전체 {total}개 중 {start}-{end}",
       "pageCount": "{total} 중 {page}페이지",
@@ -447,7 +447,6 @@
       "filterUnassigned": "미지정",
       "filterMyLeads": "내게 배정됨",
       "callAction": "전화 걸기",
-      "editAction": "편집",
       "detailsAction": "상세",
       "whatsappAction": "WhatsApp 채팅",
       "scheduleVisitAction": "현장 방문 예약",
@@ -1223,6 +1222,26 @@
         "time_based": {
           "label": "시간 기반",
           "hint": "반복 일정에 따라"
+        },
+        "visit_reminder_24h": {
+          "label": "Site Visit (24h Before)",
+          "hint": "Sent 24 hours before a scheduled site visit"
+        },
+        "visit_reminder_2h": {
+          "label": "Site Visit (2h Before)",
+          "hint": "Sent 2 hours before a confirmed site visit"
+        },
+        "visit_no_show": {
+          "label": "Site Visit No-Show",
+          "hint": "Triggered when a pending visit passes its scheduled time without attendance"
+        },
+        "sla_breach": {
+          "label": "SLA Response Breach",
+          "hint": "Triggered when an inbound inquiry exceeds first response SLA"
+        },
+        "stale_lead": {
+          "label": "Stale Lead (No Activity)",
+          "hint": "Triggered when a lead has had no activity for a designated period"
         }
       },
       "trigger": "트리거",

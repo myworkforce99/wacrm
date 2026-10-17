@@ -263,7 +263,7 @@ export default function FlowsPage() {
             canAct={canCreate}
             gateReason="create flows"
             onClick={() => setCreateOpen(true)}
-            className="hidden md:inline-flex"
+            className="inline-flex"
           >
             <Plus className="h-4 w-4" />
             {t('newFlow')}
@@ -271,7 +271,7 @@ export default function FlowsPage() {
         </header>
 
         {flows.length === 0 ? (
-          <div className="hidden md:block">
+          <div>
             <EmptyState
               onCreate={() => setCreateOpen(true)}
               canCreate={canCreate}
@@ -471,7 +471,7 @@ function FlowCard({
         </span>
       </div>
 
-      <div className="border-border mt-4 hidden items-center justify-end gap-2 border-t pt-3 md:flex">
+      <div className="border-border mt-4 flex items-center justify-end gap-2 border-t pt-3">
         <Button variant="ghost" size="sm" onClick={onEdit}>
           <Pencil className="h-3.5 w-3.5" />
           {t('edit')}
@@ -480,7 +480,7 @@ function FlowCard({
           variant="ghost"
           size="sm"
           onClick={onDelete}
-          className="text-red-400 hover:bg-red-500/10 hover:text-red-300"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="h-3.5 w-3.5" />
           {t('delete')}

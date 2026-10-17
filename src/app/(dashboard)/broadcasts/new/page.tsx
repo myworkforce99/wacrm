@@ -141,7 +141,16 @@ export default function NewBroadcastPage() {
       </div>
 
       {/* Step Indicator */}
-      <div className="flex items-center justify-between">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between sm:hidden px-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+            Step {currentStep + 1} of {steps.length}
+          </span>
+          <span className="text-foreground text-xs font-medium">
+            {t(`steps.${steps[currentStep].label}`)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
         {steps.map((step, index) => {
           const isActive = index === currentStep;
           const isCompleted = index < currentStep;
@@ -182,6 +191,7 @@ export default function NewBroadcastPage() {
             </div>
           );
         })}
+      </div>
       </div>
 
       {/* Step Content */}
