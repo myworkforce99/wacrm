@@ -15,9 +15,16 @@ import type {
   ConversationStatus,
 } from '@/types';
 import { useRealtime } from '@/hooks/use-realtime';
+import { useMobileNav } from '@/app/(dashboard)/dashboard-shell';
 import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
 import { ContactSidebar } from '@/components/inbox/contact-sidebar';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 
 import { WifiOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -52,6 +59,7 @@ function InboxPageInner() {
   const [activeConversation, setActiveConversation] =
     useState<Conversation | null>(null);
   const [activeContact, setActiveContact] = useState<Contact | null>(null);
+  const [mobileContactOpen, setMobileContactOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(
     null
@@ -503,6 +511,7 @@ function InboxPageInner() {
   const handleCloseConversation = useCallback(() => {
     setActiveConversation(null);
     setActiveContact(null);
+    setMobileContactOpen(false);
     setMessages([]);
     // Clearing the ref lets the deep-link auto-selector fire again if
     // the user later visits /inbox?c=<same-id> — desirable UX.
@@ -568,9 +577,23 @@ function InboxPageInner() {
   // it back to the list. On lg+ both panes render side-by-side as
   // before, unchanged.
   const hasActiveConv = !!activeConversation;
+  const { setHideMobileBars } = useMobileNav();
+
+  useEffect(() => {
+    setHideMobileBars(hasActiveConv);
+    return () => setHideMobileBars(false);
+  }, [hasActiveConv, setHideMobileBars]);
+
+  useEffect(() => {
+    if (!deepLinkConvId && activeConversation) {
+      setActiveConversation(null);
+      setActiveContact(null);
+      setMessages([]);
+    }
+  }, [deepLinkConvId, activeConversation]);
 
   return (
-    <div className="-mx-6 -mt-6 -mb-20 flex h-[calc(100dvh-11rem)] flex-col overflow-hidden md:-mx-8 md:-my-7 md:h-[calc(100dvh-7rem)]">
+    <div className="border-border bg-card flex h-full w-full flex-1 flex-col overflow-hidden md:rounded-xl md:border md:shadow-xs">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
       {whatsappConnected === false && (
@@ -586,8 +609,8 @@ function InboxPageInner() {
             thread can occupy the full width. Always visible on lg+. */}
         <div
           className={cn(
-            'flex h-full flex-1 lg:flex-none',
-            hasActiveConv ? 'hidden lg:flex' : 'flex'
+            'h-full flex-1 lg:flex-none',
+            hasActiveConv ? 'hidden lg:flex lg:w-[340px]' : 'flex w-full lg:w-[340px]'
           )}
         >
           <ConversationList
@@ -612,8 +635,8 @@ function InboxPageInner() {
             on the right. Issue #165. */}
         <div
           className={cn(
-            'flex h-full min-w-0 flex-1 lg:flex',
-            hasActiveConv ? 'flex' : 'hidden lg:flex'
+            'h-full min-w-0 flex-1',
+            hasActiveConv ? 'flex w-full' : 'hidden lg:flex'
           )}
         >
           <MessageThread
@@ -630,6 +653,7 @@ function InboxPageInner() {
             onRefresh={handleManualRefresh}
             contactPanelOpen={contactPanelOpen}
             onToggleContactPanel={handleToggleContactPanel}
+            onOpenContactSidebar={() => setMobileContactOpen(true)}
           />
         </div>
 
@@ -643,6 +667,20 @@ function InboxPageInner() {
           </div>
         )}
       </div>
+
+      {/* Mobile slide-over Sheet for ContactSidebar */}
+      <Sheet open={mobileContactOpen} onOpenChange={setMobileContactOpen}>
+        <SheetContent side="right" className="w-[90vw] sm:max-w-md p-0 overflow-hidden flex flex-col">
+          <SheetHeader className="p-4 border-b border-border shrink-0">
+            <SheetTitle className="text-left text-base">
+              {activeContact?.name || activeContact?.phone || 'Contact Details'}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto">
+            <ContactSidebar contact={activeContact} />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -28,6 +28,7 @@ import {
   RefreshCw,
   PanelRightOpen,
   PanelRightClose,
+  User,
 } from 'lucide-react';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useTranslations } from 'next-intl';
@@ -109,6 +110,7 @@ interface MessageThreadProps {
    */
   contactPanelOpen?: boolean;
   onToggleContactPanel?: () => void;
+  onOpenContactSidebar?: () => void;
 }
 
 function formatDateSeparator(
@@ -174,6 +176,7 @@ export function MessageThread({
   onRefresh,
   contactPanelOpen,
   onToggleContactPanel,
+  onOpenContactSidebar,
 }: MessageThreadProps) {
   const t = useTranslations('Inbox.messageThread');
   const tTimer = useTranslations('Inbox.sessionTimer');
@@ -967,8 +970,8 @@ export function MessageThread({
     <div className={cn('flex min-w-0 flex-1 flex-col', DOODLE_BG_CLASSES)}>
       {/* Header — solid card surface sits on top of the doodle so the
           name/avatar/dropdowns stay legible. */}
-      <div className="border-border bg-card flex items-center justify-between gap-2 border-b px-3 py-3 sm:px-4">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+      <div className="border-border bg-card flex items-center justify-between gap-1.5 border-b px-2.5 py-2.5 sm:px-4 sm:py-3">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
           {/* Back-to-list button — mobile only. Hidden on lg+ where the
               conversation list is always visible next to the thread. */}
           {onBack && (
@@ -981,23 +984,31 @@ export function MessageThread({
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
-          <div className="bg-muted text-foreground flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-medium">
-            {displayName.charAt(0).toUpperCase()}
+          <div
+            onClick={onOpenContactSidebar}
+            className={cn(
+              'flex items-center gap-2 min-w-0',
+              onOpenContactSidebar && 'cursor-pointer hover:opacity-80 transition-opacity'
+            )}
+            title={contact ? 'View contact details' : undefined}
+          >
+            <div className="bg-muted text-foreground flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-medium">
+              {displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-foreground truncate text-sm font-semibold">
+                {displayName}
+              </h2>
+              <p className="text-muted-foreground truncate text-[11px] sm:text-xs">
+                {contactHandle(contact)}
+              </p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <h2 className="text-foreground truncate text-sm font-semibold">
-              {displayName}
-            </h2>
-            <p className="text-muted-foreground truncate text-xs">
-              {contactHandle(contact)}
-            </p>
-          </div>
-          {/* Session timer badge — hidden on the narrowest phones so
-              the name + back arrow keep their room. */}
+          {/* Session timer badge — hidden on mobile so the name + back arrow keep room */}
           <Badge
             variant="outline"
             className={cn(
-              'border-border ml-1 hidden gap-1 text-[10px] sm:ml-2 sm:inline-flex',
+              'border-border ml-1 hidden gap-1 text-[10px] sm:ml-2 md:inline-flex',
               sessionInfo.expired ? 'text-red-400' : 'text-primary'
             )}
           >
@@ -1007,17 +1018,28 @@ export function MessageThread({
           {conversation.first_unanswered_at && (
             <SlaBadge
               firstUnansweredAt={conversation.first_unanswered_at}
-              className="ml-1 hidden sm:inline-flex text-[10px] py-0.5 px-2"
+              className="ml-1 hidden md:inline-flex text-[10px] py-0.5 px-2"
             />
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Contact-panel toggle — desktop only. The contact sidebar
-              eats a chunk of horizontal width that crowds the thread on
-              smaller laptops; this lets agents reclaim it when they just
-              want to read and reply. Hidden on mobile, where the sidebar
-              never renders as a permanent panel anyway. Issue #258. */}
+        <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
+          {/* Contact-sidebar trigger — mobile & tablet only.
+              Opens the slide-over Sheet with full contact details,
+              notes, deals, and real-estate qualification. */}
+          {onOpenContactSidebar && (
+            <button
+              type="button"
+              onClick={onOpenContactSidebar}
+              aria-label="View contact details"
+              title="View contact details"
+              className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md transition-colors lg:hidden"
+            >
+              <User className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Contact-panel toggle — desktop only. */}
           {onToggleContactPanel && (
             <button
               type="button"
@@ -1040,11 +1062,7 @@ export function MessageThread({
             </button>
           )}
 
-          {/* Manual refresh — forces a refetch of the messages + the
-              conversation list (the parent bumps its resyncToken). Useful
-              when realtime missed an event or the agent just wants to be
-              sure nothing's stale. Only rendered when the parent wires
-              up `onRefresh`. */}
+          {/* Manual refresh — hidden on mobile to conserve header space */}
           {onRefresh && (
             <button
               type="button"
@@ -1053,7 +1071,7 @@ export function MessageThread({
               aria-label={t('refreshConversation')}
               title={t('refresh')}
               className={cn(
-                'text-muted-foreground hover:bg-muted hover:text-foreground inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors disabled:opacity-60'
+                'text-muted-foreground hover:bg-muted hover:text-foreground hidden h-7 w-7 items-center justify-center rounded-md transition-colors disabled:opacity-60 sm:inline-flex'
               )}
             >
               <RefreshCw
@@ -1066,11 +1084,11 @@ export function MessageThread({
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs',
+                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
                 currentStatus?.color ?? 'text-muted-foreground'
               )}
             >
-              {currentStatus ? t(`status${currentStatus.label}`) : t('status')}
+              <span>{currentStatus ? t(`status${currentStatus.label}`) : t('status')}</span>
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent
@@ -1096,11 +1114,11 @@ export function MessageThread({
               size="sm"
               variant="default"
               onClick={handleClaimLead}
-              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2.5 text-xs font-medium text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2 sm:px-2.5 text-xs font-medium text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
               title={t('claimLeadTooltip')}
             >
               <UserCheck className="h-3.5 w-3.5" />
-              <span>{t('claimLead')}</span>
+              <span className="hidden sm:inline">{t('claimLead')}</span>
             </Button>
           )}
 
@@ -1108,12 +1126,12 @@ export function MessageThread({
           <DropdownMenu>
             <DropdownMenuTrigger
               className={cn(
-                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs',
+                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
                 assignedAgentId ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <UserPlus className="h-3 w-3" />
-              <span className="hidden sm:inline">{assignLabel}</span>
+              <UserPlus className="h-3.5 w-3.5" />
+              <span className="hidden md:inline">{assignLabel}</span>
               <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent

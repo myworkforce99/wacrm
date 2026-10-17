@@ -99,7 +99,7 @@ function MessageContent({
   switch (message.content_type) {
     case 'text':
       return (
-        <p className="text-sm break-words whitespace-pre-wrap">
+        <p className="text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
           {message.content_text}
         </p>
       );
@@ -113,7 +113,7 @@ function MessageContent({
             <MediaUnavailable label={t('photo')} t={t} />
           )}
           {message.content_text && (
-            <p className="mt-1 text-sm break-words whitespace-pre-wrap">
+            <p className="mt-1 text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
               {message.content_text}
             </p>
           )}
@@ -129,7 +129,7 @@ function MessageContent({
             <MediaUnavailable label={t('video')} t={t} />
           )}
           {message.content_text && (
-            <p className="mt-1 text-sm break-words whitespace-pre-wrap">
+            <p className="mt-1 text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
               {message.content_text}
             </p>
           )}
@@ -221,14 +221,14 @@ function MessageContent({
               <CornerDownLeft className="h-3 w-3" />
               {t('buttonReply')}
             </span>
-            <p className="text-sm break-words whitespace-pre-wrap">
+            <p className="text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
               {message.content_text || t('interactiveReply')}
             </p>
           </div>
         );
       }
       return (
-        <p className="text-sm break-words whitespace-pre-wrap">
+        <p className="text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
           {message.content_text || t('interactiveReply')}
         </p>
       );
@@ -236,7 +236,7 @@ function MessageContent({
 
     default:
       return (
-        <p className="text-sm break-words whitespace-pre-wrap">
+        <p className="text-sm break-words [overflow-wrap:anywhere] whitespace-pre-wrap">
           {message.content_text || t('unsupported')}
         </p>
       );

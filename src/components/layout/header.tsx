@@ -11,9 +11,7 @@ import {
   User,
   Search,
   ChevronDown,
-  Bell,
 } from 'lucide-react';
-import { useUnreadNotifications } from '@/hooks/use-unread-notifications';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -58,7 +56,6 @@ export function Header({ onOpenSidebar }: HeaderProps) {
   const t = useTranslations('Header');
   const pathname = usePathname();
   const { profile, accountRole, signOut, refreshProfile } = useAuth();
-  const unreadNotifs = useUnreadNotifications();
   const [isUpdatingAvailability, setIsUpdatingAvailability] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
 

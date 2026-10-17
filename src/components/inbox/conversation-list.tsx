@@ -304,7 +304,7 @@ export function ConversationList({
     // w-full on mobile so the list occupies the whole viewport when it's
     // the single pane showing; fixed 320px on desktop where it shares the
     // row with the thread + contact sidebar.
-    <div className="border-border bg-card flex h-full w-full flex-col border-r lg:w-80">
+    <div className="border-border bg-card flex h-full w-full flex-col lg:border-r lg:w-[340px]">
       {/* Search + Filter */}
       <div className="border-border space-y-2 border-b p-3">
         {/* Assignee Filter Tabs (Mine / Unassigned for agents; + All for managers) */}
@@ -318,16 +318,16 @@ export function ConversationList({
             type="button"
             onClick={() => setAssigneeFilter('mine')}
             className={cn(
-              'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+              'flex min-w-0 cursor-pointer items-center justify-center gap-1 rounded-md px-1 py-1.5 font-medium transition-all sm:gap-1.5 sm:px-1.5',
               effectiveAssigneeFilter === 'mine'
                 ? 'bg-card text-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            <span>{t('tabMine')}</span>
+            <span className="truncate">{t('tabMine')}</span>
             <span
               className={cn(
-                'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                'shrink-0 rounded-full px-1.5 py-0.2 text-[10px] font-semibold',
                 effectiveAssigneeFilter === 'mine'
                   ? 'bg-primary/10 text-primary'
                   : 'bg-muted-foreground/15 text-muted-foreground'
@@ -340,7 +340,7 @@ export function ConversationList({
             type="button"
             onClick={() => setAssigneeFilter('unassigned')}
             className={cn(
-              'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+              'flex min-w-0 cursor-pointer items-center justify-center gap-1 rounded-md px-1 py-1.5 font-medium transition-all sm:gap-1.5 sm:px-1.5',
               effectiveAssigneeFilter === 'unassigned'
                 ? 'bg-card text-foreground shadow-xs'
                 : 'text-muted-foreground hover:text-foreground'
@@ -350,7 +350,7 @@ export function ConversationList({
             {counts.unassigned > 0 && (
               <span
                 className={cn(
-                  'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                  'shrink-0 rounded-full px-1.5 py-0.2 text-[10px] font-semibold',
                   effectiveAssigneeFilter === 'unassigned'
                     ? 'bg-amber-500/15 text-amber-500'
                     : 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
@@ -365,16 +365,16 @@ export function ConversationList({
               type="button"
               onClick={() => setAssigneeFilter('all')}
               className={cn(
-                'flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 font-medium transition-all',
+                'flex min-w-0 cursor-pointer items-center justify-center gap-1 rounded-md px-1 py-1.5 font-medium transition-all sm:gap-1.5 sm:px-1.5',
                 effectiveAssigneeFilter === 'all'
                   ? 'bg-card text-foreground shadow-xs'
                   : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <span>{t('tabAll')}</span>
+              <span className="truncate">{t('tabAll')}</span>
               <span
                 className={cn(
-                  'py-0.2 rounded-full px-1.5 text-[10px] font-semibold',
+                  'shrink-0 rounded-full px-1.5 py-0.2 text-[10px] font-semibold',
                   effectiveAssigneeFilter === 'all'
                     ? 'bg-primary/10 text-primary'
                     : 'bg-muted-foreground/15 text-muted-foreground'
@@ -396,7 +396,7 @@ export function ConversationList({
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
           <DropdownMenu>
             <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-xs">
               {activeFilter?.label ?? t('filterAll')}
@@ -576,7 +576,7 @@ export function ConversationList({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="flex flex-col pb-20 lg:pb-0">
             {filtered.map((conv) => (
               <ConversationItem
                 key={conv.id}

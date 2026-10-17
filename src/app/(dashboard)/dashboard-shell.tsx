@@ -1,9 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
+
+interface MobileNavContextValue {
+  hideMobileBars: boolean;
+  setHideMobileBars: (hide: boolean) => void;
+}
+
+const MobileNavContext = createContext<MobileNavContextValue>({
+  hideMobileBars: false,
+  setHideMobileBars: () => {},
+});
+
+export function useMobileNav() {
+  return useContext(MobileNavContext);
+}
 import { Sidebar } from '@/components/layout/sidebar';
 import { Header } from '@/components/layout/header';
 import { AccountAccessAlert } from '@/components/layout/account-access-alert';
@@ -12,7 +27,6 @@ import { BrowserNotificationsListener } from '@/components/notifications/browser
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { TopAppBar } from '@/components/layout/top-app-bar';
 
-import Link from 'next/link';
 import { Menu, Search } from 'lucide-react';
 import { ModeToggle } from '@/components/layout/mode-toggle';
 import { CommandPalette } from '@/components/layout/command-palette';
@@ -92,7 +106,12 @@ function MobileHeader({ onOpenSidebar }: { onOpenSidebar: () => void }) {
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations('DashboardShell');
+
+  const isFullBleed = pathname.startsWith('/inbox');
+  const [hideMobileBars, setHideMobileBars] = useState(false);
+  const effectiveHideBars = isFullBleed && hideMobileBars;
 
   // Sidebar drawer state — only used on mobile. On lg+ the sidebar is
   // always visible and this stays at `false` (ignored by the component).
@@ -119,41 +138,61 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   return (
-    <div className="bg-background flex h-full w-full flex-1 overflow-hidden print:h-auto print:overflow-visible">
-      {/* Reports this tab's online/away presence once we know a user is
-          signed in. Headless — renders nothing. */}
-      <PresenceHeartbeat />
-      {/* Desktop alerts for new customer messages (opt-in via Settings →
-          Your profile). Headless — renders nothing. */}
-      <BrowserNotificationsListener />
+    <MobileNavContext.Provider value={{ hideMobileBars, setHideMobileBars }}>
+      <div className="bg-background flex h-full w-full flex-1 overflow-hidden print:h-auto print:overflow-visible">
+        {/* Reports this tab's online/away presence once we know a user is
+            signed in. Headless — renders nothing. */}
+        <PresenceHeartbeat />
+        {/* Desktop alerts for new customer messages (opt-in via Settings →
+            Your profile). Headless — renders nothing. */}
+        <BrowserNotificationsListener />
 
-      <div className="print:hidden">
-        <Sidebar open={sidebarOpen} onClose={closeSidebar} />
-      </div>
-
-      <div className="relative flex flex-1 flex-col overflow-hidden print:overflow-visible">
         <div className="print:hidden">
-          <MobileHeader onOpenSidebar={() => setSidebarOpen(true)} />
-        </div>
-        <div className="hidden md:block print:hidden">
-          <Header onOpenSidebar={() => setSidebarOpen(true)} />
+          <Sidebar open={sidebarOpen} onClose={closeSidebar} />
         </div>
 
-        {/* Thinner horizontal padding on mobile so cards have room to breathe.
-            Add bottom padding on mobile to account for the bottom nav. */}
-        <main className="flex flex-1 flex-col overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7 print:overflow-visible print:p-0">
-          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col">
-            {/* Above every page: writes are being rejected and here's why.
-                Renders nothing unless the account/role failed to resolve. */}
-            <AccountAccessAlert />
-            {children}
+        <div className="relative flex flex-1 flex-col overflow-hidden print:overflow-visible">
+          {!effectiveHideBars && (
+            <div className="print:hidden">
+              <MobileHeader onOpenSidebar={() => setSidebarOpen(true)} />
+            </div>
+          )}
+          <div className="hidden md:block print:hidden">
+            <Header onOpenSidebar={() => setSidebarOpen(true)} />
           </div>
-        </main>
-        <div className="print:hidden">
-          <BottomNav />
+
+          {/* Full-bleed for messaging apps (Inbox) only on mobile (<md).
+              On md+ (desktop/tablet), keep the standard padding and max-w-7xl container to follow the shared design language. */}
+          <main
+            className={cn(
+              'flex flex-1 flex-col print:overflow-visible print:p-0',
+              isFullBleed
+                ? 'overflow-hidden p-0 md:px-8 md:py-7'
+                : 'overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7'
+            )}
+          >
+            <div
+              className={cn(
+                'flex flex-1 flex-col',
+                isFullBleed
+                  ? 'h-full w-full max-w-none md:mx-auto md:max-w-7xl'
+                  : 'mx-auto w-full max-w-7xl'
+              )}
+            >
+              {/* Above every page: writes are being rejected and here's why.
+                  Renders nothing unless the account/role failed to resolve. */}
+              <AccountAccessAlert />
+              {children}
+            </div>
+          </main>
+          {!effectiveHideBars && (
+            <div className="print:hidden">
+              <BottomNav />
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </MobileNavContext.Provider>
   );
 }
 

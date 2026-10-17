@@ -285,7 +285,7 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
 
   if (!contact) {
     return (
-      <div className="border-border bg-card flex h-full w-80 items-center justify-center border-l">
+      <div className="border-border bg-card flex h-full w-full lg:w-80 items-center justify-center lg:border-l">
         <p className="text-muted-foreground text-sm">
           {tThread('selectConversation')}
         </p>
@@ -298,7 +298,7 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
   const availableTags = allTags.filter((at) => !tags.some((t) => t.id === at.id));
 
   return (
-    <div className="border-border bg-card flex h-full w-80 flex-col border-l">
+    <div className="border-border bg-card flex h-full w-full lg:w-80 flex-col lg:border-l">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {/* Contact Info Header */}

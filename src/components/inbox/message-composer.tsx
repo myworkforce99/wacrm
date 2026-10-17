@@ -698,8 +698,7 @@ export function MessageComposer({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* + menu — interactive messages + quick replies. Gated on the
-              24h window like free-form text (interactive requires it). */}
+          {/* + menu — interactive messages + quick replies, plus templates and AI draft on mobile */}
           <DropdownMenu>
             <DropdownMenuTrigger
               disabled={inputsDisabled}
@@ -718,6 +717,23 @@ export function MessageComposer({
               align="start"
               className="border-border bg-popover"
             >
+              {/* On mobile (<sm), offer Template & AI Draft inside the + menu to keep the textarea spacious */}
+              <DropdownMenuItem
+                className="sm:hidden"
+                disabled={readOnly}
+                onClick={onOpenTemplates}
+              >
+                <LayoutTemplate className="mr-2 h-4 w-4" />
+                {t('sendTemplate')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="sm:hidden"
+                disabled={readOnly || drafting}
+                onClick={handleDraft}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {t('draftWithAI')}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openInteractiveBuilder()}>
                 <MessageSquareDashed className="mr-2 h-4 w-4" />
                 {t('interactiveMessage')}
@@ -735,7 +751,7 @@ export function MessageComposer({
             canAct={!readOnly}
             gateReason="send messages"
             title={readOnly ? undefined : t('sendTemplate')}
-            className="text-muted-foreground hover:text-foreground h-9 w-9 shrink-0 p-0"
+            className="text-muted-foreground hover:text-foreground hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
             onClick={onOpenTemplates}
           >
             <LayoutTemplate className="h-4 w-4" />
@@ -748,7 +764,7 @@ export function MessageComposer({
             gateReason="send messages"
             disabled={drafting}
             title={readOnly ? undefined : t('draftWithAI')}
-            className="text-muted-foreground hover:text-primary h-9 w-9 shrink-0 p-0"
+            className="text-muted-foreground hover:text-primary hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
             onClick={handleDraft}
           >
             {drafting ? (
@@ -777,7 +793,7 @@ export function MessageComposer({
             // The placeholder text also surfaces the read-only state.
             title={readOnly ? t('readOnlyTitle') : undefined}
             className={cn(
-              'border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-4 py-2.5 text-sm transition-colors outline-none',
+              'border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors outline-none',
               (sessionExpired || readOnly) && 'cursor-not-allowed opacity-50'
             )}
           />
@@ -797,9 +813,9 @@ export function MessageComposer({
 
       {/* Hint sits outside the flex row so its height doesn't push
           `items-end` buttons below the textarea. Indented to line up
-          under the textarea left edge. */}
+          under the textarea left edge. Hidden on mobile. */}
       {!draft && !recording && (
-        <p className="text-muted-foreground mt-1 pl-[5.5rem] text-[10px]">
+        <p className="text-muted-foreground mt-1 hidden sm:block pl-[5.5rem] text-[10px]">
           {t('draftHint')}
         </p>
       )}
