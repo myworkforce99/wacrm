@@ -66,8 +66,8 @@ export function AgentTable({
   const maxNominalLeads = 20;
 
   return (
-    <div className="border-border bg-card overflow-hidden rounded-xl border shadow-xs">
-      <Table>
+    <div className="border-border bg-card overflow-x-auto rounded-xl border shadow-xs">
+      <Table className="min-w-[800px]">
         <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[240px] font-semibold">
@@ -150,6 +150,7 @@ export function AgentTable({
                         <Link
                           href={`/contacts?assigned_to=${agent.agentId}`}
                           className="text-foreground hover:text-primary truncate text-sm font-semibold hover:underline"
+                          title={agent.name}
                         >
                           {agent.name}
                         </Link>

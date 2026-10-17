@@ -12,7 +12,9 @@
     "signingIn": "Iniciando sesión...",
     "signIn": "Iniciar sesión",
     "noAccount": "¿No tienes una cuenta?",
-    "createAccount": "Crear cuenta"
+    "createAccount": "Crear cuenta",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña"
   },
   "Sidebar": {
     "title": "Plantilla de CRM para WhatsApp",
@@ -2224,7 +2226,9 @@
     "creating": "Creando cuenta...",
     "submit": "Crear cuenta",
     "haveAccount": "¿Ya tienes una cuenta?",
-    "signIn": "Iniciar sesión"
+    "signIn": "Iniciar sesión",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña"
   },
   "ForgotPasswordPage": {
     "checkEmailTitle": "Revisa tu correo",
@@ -2279,7 +2283,10 @@
     "retry": "Reintentar",
     "emptyTitle": "Aún no hay notificaciones",
     "emptyDesc": "Verás una alerta aquí cuando alguien te asigne una conversación.",
-    "unread": "Sin leer"
+    "unread": "Sin leer",
+    "all": "Todas",
+    "emptyUnreadTitle": "Todo al día",
+    "emptyUnreadDesc": "No tienes notificaciones sin leer."
   },
   "Agents": {
     "title": "Agentes de IA",
@@ -2758,5 +2765,10 @@
       "loading": "Cargando embudo...",
       "dealsCount": "{count} prospectos abiertos"
     }
+  },
+  "OfflinePage": {
+    "title": "Estás desconectado",
+    "desc": "Comprueba tu conexión a internet e inténtalo de nuevo.",
+    "tryReconnecting": "Reintentar conexión"
   }
 }

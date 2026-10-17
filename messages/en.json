@@ -12,7 +12,9 @@
     "signingIn": "Signing in...",
     "signIn": "Sign in",
     "noAccount": "Don't have an account?",
-    "createAccount": "Create account"
+    "createAccount": "Create account",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "Sidebar": {
     "title": "CRM Template for WhatsApp",
@@ -2225,7 +2227,9 @@
     "creating": "Creating account...",
     "submit": "Create account",
     "haveAccount": "Already have an account?",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "ForgotPasswordPage": {
     "checkEmailTitle": "Check your email",
@@ -2280,7 +2284,10 @@
     "retry": "Retry",
     "emptyTitle": "No notifications yet",
     "emptyDesc": "You'll see an alert here when someone assigns you a conversation.",
-    "unread": "Unread"
+    "unread": "Unread",
+    "all": "All",
+    "emptyUnreadTitle": "All caught up",
+    "emptyUnreadDesc": "You have no unread notifications."
   },
   "Agents": {
     "title": "AI Agents",
@@ -2759,5 +2766,10 @@
       "loading": "Loading funnel data...",
       "dealsCount": "{count} open leads"
     }
+  },
+  "OfflinePage": {
+    "title": "You are offline",
+    "desc": "Please check your internet connection and try again.",
+    "tryReconnecting": "Try Reconnecting"
   }
 }

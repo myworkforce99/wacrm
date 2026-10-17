@@ -562,12 +562,13 @@ export function PipelineBoard({
                           </span>
                         </div>
                         <span
-                          className="text-[10px] font-bold rounded-full px-1.5 py-0.2 shrink-0"
+                          className={`text-[10px] font-bold rounded-full px-1.5 py-0.2 shrink-0 ${
+                            isSelected ? 'text-white' : ''
+                          }`}
                           style={
                             isSelected
                               ? {
                                   backgroundColor: s.color,
-                                  color: '#ffffff',
                                 }
                               : {
                                   backgroundColor: 'var(--muted)',

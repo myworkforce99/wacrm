@@ -96,6 +96,7 @@ export function AgentCard({
             <Link
               href={`/contacts?assigned_to=${agent.agentId}`}
               className="text-foreground hover:text-primary truncate text-base font-bold hover:underline"
+              title={agent.name}
             >
               {agent.name}
             </Link>
@@ -103,13 +104,18 @@ export function AgentCard({
               <button
                 type="button"
                 onClick={toggleAvailability}
-                className={`flex h-3 w-3 shrink-0 items-center justify-center rounded-full transition-transform active:scale-75 ${
-                  agent.isAvailable
-                    ? 'bg-emerald-500 ring-4 ring-emerald-500/20'
-                    : 'bg-muted-foreground/40 ring-muted-foreground/10 ring-4'
-                }`}
+                className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center -my-2.5 -mr-2 transition-transform active:scale-95"
                 title={agent.isAvailable ? t('available') : t('onLeave')}
-              />
+                aria-label={agent.isAvailable ? t('available') : t('onLeave')}
+              >
+                <span
+                  className={`flex h-3 w-3 rounded-full transition-colors ${
+                    agent.isAvailable
+                      ? 'bg-emerald-500 ring-4 ring-emerald-500/20'
+                      : 'bg-muted-foreground/40 ring-muted-foreground/10 ring-4'
+                  }`}
+                />
+              </button>
             ) : (
               <span
                 className={`flex h-2.5 w-2.5 shrink-0 rounded-full ${

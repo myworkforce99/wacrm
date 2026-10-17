@@ -1616,7 +1616,7 @@ export default function SiteVisitsPage() {
           <>
             {/* Desktop Table View (visible on md:block when viewMode === 'table') */}
             {viewMode === 'table' && (
-              <div className="border-border/70 bg-card hidden overflow-hidden rounded-xl border shadow-xs md:block">
+              <div className="border-border/70 bg-card hidden overflow-x-auto rounded-xl border shadow-xs md:block">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40 hover:bg-muted/40">

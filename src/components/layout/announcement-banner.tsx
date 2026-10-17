@@ -15,8 +15,7 @@ export function AnnouncementBanner() {
 
   return (
     <div
-      className="flex items-center justify-center gap-3 px-4 py-2 text-sm text-white"
-      style={{ background: 'linear-gradient(90deg, #2563EB 0%, #7C3AED 100%)' }}
+      className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-primary px-4 py-2 text-sm text-white"
     >
       <span>🚀</span>
       <span>

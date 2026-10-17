@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo, useSyncExternalStore } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { loadTeamPerformance } from '@/lib/dashboard/queries';
 import type { AgentPerformance } from '@/lib/dashboard/types';
@@ -54,7 +54,18 @@ export function TeamDashboardClient() {
   const [availabilityFilter, setAvailabilityFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [workloadFilter, setWorkloadFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | null>(null);
+
+  // Reactive mobile viewport listener (< 640px)
+  const isMobile = useSyncExternalStore(
+    (callback) => {
+      window.addEventListener('resize', callback);
+      return () => window.removeEventListener('resize', callback);
+    },
+    () => window.innerWidth < 640,
+    () => false
+  );
+  const effectiveViewMode = viewMode ?? (isMobile ? 'grid' : 'table');
 
   // Modal state
   const [targetModalOpen, setTargetModalOpen] = useState(false);
@@ -250,19 +261,54 @@ export function TeamDashboardClient() {
             isAdmin && (
               <Button
                 variant="outline"
-                className="border-border text-muted-foreground hover:bg-muted hidden rounded-full shadow-xs sm:flex print:hidden"
+                className="border-border text-muted-foreground hover:bg-muted flex rounded-full shadow-xs print:hidden"
                 onClick={() => {
                   const url = new URL(window.location.href);
                   url.searchParams.set('print', 'true');
                   window.open(url.toString(), '_blank');
                 }}
               >
-                <Printer className="text-primary mr-2 size-4" />
-                {t('printReport')}
+                <Printer className="text-primary size-4 sm:mr-2" />
+                <span className="hidden sm:inline">{t('printReport')}</span>
               </Button>
             )
           }
         />
+
+        {/* Print Preview Mode Banner */}
+        {isPrint && (
+          <div className="bg-primary/10 border-primary/20 text-foreground flex items-center justify-between rounded-xl border p-3 print:hidden">
+            <div className="flex items-center gap-2">
+              <Printer className="text-primary size-4" />
+              <span className="text-xs font-semibold sm:text-sm">
+                {t('printReport')}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={() => window.print()}
+                className="h-8 gap-1.5 text-xs"
+              >
+                <Printer className="size-3.5" />
+                <span>{t('printReport')}</span>
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const url = new URL(window.location.href);
+                  url.searchParams.delete('print');
+                  window.location.href = url.toString();
+                }}
+                className="h-8 text-xs"
+              >
+                <X className="mr-1 size-3.5" />
+                <span>{tFilters('clearFilters')}</span>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Situational Awareness KPI Strip */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:grid-cols-4 print:gap-2 print:break-inside-avoid">
@@ -506,33 +552,33 @@ export function TeamDashboardClient() {
                 </Button>
               )}
 
-              {/* View Mode Toggle (Table vs Grid) */}
-              <div className="border-border bg-muted/40 hidden items-center rounded-lg border p-0.5 sm:flex">
+              {/* View Mode Toggle (Table vs Grid) - accessible across all screen sizes */}
+              <div className="border-border bg-muted/40 flex items-center rounded-lg border p-0.5">
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-all ${
-                    viewMode === 'table'
+                  className={`flex h-8 items-center gap-1 rounded-md px-2 sm:px-2.5 text-xs font-semibold transition-all ${
+                    effectiveViewMode === 'table'
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                   title={tFilters('viewTable')}
                 >
                   <TableProperties className="size-3.5" />
-                  <span>{tFilters('viewTable')}</span>
+                  <span className="hidden sm:inline">{tFilters('viewTable')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`flex h-8 items-center gap-1 rounded-md px-2.5 text-xs font-semibold transition-all ${
-                    viewMode === 'grid'
+                  className={`flex h-8 items-center gap-1 rounded-md px-2 sm:px-2.5 text-xs font-semibold transition-all ${
+                    effectiveViewMode === 'grid'
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
                   }`}
                   title={tFilters('viewGrid')}
                 >
                   <LayoutGrid className="size-3.5" />
-                  <span>{tFilters('viewGrid')}</span>
+                  <span className="hidden sm:inline">{tFilters('viewGrid')}</span>
                 </button>
               </div>
             </div>
@@ -569,7 +615,7 @@ export function TeamDashboardClient() {
               </Button>
             )}
           </div>
-        ) : viewMode === 'table' && !isPrint ? (
+        ) : effectiveViewMode === 'table' && !isPrint ? (
           <AgentTable
             agents={filteredAgents}
             onUpdate={loadAll}
@@ -611,8 +657,18 @@ export function TeamDashboardClient() {
             @media print {
               @page { size: A4 portrait; margin: 15mm; }
               body { background: white !important; color: black !important; }
-              nav, aside, [data-sidebar], .no-print { display: none !important; }
+              nav, aside, [data-sidebar], header, .no-print { display: none !important; }
               .print\\:break-inside-avoid { break-inside: avoid; }
+            }
+            .print-mode nav,
+            .print-mode aside,
+            .print-mode [data-sidebar],
+            .print-mode header,
+            .print-mode .print\\:hidden {
+              display: none !important;
+            }
+            .print-mode {
+              background: white !important;
             }
           `}</style>
         )}

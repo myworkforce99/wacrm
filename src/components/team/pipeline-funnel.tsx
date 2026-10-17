@@ -104,10 +104,10 @@ export function PipelineFunnelChart() {
                 cursor={{ fill: 'currentColor', opacity: 0.05 }}
                 contentStyle={{
                   borderRadius: '10px',
-                  backgroundColor: 'var(--card, #ffffff)',
-                  borderColor: 'var(--border, #e2e8f0)',
+                  backgroundColor: 'var(--card)',
+                  borderColor: 'var(--border)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  color: 'var(--foreground, #000000)',
+                  color: 'var(--foreground)',
                   fontSize: '12px',
                   fontWeight: 600,
                 }}

@@ -12,7 +12,9 @@
     "signingIn": "로그인 중...",
     "signIn": "로그인",
     "noAccount": "계정이 없으신가요?",
-    "createAccount": "계정 만들기"
+    "createAccount": "계정 만들기",
+    "showPassword": "비밀번호 표시",
+    "hidePassword": "비밀번호 숨기기"
   },
   "Sidebar": {
     "title": "WhatsApp용 CRM 템플릿",
@@ -2224,7 +2226,9 @@
     "creating": "계정 만드는 중...",
     "submit": "계정 만들기",
     "haveAccount": "이미 계정이 있으신가요?",
-    "signIn": "로그인"
+    "signIn": "로그인",
+    "showPassword": "비밀번호 표시",
+    "hidePassword": "비밀번호 숨기기"
   },
   "ForgotPasswordPage": {
     "checkEmailTitle": "이메일을 확인하세요",
@@ -2279,7 +2283,10 @@
     "retry": "다시 시도",
     "emptyTitle": "아직 알림이 없습니다",
     "emptyDesc": "누군가 대화를 배정하면 여기에 알림이 표시됩니다.",
-    "unread": "읽지 않음"
+    "unread": "읽지 않음",
+    "all": "전체",
+    "emptyUnreadTitle": "모두 확인했습니다",
+    "emptyUnreadDesc": "읽지 않은 알림이 없습니다."
   },
   "Agents": {
     "title": "AI 에이전트",
@@ -2758,5 +2765,11 @@
       "loading": "퍼널 데이터 로드 중...",
       "dealsCount": "{count}개 오픈 리드"
     }
+  },
+  "OfflinePage": {
+    "title": "오프라인 상태입니다",
+    "desc": "인터넷 연결을 확인하고 다시 시도해 주세요.",
+    "tryReconnecting": "다시 연결 시도"
   }
 }
+

@@ -95,8 +95,8 @@ export function ConversationsChart({
       </div>
 
       <footer className="border-border text-muted-foreground flex items-center gap-4 border-t px-5 py-3 text-xs">
-        <LegendDot color="#3b82f6" label={t('incoming')} />
-        <LegendDot color="#7c3aed" label={t('outgoing')} />
+        <LegendDot color="hsl(var(--chart-2))" label={t('incoming')} />
+        <LegendDot color="hsl(var(--chart-1))" label={t('outgoing')} />
       </footer>
     </section>
   );
@@ -161,12 +161,12 @@ function LineSvg({
     const svg = svgRef.current;
     const wrap = wrapRef.current;
     if (!svg || !wrap) return;
-    const onMove = (e: MouseEvent) => {
+    const handleCoord = (clientX: number, clientY: number) => {
       const ctm = svg.getScreenCTM();
       if (!ctm) return;
       const pt = svg.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
+      pt.x = clientX;
+      pt.y = clientY;
       const local = pt.matrixTransform(ctm.inverse());
       const xVb = local.x;
       if (xVb < PADDING.left - 8 || xVb > VB_W - PADDING.right + 8) {
@@ -181,11 +181,6 @@ function LineSvg({
           Math.round(stepX === 0 ? 0 : relative / stepX)
         )
       );
-      // Map the snapped data-point's viewBox x back to screen, then
-      // subtract the wrapper's left edge — that pixel offset is what
-      // the absolutely-positioned tooltip div consumes. `xFor` is
-      // inlined here so the effect deps stay stable (it's a closure
-      // that'd otherwise be a new reference every render).
       const dataPointVbX = PADDING.left + idx * stepX;
       const dataPointPt = svg.createSVGPoint();
       dataPointPt.x = dataPointVbX;
@@ -194,12 +189,29 @@ function LineSvg({
       const wrapRect = wrap.getBoundingClientRect();
       setHover({ idx, tooltipLeftPx: screen.x - wrapRect.left });
     };
+
+    const onMove = (e: MouseEvent) => handleCoord(e.clientX, e.clientY);
+    const onTouch = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        handleCoord(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
     const onLeave = () => setHover(null);
+
     svg.addEventListener('mousemove', onMove);
     svg.addEventListener('mouseleave', onLeave);
+    svg.addEventListener('touchstart', onTouch, { passive: true });
+    svg.addEventListener('touchmove', onTouch, { passive: true });
+    svg.addEventListener('touchend', onLeave);
+    svg.addEventListener('touchcancel', onLeave);
+
     return () => {
       svg.removeEventListener('mousemove', onMove);
       svg.removeEventListener('mouseleave', onLeave);
+      svg.removeEventListener('touchstart', onTouch);
+      svg.removeEventListener('touchmove', onTouch);
+      svg.removeEventListener('touchend', onLeave);
+      svg.removeEventListener('touchcancel', onLeave);
     };
     // xFor + yFor close over stepX, so stepX covers them.
   }, [data, stepX]);
@@ -261,20 +273,20 @@ function LineSvg({
           ) : null
         )}
 
-        {/* Outgoing polyline (violet) */}
+        {/* Outgoing polyline (violet / chart-1) */}
         <path
           d={outgoingPath}
           fill="none"
-          stroke="#7c3aed"
+          stroke="hsl(var(--chart-1))"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        {/* Incoming polyline (blue) */}
+        {/* Incoming polyline (blue / chart-2) */}
         <path
           d={incomingPath}
           fill="none"
-          stroke="#3b82f6"
+          stroke="hsl(var(--chart-2))"
           strokeWidth={2}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -295,13 +307,13 @@ function LineSvg({
               cx={hoverX}
               cy={yFor(data[hover.idx].incoming)}
               r={3.5}
-              fill="#3b82f6"
+              fill="hsl(var(--chart-2))"
             />
             <circle
               cx={hoverX}
               cy={yFor(data[hover.idx].outgoing)}
               r={3.5}
-              fill="#7c3aed"
+              fill="hsl(var(--chart-1))"
             />
           </g>
         )}
@@ -320,8 +332,8 @@ function LineSvg({
             {longDayLabel(hovered.day)}
           </div>
           <div className="mt-1 flex flex-col gap-0.5">
-            <span className="flex items-center gap-1.5 text-blue-300">
-              <span className="inline-block h-1.5 w-1.5 rounded-full bg-blue-500" />
+            <span className="flex items-center gap-1.5 text-blue-500 dark:text-blue-400">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[hsl(var(--chart-2))]" />
               {t('tooltipIncoming', { count: hovered.incoming })}
             </span>
             <span className="text-primary flex items-center gap-1.5">

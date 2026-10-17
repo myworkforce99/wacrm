@@ -5,18 +5,52 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import type { Notification } from '@/types';
-import { Bell, CheckCheck, Loader2, UserPlus } from 'lucide-react';
+import {
+  Bell,
+  CheckCheck,
+  Loader2,
+  UserPlus,
+  MessageSquare,
+  Calendar,
+  DollarSign,
+  AlertTriangle,
+  Building2,
+} from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 
-// Icon per notification type. Only one type exists today
-// (conversation_assigned) but this keeps future types a one-line add.
-const TYPE_ICON: Record<Notification['type'], typeof Bell> = {
-  conversation_assigned: UserPlus,
-};
+function getNotificationIcon(n: Notification) {
+  const type = (n.type as string) || '';
+  const text = `${n.title} ${n.body || ''}`.toLowerCase();
+  if (type === 'conversation_assigned' || text.includes('assigned') || text.includes('lead')) {
+    return UserPlus;
+  }
+  if (type === 'new_message' || text.includes('message') || text.includes('chat')) {
+    return MessageSquare;
+  }
+  if (type === 'site_visit_reminder' || text.includes('visit') || text.includes('schedule')) {
+    return Calendar;
+  }
+  if (
+    type === 'deal_won' ||
+    text.includes('deal') ||
+    text.includes('won') ||
+    text.includes('crore') ||
+    text.includes('lakh')
+  ) {
+    return DollarSign;
+  }
+  if (text.includes('property') || text.includes('unit')) {
+    return Building2;
+  }
+  if (text.includes('alert') || text.includes('warning')) {
+    return AlertTriangle;
+  }
+  return Bell;
+}
 
 export default function NotificationsPage() {
   const t = useTranslations('Notifications');
@@ -25,6 +59,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[] | null>(
     null
   );
+  const [filterTab, setFilterTab] = useState<'all' | 'unread'>('all');
   const [error, setError] = useState<string | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
 
@@ -117,8 +152,17 @@ export default function NotificationsPage() {
   const handleClick = useCallback(
     (n: Notification) => {
       if (!n.read_at) markRead(n.id);
+      const text = `${n.title} ${n.body || ''}`.toLowerCase();
       if (n.conversation_id) {
         router.push(`/inbox?c=${n.conversation_id}`);
+      } else if (n.contact_id) {
+        router.push(`/contacts?contactId=${n.contact_id}`);
+      } else if (text.includes('visit') || text.includes('schedule')) {
+        router.push('/site-visits');
+      } else if (text.includes('deal') || text.includes('pipeline')) {
+        router.push('/pipelines');
+      } else if (text.includes('lead') || text.includes('assigned')) {
+        router.push('/contacts');
       }
     },
     [markRead, router]
@@ -166,44 +210,89 @@ export default function NotificationsPage() {
     );
   }
 
+  const filteredNotifications = notifications.filter((n) =>
+    filterTab === 'unread' ? !n.read_at : true
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-foreground text-2xl font-bold">{t('title')}</h1>
+          <h1 className="text-foreground text-2xl font-bold tracking-tight">
+            {t('title')}
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             {t('description')}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={unreadIds.length === 0 || markingAll}
-          onClick={markAllRead}
-        >
-          {markingAll ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <CheckCheck className="h-4 w-4" />
-          )}
-          {t('markAllRead')}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={unreadIds.length === 0 || markingAll}
+            onClick={markAllRead}
+            className="h-9 gap-1.5 text-xs font-medium"
+          >
+            {markingAll ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCheck className="h-4 w-4 text-emerald-500" />
+            )}
+            {t('markAllRead')}
+          </Button>
+        </div>
       </div>
 
-      {notifications.length === 0 ? (
-        <div className="border-border bg-muted/40 flex h-48 flex-col items-center justify-center rounded-xl border border-dashed">
+      {/* Filter Tabs Strip: All vs Unread */}
+      <div className="border-border bg-card flex items-center justify-between rounded-xl border p-2 shadow-xs">
+        <div className="bg-muted/60 inline-flex items-center rounded-lg p-0.5">
+          <button
+            type="button"
+            onClick={() => setFilterTab('all')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-semibold transition-all',
+              filterTab === 'all'
+                ? 'bg-card text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('all')} ({notifications.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterTab('unread')}
+            className={cn(
+              'rounded-md px-3 py-1.5 text-xs font-semibold transition-all',
+              filterTab === 'unread'
+                ? 'bg-card text-foreground shadow-xs'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {t('unread')} ({unreadIds.length})
+          </button>
+        </div>
+      </div>
+
+      {filteredNotifications.length === 0 ? (
+        <div className="border-border bg-muted/30 flex h-52 flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center">
           <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
-            <Bell className="text-primary h-6 w-6" />
+            {filterTab === 'unread' ? (
+              <CheckCheck className="text-emerald-500 h-6 w-6" />
+            ) : (
+              <Bell className="text-primary h-6 w-6" />
+            )}
           </div>
-          <p className="text-foreground mt-3 text-sm font-medium">
-            {t('emptyTitle')}
+          <p className="text-foreground mt-3 text-sm font-semibold">
+            {filterTab === 'unread' ? t('emptyUnreadTitle') : t('emptyTitle')}
           </p>
-          <p className="text-muted-foreground mt-1 text-xs">{t('emptyDesc')}</p>
+          <p className="text-muted-foreground mt-1 max-w-sm text-xs">
+            {filterTab === 'unread' ? t('emptyUnreadDesc') : t('emptyDesc')}
+          </p>
         </div>
       ) : (
-        <ul className="space-y-2">
-          {notifications.map((n) => {
-            const Icon = TYPE_ICON[n.type] ?? Bell;
+        <ul className="space-y-2.5">
+          {filteredNotifications.map((n) => {
+            const Icon = getNotificationIcon(n);
             const isUnread = !n.read_at;
             return (
               <li key={n.id}>
@@ -211,25 +300,22 @@ export default function NotificationsPage() {
                   type="button"
                   onClick={() => handleClick(n)}
                   className={cn(
-                    'flex w-full items-start gap-3 rounded-xl border p-4 text-left transition-colors',
+                    'group flex w-full items-start gap-3.5 rounded-xl border p-4 text-left transition-all',
                     isUnread
-                      ? 'border-primary/30 bg-primary/5 hover:border-primary/50'
-                      : 'border-border bg-card hover:border-border/70'
+                      ? 'border-primary/40 bg-primary/5 hover:border-primary/60 hover:shadow-xs'
+                      : 'border-border bg-card hover:border-border/80 hover:bg-muted/20'
                   )}
                 >
                   <div
                     className={cn(
-                      'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg',
-                      isUnread ? 'bg-primary/15' : 'bg-muted'
+                      'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-transform group-hover:scale-105',
+                      isUnread
+                        ? 'bg-primary/15 text-primary'
+                        : 'bg-muted text-muted-foreground'
                     )}
                     aria-hidden
                   >
-                    <Icon
-                      className={cn(
-                        'h-5 w-5',
-                        isUnread ? 'text-primary' : 'text-muted-foreground'
-                      )}
-                    />
+                    <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -238,22 +324,26 @@ export default function NotificationsPage() {
                           'truncate text-sm font-semibold',
                           isUnread ? 'text-foreground' : 'text-muted-foreground'
                         )}
+                        title={n.title}
                       >
                         {n.title}
                       </span>
                       {isUnread && (
                         <span
                           aria-label={t('unread')}
-                          className="bg-primary h-2 w-2 flex-shrink-0 rounded-full"
+                          className="bg-primary h-2 w-2 shrink-0 rounded-full"
                         />
                       )}
                     </div>
                     {n.body && (
-                      <p className="text-muted-foreground mt-0.5 truncate text-xs">
+                      <p
+                        className="text-muted-foreground mt-0.5 line-clamp-2 text-xs"
+                        title={n.body}
+                      >
                         {n.body}
                       </p>
                     )}
-                    <p className="text-muted-foreground/70 mt-1 text-[11px]">
+                    <p className="text-muted-foreground/70 mt-1.5 text-[11px] font-medium">
                       {formatDistanceToNow(new Date(n.created_at), {
                         addSuffix: true,
                       })}

@@ -725,7 +725,7 @@ export default function PropertiesPage() {
           <>
             {/* Desktop Table View (Hidden on mobile or when grid selected) */}
             {viewMode === 'table' ? (
-              <div className="border-border bg-card hidden overflow-hidden rounded-xl border shadow-xs md:block">
+              <div className="border-border bg-card hidden overflow-x-auto rounded-xl border shadow-xs md:block">
                 <Table>
                   <TableHeader className="bg-muted/40">
                     <TableRow className="hover:bg-transparent">
