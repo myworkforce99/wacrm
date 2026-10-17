@@ -42,3 +42,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# credentials, secrets and local tokens
+whatsapp_credentials.md
+*credentials*.md
+*credentials*.json
+*.key
+*.secret
+supabase/.temp/
+scripts/seed-multi-agent-testing.js
