@@ -82,6 +82,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (typeof body?.model === 'string' && body.model.trim()) {
+      config.model = body.model.trim();
+    }
+    if (typeof body?.systemPrompt === 'string') {
+      config.systemPrompt = body.systemPrompt;
+    }
+
     const knowledge = await retrieveKnowledge(
       supabase,
       accountId,
