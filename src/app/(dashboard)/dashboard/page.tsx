@@ -58,6 +58,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 
 type RangeDays = 7 | 30 | 90;
 
@@ -90,7 +94,8 @@ interface DashboardVisit {
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard.page');
-  const { defaultCurrency, profile, canManageMembers: isManager } = useAuth();
+  const { defaultCurrency, profile, user, canManageMembers: isManager } =
+    useAuth();
 
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
@@ -187,19 +192,35 @@ export default function DashboardPage() {
     })();
 
     // Recent leads
-    void db
-      .from('contacts')
-      .select(
-        '*, lead_details(*), deals(status, pipeline_stages!deals_stage_id_fkey(name)), contact_tags(tags(name))'
-      )
-      .order('created_at', { ascending: false })
-      .order('created_at', { referencedTable: 'deals', ascending: false })
-      .limit(6)
-      .then(({ data, error }) => {
-        if (error) console.error('[dashboard] recent leads failed:', error);
-        else setRecentLeads(data || []);
-        setRecentLeadsLoading(false);
-      });
+    void (async () => {
+      let recentLeadsQuery = db
+        .from('contacts')
+        .select(
+          '*, lead_details(*), deals(status, pipeline_stages!deals_stage_id_fkey(name)), contact_tags(tags(name))'
+        )
+        .order('created_at', { ascending: false })
+        .order('created_at', { referencedTable: 'deals', ascending: false })
+        .limit(6);
+
+      if (!isManager && user?.id) {
+        const assignedIds = await getAgentAssignedContactIds(
+          db,
+          user.id,
+          profile?.id
+        );
+        const filter = buildAgentContactFilter(
+          user.id,
+          profile?.id,
+          assignedIds
+        );
+        recentLeadsQuery = recentLeadsQuery.or(filter);
+      }
+
+      const { data, error } = await recentLeadsQuery;
+      if (error) console.error('[dashboard] recent leads failed:', error);
+      else setRecentLeads(data || []);
+      setRecentLeadsLoading(false);
+    })();
 
     // Today's site visits
     const todayStart = new Date();
@@ -207,27 +228,71 @@ export default function DashboardPage() {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    void db
-      .from('site_visits')
-      .select('*, contacts(name, phone), properties(title, location)')
-      .gte('scheduled_at', todayStart.toISOString())
-      .lte('scheduled_at', todayEnd.toISOString())
-      .order('scheduled_at', { ascending: true })
-      .then(({ data, error }) => {
-        if (error) console.error('[dashboard] today visits failed:', error);
-        else setTodayVisits((data as unknown as DashboardVisit[]) || []);
-        setTodayVisitsLoading(false);
-      });
+    void (async () => {
+      const { data, error } = await db
+        .from('site_visits')
+        .select(
+          '*, contacts(name, phone, user_id), properties(title, location), tasks(id, assigned_to)'
+        )
+        .gte('scheduled_at', todayStart.toISOString())
+        .lte('scheduled_at', todayEnd.toISOString())
+        .order('scheduled_at', { ascending: true });
+
+      if (error) {
+        console.error('[dashboard] today visits failed:', error);
+      } else {
+        let visits = (data as unknown as (DashboardVisit & {
+          contacts?: { name?: string; phone?: string; user_id?: string };
+          tasks?:
+            | { id: string; assigned_to?: string }
+            | { id: string; assigned_to?: string }[];
+        })[]) || [];
+
+        if (!isManager && user?.id) {
+          const assignedIds = await getAgentAssignedContactIds(
+            db,
+            user.id,
+            profile?.id
+          );
+          visits = visits.filter((v) => {
+            const task = Array.isArray(v.tasks) ? v.tasks[0] : v.tasks;
+            if (
+              task?.assigned_to === user.id ||
+              (profile?.id && task?.assigned_to === profile.id)
+            ) {
+              return true;
+            }
+            if (
+              v.contacts?.user_id === user.id ||
+              (profile?.id && v.contacts?.user_id === profile.id)
+            ) {
+              return true;
+            }
+            if (v.contact_id && assignedIds.includes(v.contact_id)) {
+              return true;
+            }
+            return false;
+          });
+        }
+        setTodayVisits(visits);
+      }
+      setTodayVisitsLoading(false);
+    })();
 
     // Today's tasks
-    fetch('/api/tasks?due_today=true')
+    const tasksUrl =
+      !isManager && (profile?.id || user?.id)
+        ? `/api/tasks?due_today=true&assigned_to=${profile?.id || user?.id}`
+        : '/api/tasks?due_today=true';
+
+    fetch(tasksUrl)
       .then((r) => r.json())
       .then((d) => {
         setTodayTasks(d.tasks || []);
       })
       .catch((e) => console.error('[dashboard] tasks failed:', e))
       .finally(() => setTodayTasksLoading(false));
-  }, []);
+  }, [isManager, user, profile]);
 
   useEffect(() => {
     loadAll();

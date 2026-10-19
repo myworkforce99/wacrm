@@ -326,4 +326,81 @@ describe('POST /api/whatsapp/send — role enforcement', () => {
     expect(res.status).toBe(200);
     expect(sendTemplateMessage).toHaveBeenCalledTimes(1);
   });
+
+  it('blocks an agent from sending to another agent conversation with 403', async () => {
+    callerRole = 'agent';
+    existingConversation = {
+      id: 'conv-existing',
+      account_id: 'acct-1',
+      contact_id: 'contact-1',
+      assigned_agent_id: 'other-user',
+      contact: CONTACT,
+    };
+
+    const res = await POST(
+      new Request('http://localhost/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: 'conv-existing',
+          message_type: 'template',
+          template_name: 'order_update',
+        }),
+      })
+    );
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.error).toBe('This conversation is assigned to another agent');
+    expect(sendTemplateMessage).not.toHaveBeenCalled();
+  });
+
+  it('allows an agent to send to their own assigned conversation', async () => {
+    callerRole = 'agent';
+    existingConversation = {
+      id: 'conv-existing',
+      account_id: 'acct-1',
+      contact_id: 'contact-1',
+      assigned_agent_id: 'user-1',
+      contact: CONTACT,
+    };
+
+    const res = await POST(
+      new Request('http://localhost/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: 'conv-existing',
+          message_type: 'template',
+          template_name: 'order_update',
+        }),
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(sendTemplateMessage).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows an admin to send to any agent conversation', async () => {
+    callerRole = 'admin';
+    existingConversation = {
+      id: 'conv-existing',
+      account_id: 'acct-1',
+      contact_id: 'contact-1',
+      assigned_agent_id: 'other-user',
+      contact: CONTACT,
+    };
+
+    const res = await POST(
+      new Request('http://localhost/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: 'conv-existing',
+          message_type: 'template',
+          template_name: 'order_update',
+        }),
+      })
+    );
+    expect(res.status).toBe(200);
+    expect(sendTemplateMessage).toHaveBeenCalledTimes(1);
+  });
 });

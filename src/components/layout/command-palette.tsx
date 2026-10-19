@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 import {
   Search,
   Users,
@@ -46,7 +51,8 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const router = useRouter();
-  const { accountId } = useAuth();
+  const { accountId, user, profile, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
   const t = useTranslations('Header');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -173,14 +179,31 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       try {
         const supabase = createClient();
 
+        let contactsQuery = supabase
+          .from('contacts')
+          .select('id, name, phone, conversations(id)')
+          .eq('account_id', accountId)
+          .or(`name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
+          .limit(5);
+
+        if (!isManager && user?.id) {
+          const assignedIds = await getAgentAssignedContactIds(
+            supabase,
+            user.id,
+            profile?.id
+          );
+          if (isCancelled) return;
+          const filter = buildAgentContactFilter(
+            user.id,
+            profile?.id,
+            assignedIds
+          );
+          contactsQuery = contactsQuery.or(filter);
+        }
+
         // Query contacts and properties in parallel
         const [contactsRes, propsRes] = await Promise.all([
-          supabase
-            .from('contacts')
-            .select('id, name, phone, conversations(id)')
-            .eq('account_id', accountId)
-            .or(`name.ilike.%${trimmed}%,phone.ilike.%${trimmed}%`)
-            .limit(5),
+          contactsQuery,
           supabase
             .from('properties')
             .select('id, title, project_name, location')
@@ -239,7 +262,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [query, open, accountId]);
+  }, [query, open, accountId, isManager, user, profile]);
 
   // Combined filtered items
   const displayedItems = useMemo(() => {

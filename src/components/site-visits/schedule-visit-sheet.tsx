@@ -129,6 +129,10 @@ function getPresetDatetime(preset: PresetKey): string {
 }
 
 import { formatConfiguration } from '@/lib/properties/format-configuration';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 export { formatConfiguration };
 
 export function ScheduleVisitSheet({
@@ -142,7 +146,7 @@ export function ScheduleVisitSheet({
   const t = useTranslations('SiteVisits.schedule');
   const tPage = useTranslations('SiteVisits.page');
   const supabase = createClient();
-  const { accountId, user, accountRole } = useAuth();
+  const { accountId, user, profile, accountRole } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   // Reference data
@@ -168,17 +172,54 @@ export function ScheduleVisitSheet({
 
   const loadFormData = useCallback(async () => {
     setLoading(true);
+
+    let contactsPromise;
+
+    if (!isManager && user?.id) {
+      // Scoped query for agents: Only fetch leads assigned to this agent (via direct assignment, deals, or conversations)
+      const assignedContactIds = await getAgentAssignedContactIds(
+        supabase,
+        user.id,
+        profile?.id
+      );
+
+      const targetContactIds = Array.from(
+        new Set([
+          ...assignedContactIds,
+          ...(defaultContactId ? [defaultContactId] : []),
+          ...(visit?.contact_id ? [visit.contact_id] : []),
+        ])
+      );
+
+      const filter = buildAgentContactFilter(
+        user.id,
+        profile?.id,
+        targetContactIds
+      );
+
+      contactsPromise = supabase
+        .from('contacts')
+        .select(
+          'id, name, phone, email, lead_details(source, location_preference, budget_min, budget_max, configuration_preference)'
+        )
+        .or(filter)
+        .order('name');
+    } else {
+      // Managers (Owner / Admin) can search and select from all business leads
+      contactsPromise = supabase
+        .from('contacts')
+        .select(
+          'id, name, phone, email, lead_details(source, location_preference, budget_min, budget_max, configuration_preference)'
+        )
+        .order('name');
+    }
+
     const [
       { data: contactsData },
       { data: propsData },
       { data: profilesData },
     ] = await Promise.all([
-      supabase
-        .from('contacts')
-        .select(
-          'id, name, phone, email, lead_details(source, location_preference, budget_min, budget_max, configuration_preference)'
-        )
-        .order('name'),
+      contactsPromise,
       supabase
         .from('properties')
         .select(
@@ -231,7 +272,7 @@ export function ScheduleVisitSheet({
     setProperties((propsData ?? []) as Property[]);
     setProfiles((profilesData ?? []) as Profile[]);
     setLoading(false);
-  }, [supabase]);
+  }, [supabase, isManager, user, profile, defaultContactId, visit]);
 
   useEffect(() => {
     if (!open) return;
@@ -342,6 +383,12 @@ export function ScheduleVisitSheet({
     e.preventDefault();
     if (!selectedContactId || !scheduledAt) return;
     if (!accountId) {
+      toast.error(t('toastError'));
+      return;
+    }
+
+    // Role-based isolation guard: agents can only schedule visits for their assigned leads
+    if (!isManager && !contacts.some((c) => c.id === selectedContactId)) {
       toast.error(t('toastError'));
       return;
     }

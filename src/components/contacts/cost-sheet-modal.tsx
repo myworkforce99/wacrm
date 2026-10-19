@@ -6,6 +6,12 @@ import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 
 import {
   Sheet,
@@ -34,6 +40,9 @@ export function CostSheetModal({
   contactId: initialContactId,
   propertyId,
 }: CostSheetModalProps) {
+  const { user, profile, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
+
   const [loading, setLoading] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [sending, setSending] = useState(false);
@@ -83,11 +92,27 @@ export function CostSheetModal({
     async function fetchContacts() {
       try {
         const db = createClient();
-        const { data, error } = await db
+        let query = db
           .from('contacts')
           .select('id, name, phone')
           .order('name')
           .limit(100);
+
+        if (!isManager && user?.id) {
+          const assignedContactIds = await getAgentAssignedContactIds(
+            db,
+            user.id,
+            profile?.id
+          );
+          const filter = buildAgentContactFilter(
+            user.id,
+            profile?.id,
+            assignedContactIds
+          );
+          query = query.or(filter);
+        }
+
+        const { data, error } = await query;
         if (isMounted && !error && data) {
           setContacts(data as unknown as Contact[]);
         }
@@ -101,7 +126,7 @@ export function CostSheetModal({
     return () => {
       isMounted = false;
     };
-  }, [open, initialContactId]);
+  }, [open, initialContactId, isManager, user, profile]);
 
   // 2. Fetch required data when a contact is selected
   useEffect(() => {

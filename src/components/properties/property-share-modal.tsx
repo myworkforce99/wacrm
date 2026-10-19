@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageMembers } from '@/lib/auth/roles';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 import type { Property, Contact } from '@/types';
 import { formatINR } from '@/lib/currency';
 import { formatConfiguration } from '@/lib/properties/format-configuration';
@@ -44,6 +50,8 @@ export function PropertyShareModal({
   const t = useTranslations('Properties.share');
   const router = useRouter();
   const supabase = createClient();
+  const { user, profile, accountRole } = useAuth();
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [copied, setCopied] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -66,11 +74,27 @@ export function PropertyShareModal({
 
     async function loadContacts() {
       setLoadingContacts(true);
-      const { data } = await supabase
+      let query = supabase
         .from('contacts')
         .select('id, name, phone')
         .order('name')
         .limit(50);
+
+      if (!isManager && user?.id) {
+        const assignedContactIds = await getAgentAssignedContactIds(
+          supabase,
+          user.id,
+          profile?.id
+        );
+        const filter = buildAgentContactFilter(
+          user.id,
+          profile?.id,
+          assignedContactIds
+        );
+        query = query.or(filter);
+      }
+
+      const { data } = await query;
 
       if (!isCancelled && data) {
         setContacts(data as Contact[]);
@@ -84,7 +108,7 @@ export function PropertyShareModal({
     return () => {
       isCancelled = true;
     };
-  }, [open, supabase]);
+  }, [open, supabase, isManager, user, profile]);
 
   const filteredContacts = useMemo(() => {
     if (!contactSearch.trim()) return contacts.slice(0, 6);

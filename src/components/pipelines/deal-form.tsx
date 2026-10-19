@@ -19,6 +19,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { canManageMembers } from '@/lib/auth/roles';
 import { CURRENCIES, formatCurrency, formatINR } from '@/lib/currency';
 import { parseBudget } from '@/lib/contacts/parse-budget';
+import {
+  getAgentAssignedContactIds,
+  buildAgentContactFilter,
+} from '@/lib/contacts/agent-scoping';
 import type {
   Contact,
   Conversation,
@@ -81,7 +85,7 @@ export function DealForm({
 }: DealFormProps) {
   const t = useTranslations('Pipelines.form');
   const supabase = createClient();
-  const { accountId, accountRole, profile, defaultCurrency } = useAuth();
+  const { accountId, accountRole, profile, user, defaultCurrency } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [title, setTitle] = useState('');
@@ -168,8 +172,38 @@ export function DealForm({
     let cancelled = false;
     const timer = setTimeout(() => {
       void (async () => {
+        let contactsPromise;
+        if (!isManager && user?.id) {
+          const assignedContactIds = await getAgentAssignedContactIds(
+            supabase,
+            user.id,
+            profile?.id
+          );
+          const targetContactIds = Array.from(
+            new Set([
+              ...assignedContactIds,
+              ...(deal?.contact_id ? [deal.contact_id] : []),
+            ])
+          );
+          const filter = buildAgentContactFilter(
+            user.id,
+            profile?.id,
+            targetContactIds
+          );
+          contactsPromise = supabase
+            .from('contacts')
+            .select('*, lead_details(*)')
+            .or(filter)
+            .order('name');
+        } else {
+          contactsPromise = supabase
+            .from('contacts')
+            .select('*, lead_details(*)')
+            .order('name');
+        }
+
         const [c, p] = await Promise.all([
-          supabase.from('contacts').select('*, lead_details(*)').order('name'),
+          contactsPromise,
           supabase.from('profiles').select('*').order('full_name'),
         ]);
         if (cancelled) return;
@@ -181,7 +215,7 @@ export function DealForm({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [open, supabase]);
+  }, [open, supabase, isManager, user, profile, deal?.contact_id]);
 
   // Fetch linked conversation for the selected contact
   useEffect(() => {
@@ -229,6 +263,11 @@ export function DealForm({
   async function handleSave() {
     if (!title.trim() || !contactId || !stageId) {
       toast.error(t('toastRequired'));
+      return;
+    }
+    // Anti-poaching guard: agents can only create/update deals for their assigned leads
+    if (!isManager && !contacts.some((c) => c.id === contactId)) {
+      toast.error(t('toastFailedSave'));
       return;
     }
     setSaving(true);

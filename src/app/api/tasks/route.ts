@@ -4,10 +4,11 @@ import {
   requireRole,
   toErrorResponse,
 } from '@/lib/auth/account';
+import { canManageMembers } from '@/lib/auth/roles';
 
 export async function GET(request: Request) {
   try {
-    const { supabase } = await getCurrentAccount();
+    const { supabase, userId, role } = await getCurrentAccount();
     const url = new URL(request.url);
     const dueToday = url.searchParams.get('due_today') === 'true';
     const contactId = url.searchParams.get('contact_id');
@@ -23,8 +24,16 @@ export async function GET(request: Request) {
     if (contactId) {
       query = query.eq('contact_id', contactId);
     }
+
+    const isManager = role ? canManageMembers(role) : false;
+
     if (assignedTo) {
+      if (!isManager && assignedTo !== userId) {
+        return NextResponse.json({ tasks: [] });
+      }
       query = query.eq('assigned_to', assignedTo);
+    } else if (!isManager) {
+      query = query.or(`assigned_to.eq.${userId},created_by.eq.${userId}`);
     }
 
     const { data, error } = await query.order('due_at', { ascending: true });
