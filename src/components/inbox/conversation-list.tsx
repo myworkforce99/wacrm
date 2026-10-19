@@ -69,21 +69,56 @@ export function ConversationList({
   const effectiveAssigneeFilter =
     !isManager && assigneeFilter === 'all' ? 'mine' : assigneeFilter;
 
-  // When deep-linking to an unassigned conversation, switch to unassigned tab
+  // On initial mount/deep-link, align the tab to 'unassigned' if the targeted
+  // conversation is unassigned. Run at most once so user tab clicks are never overridden.
+  const initialDeepLinkHandledRef = useRef(false);
   useEffect(() => {
-    if (!activeConversationId) return;
-    const activeConv = conversations.find((c) => c.id === activeConversationId);
     if (
-      activeConv &&
-      !activeConv.assigned_agent_id &&
-      effectiveAssigneeFilter === 'mine'
+      initialDeepLinkHandledRef.current ||
+      !activeConversationId ||
+      conversations.length === 0
     ) {
+      return;
+    }
+    const activeConv = conversations.find((c) => c.id === activeConversationId);
+    if (!activeConv) return;
+    initialDeepLinkHandledRef.current = true;
+    if (!activeConv.assigned_agent_id) {
       const timer = setTimeout(() => {
         setAssigneeFilter('unassigned');
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [activeConversationId, conversations, effectiveAssigneeFilter]);
+  }, [activeConversationId, conversations]);
+
+  // When an unassigned conversation is claimed by the current user, seamlessly
+  // switch to 'mine' tab so the claimed conversation stays in view.
+  // We track the previous assigned_agent_id for the active conversation so that
+  // tab switching is triggered ONLY by the actual claim event transition (null -> currentUserId),
+  // NEVER by the user clicking between tabs.
+  const prevAssignedMapRef = useRef<Map<string, string | null>>(new Map());
+  useEffect(() => {
+    if (!activeConversationId || !currentUserId) return;
+    const activeConv = conversations.find((c) => c.id === activeConversationId);
+    if (!activeConv) return;
+
+    const currentAssigned = activeConv.assigned_agent_id ?? null;
+    const hasPrev = prevAssignedMapRef.current.has(activeConversationId);
+    const prevAssigned = prevAssignedMapRef.current.get(activeConversationId);
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Only transition when this active conversation changed from unassigned (null) to currentUserId
+    if (hasPrev && prevAssigned === null && currentAssigned === currentUserId) {
+      timer = setTimeout(() => {
+        setAssigneeFilter('mine');
+      }, 0);
+    }
+
+    prevAssignedMapRef.current.set(activeConversationId, currentAssigned);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [activeConversationId, conversations, currentUserId]);
 
   useEffect(() => {
     if (initialUserId || authUser?.id) return;
@@ -304,7 +339,7 @@ export function ConversationList({
     // w-full on mobile so the list occupies the whole viewport when it's
     // the single pane showing; fixed 320px on desktop where it shares the
     // row with the thread + contact sidebar.
-    <div className="border-border bg-card flex h-full w-full flex-col lg:border-r lg:w-[340px]">
+    <div className="border-border bg-card flex min-h-0 w-full flex-1 flex-col lg:border-r lg:w-[340px]">
       {/* Search + Filter */}
       <div className="border-border space-y-2 border-b p-3">
         {/* Assignee Filter Tabs (Mine / Unassigned for agents; + All for managers) */}

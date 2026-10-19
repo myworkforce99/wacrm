@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `129_deal_lifecycle_fields.sql`.**
-- **Every new migration in the implementation plan starts at `130` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `130_properties_admin_manage_only.sql`.**
+- **Every new migration in the implementation plan starts at `131` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
@@ -55,7 +55,7 @@ running fork where migrations may have been added since this was written.
 | `ai_knowledge_chunks`           | 030                           | pgvector/full-text retrieval                                                                                                                                                                                       |
 | `ai_usage_log`                  | 029                           | spend/usage tracking                                                                                                                                                                                               |
 | `lead_details`                  | 043                           | real-estate vertical additions                                                                                                                                                                                     |
-| `properties`                    | 043                           | real-estate vertical additions                                                                                                                                                                                     |
+| `properties`                    | 043, policy updated 130       | real-estate vertical additions; admin/owner mutation only (130)                                                                                                                                                    |
 | `site_visits`                   | 043                           | real-estate vertical additions                                                                                                                                                                                     |
 | `broadcast_templates`           | 117                           | global read-only RE broadcast template library (no `account_id`, world-readable)                                                                                                                                   |
 | `lead_routing_rules`            | 113                           | account-scoped condition→action routing rules for incoming leads                                                                                                                                                   |

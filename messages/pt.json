@@ -255,7 +255,15 @@
       "assignmentUpdateFailed": "Falha ao atualizar a atribuição",
       "claimLead": "Reivindicar lead",
       "claimLeadTooltip": "Reivindicar este lead não atribuído e atribuí-lo a você",
-      "leadClaimed": "Lead reivindicado com sucesso"
+      "leadClaimed": "Lead reivindicado com sucesso",
+      "leadAlreadyClaimed": "Este lead já foi reivindicado por outro agente",
+      "assignedToOther": "Atribuído a {agent}",
+      "unassignedLockedStatusTooltip": "Reivindique o lead para alterar o status",
+      "assignedToYou": "Atribuído a você",
+      "assignedToYouTooltip": "Este lead está atribuído a você",
+      "releaseToPool": "Liberar para a lista de não atribuídos",
+      "leadReleased": "Lead liberado de volta para a lista de não atribuídos",
+      "onlyManagersCanReassign": "Apenas gerentes podem reatribuir leads a outros colegas"
     },
     "sessionTimer": {
       "expired": "Expirada",
@@ -269,6 +277,9 @@
       "templates": "Modelos",
       "readOnlyPlaceholder": "Somente leitura — visualizadores podem navegar, mas não responder",
       "sessionExpiredPlaceholder": "Sessão expirada - use um modelo",
+      "claimToUnlock": "Reivindicar lead",
+      "unassignedLockedHint": "Este lead não está atribuído. Reivindique-o para responder, enviar modelos e gerenciar requisitos.",
+      "assignedToOtherAgentHint": "Atribuído a {agent}. Apenas o agente atribuído ou um administrador pode responder.",
       "typeMessagePlaceholder": "Digite uma mensagem... (Shift+Enter para nova linha)",
       "readOnlyTitle": "Somente leitura — sua função não pode enviar mensagens",
       "recording": "Gravando… {current} / {max}",
@@ -379,7 +390,14 @@
       "deals": "Negócios",
       "noTags": "Sem tags",
       "noDeals": "Sem negócios",
-      "addNotePlaceholder": "Adicionar uma nota..."
+      "addNotePlaceholder": "Adicionar uma nota...",
+      "unassignedNoticeTitle": "Lead não atribuído",
+      "unassignedNoticeBody": "Reivindique este lead para editar requisitos, adicionar notas e agendar visitas.",
+      "claimToSchedule": "Reivindique o lead para agendar visitas",
+      "claimToSendCostSheet": "Reivindique o lead para enviar a planilha de custos",
+      "claimToEditRequirements": "Reivindique o lead para editar requisitos",
+      "claimToAddNotes": "Reivindique o lead para adicionar notas internas",
+      "claimToManageTags": "Reivindique o lead para gerenciar tags"
     },
     "aiBanner": {
       "pausedTitle": "O assistente de IA está pausado aqui",

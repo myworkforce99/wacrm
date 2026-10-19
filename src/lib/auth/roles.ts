@@ -125,3 +125,63 @@ export function canMoveDeal(
 export function canCreateBroadcast(role: AccountRole): boolean {
   return hasMinRole(role, 'admin');
 }
+
+/**
+ * Lead management capability (edit requirements, tags, notes, status, reply).
+ * - Admin/Owner: can manage all leads (assigned, unassigned, or belonging to any agent).
+ * - Viewer: read-only across all leads.
+ * - Agent: can ONLY manage leads that are assigned to themselves.
+ *   Unassigned leads or leads assigned to other agents are locked until claimed/assigned.
+ */
+export function canManageLead(
+  role: AccountRole,
+  assignedAgentId: string | null | undefined,
+  currentUserId: string | null | undefined
+): boolean {
+  if (hasMinRole(role, 'admin')) return true;
+  if (role === 'viewer') return false;
+  return Boolean(
+    assignedAgentId && currentUserId && assignedAgentId === currentUserId
+  );
+}
+
+/**
+ * Lead claim capability.
+ * - Viewers: cannot claim leads.
+ * - If already assigned: cannot claim (must be reassigned by manager/agent).
+ * - If unassigned: agents and admins can claim it.
+ */
+export function canClaimLead(
+  role: AccountRole,
+  assignedAgentId: string | null | undefined
+): boolean {
+  if (role === 'viewer') return false;
+  return !assignedAgentId;
+}
+
+/**
+ * Lead assignment capability (assigning/reassigning to ANY arbitrary teammate).
+ * - Admin/Owner: can assign or reassign any lead to any agent or unassign it.
+ * - Agents & Viewers: CANNOT reassign leads to arbitrary teammates.
+ */
+export function canReassignLead(role: AccountRole): boolean {
+  return hasMinRole(role, 'admin');
+}
+
+/**
+ * Lead release capability (returning own claimed/assigned lead back to unassigned pool).
+ * - Admin/Owner: can release/unassign any lead.
+ * - Agent: can release a lead back to the unassigned pool IF it is assigned to themselves.
+ * - Viewer: cannot release leads.
+ */
+export function canReleaseLead(
+  role: AccountRole,
+  assignedAgentId: string | null | undefined,
+  currentUserId: string | null | undefined
+): boolean {
+  if (hasMinRole(role, 'admin')) return Boolean(assignedAgentId);
+  if (role === 'viewer') return false;
+  return Boolean(
+    assignedAgentId && currentUserId && assignedAgentId === currentUserId
+  );
+}

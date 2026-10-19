@@ -15,6 +15,8 @@ import type {
   ConversationStatus,
 } from '@/types';
 import { useRealtime } from '@/hooks/use-realtime';
+import { useAuth } from '@/hooks/use-auth';
+import { canManageLead } from '@/lib/auth/roles';
 import { useMobileNav } from '@/app/(dashboard)/dashboard-shell';
 import { ConversationList } from '@/components/inbox/conversation-list';
 import { MessageThread } from '@/components/inbox/message-thread';
@@ -66,14 +68,24 @@ function InboxPageInner() {
   const [whatsappConnected, setWhatsappConnected] = useState<boolean | null>(
     null
   );
+  const { user: authUser, accountRole } = useAuth();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (authUser?.id) {
+      setCurrentUserId(authUser.id);
+      return;
+    }
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setCurrentUserId(user.id);
     });
-  }, []);
+  }, [authUser?.id]);
+
+  const effectiveUserId = authUser?.id || currentUserId;
+  const canManageActiveLead = accountRole
+    ? canManageLead(accountRole, activeConversation?.assigned_agent_id, effectiveUserId)
+    : false;
   /**
    * Bumped whenever we want children (ConversationList, MessageThread)
    * to refetch from the DB — used as a safety net against missed
@@ -614,6 +626,51 @@ function InboxPageInner() {
     [activeConversation]
   );
 
+  const handleClaimActiveLead = useCallback(async () => {
+    if (!activeConversation || !effectiveUserId) return;
+    const supabase = createClient();
+    const prevAgentId = activeConversation.assigned_agent_id;
+    let query = supabase
+      .from('conversations')
+      .update({ assigned_agent_id: effectiveUserId })
+      .eq('id', activeConversation.id);
+
+    if (!prevAgentId) {
+      query = query.is('assigned_agent_id', null);
+    }
+
+    const { data, error } = await query.select('id, assigned_agent_id');
+    if (error) {
+      console.error('Failed to claim lead:', error);
+      return;
+    }
+
+    if (!prevAgentId && (!data || data.length === 0)) {
+      setResyncToken((t) => t + 1);
+      return;
+    }
+
+    if (activeConversation.contact_id) {
+      const { data: recent } = await supabase
+        .from('assignment_history')
+        .select('id')
+        .eq('contact_id', activeConversation.contact_id)
+        .eq('to_agent_id', effectiveUserId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (recent) {
+        await supabase
+          .from('assignment_history')
+          .update({ reason: 'claim' })
+          .eq('id', recent.id);
+      }
+    }
+
+    handleAssignChange(activeConversation.id, effectiveUserId);
+  }, [activeConversation, effectiveUserId, handleAssignChange]);
+
   // On mobile (<lg) we show a SINGLE pane — either the list or the
   // thread — rather than cramming both side-by-side. Selecting a
   // conversation slides the thread in; the thread's back button pops
@@ -642,7 +699,7 @@ function InboxPageInner() {
   }, [deepLinkConvId, deepLinkContactId, activeConversation]);
 
   return (
-    <div className="border-border bg-card flex h-full w-full flex-1 flex-col overflow-hidden md:rounded-xl md:border md:shadow-xs">
+    <div className="border-border bg-card flex min-h-0 w-full flex-1 flex-col overflow-hidden md:rounded-xl md:border md:shadow-xs">
       {/* WhatsApp connection banner — in the flex column, not absolute,
           so it pushes the panels down instead of overlapping them. */}
       {whatsappConnected === false && (
@@ -652,13 +709,13 @@ function InboxPageInner() {
         </div>
       )}
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left panel: Conversation list.
             Hidden on mobile when a conversation is selected so the
             thread can occupy the full width. Always visible on lg+. */}
         <div
           className={cn(
-            'h-full flex-1 lg:flex-none',
+            'min-h-0 flex-1 lg:flex-none',
             hasActiveConv ? 'hidden lg:flex lg:w-[340px]' : 'flex w-full lg:w-[340px]'
           )}
         >
@@ -684,7 +741,7 @@ function InboxPageInner() {
             on the right. Issue #165. */}
         <div
           className={cn(
-            'h-full min-w-0 flex-1',
+            'min-h-0 min-w-0 flex-1 flex flex-col',
             hasActiveConv ? 'flex w-full' : 'hidden lg:flex'
           )}
         >
@@ -713,7 +770,13 @@ function InboxPageInner() {
             toggle — which is itself desktop-only — never affects it. */}
         {contactPanelOpen && (
           <div className="hidden lg:block">
-            <ContactSidebar contact={activeContact} />
+            <ContactSidebar
+              contact={activeContact}
+              conversation={activeConversation}
+              canManage={canManageActiveLead}
+              onClaimLead={handleClaimActiveLead}
+              onUpdated={handleManualRefresh}
+            />
           </div>
         )}
       </div>
@@ -726,8 +789,14 @@ function InboxPageInner() {
               {activeContact?.name || activeContact?.phone || 'Contact Details'}
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto">
-            <ContactSidebar contact={activeContact} />
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <ContactSidebar
+              contact={activeContact}
+              conversation={activeConversation}
+              canManage={canManageActiveLead}
+              onClaimLead={handleClaimActiveLead}
+              onUpdated={handleManualRefresh}
+            />
           </div>
         </SheetContent>
       </Sheet>

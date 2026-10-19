@@ -6,6 +6,10 @@ import {
   canEditSettings,
   canManageMembers,
   canSendMessages,
+  canManageLead,
+  canClaimLead,
+  canReassignLead,
+  canReleaseLead,
   canTransferOwnership,
   canViewOnly,
   hasMinRole,
@@ -126,5 +130,81 @@ describe('capability predicates', () => {
     expect(canTransferOwnership('admin')).toBe(false);
     expect(canTransferOwnership('agent')).toBe(false);
     expect(canTransferOwnership('viewer')).toBe(false);
+  });
+
+  describe('canManageLead', () => {
+    it('admin and owner can manage any lead (unassigned, own, or other agent)', () => {
+      for (const role of ['owner', 'admin'] as const) {
+        expect(canManageLead(role, null, 'user-1')).toBe(true);
+        expect(canManageLead(role, 'user-1', 'user-1')).toBe(true);
+        expect(canManageLead(role, 'user-2', 'user-1')).toBe(true);
+      }
+    });
+
+    it('viewer can never manage any lead', () => {
+      expect(canManageLead('viewer', null, 'user-1')).toBe(false);
+      expect(canManageLead('viewer', 'user-1', 'user-1')).toBe(false);
+      expect(canManageLead('viewer', 'user-2', 'user-1')).toBe(false);
+    });
+
+    it('agent can only manage leads assigned to themselves', () => {
+      // Unassigned lead -> false (must claim first)
+      expect(canManageLead('agent', null, 'user-1')).toBe(false);
+      // Own assigned lead -> true
+      expect(canManageLead('agent', 'user-1', 'user-1')).toBe(true);
+      // Lead assigned to someone else -> false
+      expect(canManageLead('agent', 'user-2', 'user-1')).toBe(false);
+      // Missing current user id -> false
+      expect(canManageLead('agent', 'user-1', null)).toBe(false);
+    });
+  });
+
+  describe('canClaimLead', () => {
+    it('viewer cannot claim leads', () => {
+      expect(canClaimLead('viewer', null)).toBe(false);
+      expect(canClaimLead('viewer', 'user-1')).toBe(false);
+    });
+
+    it('agent and admin can claim unassigned leads', () => {
+      expect(canClaimLead('agent', null)).toBe(true);
+      expect(canClaimLead('admin', null)).toBe(true);
+      expect(canClaimLead('owner', null)).toBe(true);
+    });
+
+    it('cannot claim already assigned leads', () => {
+      expect(canClaimLead('agent', 'user-1')).toBe(false);
+      expect(canClaimLead('admin', 'user-1')).toBe(false);
+      expect(canClaimLead('owner', 'user-1')).toBe(false);
+    });
+  });
+
+  describe('canReassignLead', () => {
+    it('admin and owner can reassign leads to arbitrary teammates', () => {
+      expect(canReassignLead('owner')).toBe(true);
+      expect(canReassignLead('admin')).toBe(true);
+    });
+
+    it('agents and viewers cannot reassign leads', () => {
+      expect(canReassignLead('agent')).toBe(false);
+      expect(canReassignLead('viewer')).toBe(false);
+    });
+  });
+
+  describe('canReleaseLead', () => {
+    it('admin and owner can release any assigned lead', () => {
+      expect(canReleaseLead('owner', 'user-1', 'user-2')).toBe(true);
+      expect(canReleaseLead('admin', 'user-1', 'user-2')).toBe(true);
+      expect(canReleaseLead('admin', null, 'user-2')).toBe(false);
+    });
+
+    it('agent can only release leads assigned to themselves', () => {
+      expect(canReleaseLead('agent', 'user-1', 'user-1')).toBe(true);
+      expect(canReleaseLead('agent', 'user-2', 'user-1')).toBe(false);
+      expect(canReleaseLead('agent', null, 'user-1')).toBe(false);
+    });
+
+    it('viewer can never release leads', () => {
+      expect(canReleaseLead('viewer', 'user-1', 'user-1')).toBe(false);
+    });
   });
 });

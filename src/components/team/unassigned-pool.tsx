@@ -95,6 +95,25 @@ export function UnassignedPool() {
     return () => clearTimeout(timer);
   }, [fetchPool, fetchAgents]);
 
+  // Realtime subscription: auto-refresh pool and agent counts when any conversation is claimed or reassigned
+  useEffect(() => {
+    const channel = supabase
+      .channel('team-unassigned-pool')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        () => {
+          void fetchPool();
+          void fetchAgents();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchPool, fetchAgents]);
+
   const openAssignSheet = (leadId: string) => {
     setSelectedLead(leadId);
     setSheetOpen(true);

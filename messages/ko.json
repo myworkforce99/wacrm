@@ -255,7 +255,15 @@
       "assignmentUpdateFailed": "담당자 변경에 실패했습니다",
       "claimLead": "리드 배정받기",
       "claimLeadTooltip": "이 미배정 리드를 나에게 배정합니다",
-      "leadClaimed": "리드가 성공적으로 배정되었습니다"
+      "leadClaimed": "리드가 성공적으로 배정되었습니다",
+      "leadAlreadyClaimed": "이 리드는 이미 다른 상담원이 배정받았습니다",
+      "assignedToOther": "{agent}에게 배정됨",
+      "unassignedLockedStatusTooltip": "상태를 변경하려면 리드를 배정받으세요",
+      "assignedToYou": "나에게 배정됨",
+      "assignedToYouTooltip": "이 리드는 나에게 배정되어 있습니다",
+      "releaseToPool": "미배정 풀로 반환",
+      "leadReleased": "리드가 미배정 풀로 반환되었습니다",
+      "onlyManagersCanReassign": "다른 팀원에게 리드를 재배정하는 것은 관리자만 가능합니다"
     },
     "sessionTimer": {
       "expired": "만료됨",
@@ -269,6 +277,9 @@
       "templates": "템플릿",
       "readOnlyPlaceholder": "읽기 전용 — 뷰어는 열람만 가능하고 답장할 수 없습니다",
       "sessionExpiredPlaceholder": "세션 만료 - 템플릿을 사용하세요",
+      "claimToUnlock": "리드 배정받기",
+      "unassignedLockedHint": "배정되지 않은 리드입니다. 답변, 템플릿 발송, 요구사항 수정을 위해 먼저 배정받으세요.",
+      "assignedToOtherAgentHint": "{agent}에게 배정되었습니다. 배정된 상담원 또는 관리자만 답변할 수 있습니다.",
       "typeMessagePlaceholder": "메시지를 입력하세요... (줄바꿈은 Shift+Enter)",
       "readOnlyTitle": "읽기 전용 — 현재 역할로는 메시지를 보낼 수 없습니다",
       "recording": "녹음 중… {current} / {max}",
@@ -379,7 +390,14 @@
       "deals": "딜",
       "noTags": "태그 없음",
       "noDeals": "딜 없음",
-      "addNotePlaceholder": "메모 추가..."
+      "addNotePlaceholder": "메모 추가...",
+      "unassignedNoticeTitle": "미배정 리드",
+      "unassignedNoticeBody": "구매 요구사항 수정, 메모 작성, 방문 예약을 위해 이 리드를 배정받으세요.",
+      "claimToSchedule": "방문을 예약하려면 리드를 배정받으세요",
+      "claimToSendCostSheet": "견적서를 발송하려면 리드를 배정받으세요",
+      "claimToEditRequirements": "요구사항을 수정하려면 리드를 배정받으세요",
+      "claimToAddNotes": "내부 메모를 작성하려면 리드를 배정받으세요",
+      "claimToManageTags": "태그를 관리하려면 리드를 배정받으세요"
     },
     "aiBanner": {
       "pausedTitle": "이 대화에서 AI 어시스턴트가 일시 중지됨",

@@ -25,11 +25,14 @@ import {
   Check,
   Clock,
   ArrowLeft,
+  ArrowRightLeft,
   RefreshCw,
   PanelRightOpen,
   PanelRightClose,
   User,
+  Lock,
 } from 'lucide-react';
+import { canManageLead, canClaimLead, canManageMembers, canReleaseLead } from '@/lib/auth/roles';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
@@ -184,7 +187,22 @@ export function MessageThread({
   const tTimer = useTranslations('Inbox.sessionTimer');
   const tQuote = useTranslations('Inbox.replyQuote');
 
-  const { user } = useAuth();
+  const { user, accountRole } = useAuth();
+  const canManage = accountRole
+    ? canManageLead(accountRole, conversation?.assigned_agent_id, user?.id)
+    : false;
+  const canClaim = accountRole
+    ? canClaimLead(accountRole, conversation?.assigned_agent_id)
+    : false;
+  const canRelease = accountRole
+    ? canReleaseLead(accountRole, conversation?.assigned_agent_id, user?.id)
+    : false;
+  const isManager = accountRole ? canManageMembers(accountRole) : false;
+  const isUnassigned = !conversation?.assigned_agent_id;
+  const isAssignedToOther =
+    Boolean(conversation?.assigned_agent_id) &&
+    conversation?.assigned_agent_id !== user?.id &&
+    !isManager;
   const { getPresence, getRow, now } = usePresence();
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -879,12 +897,26 @@ export function MessageThread({
     async (agentId: string | null) => {
       if (!conversation) return;
 
+      // Agents cannot reassign leads to arbitrary teammates
+      if (!isManager && agentId !== null && agentId !== user?.id) {
+        toast.error(t('onlyManagersCanReassign'));
+        return;
+      }
+
       const supabase = createClient();
       const prevAgentId = conversation.assigned_agent_id;
-      const { error } = await supabase
+
+      let query = supabase
         .from('conversations')
         .update({ assigned_agent_id: agentId })
         .eq('id', conversation.id);
+
+      // If claiming an unassigned lead, atomically ensure it wasn't already claimed by another agent
+      if (!prevAgentId && agentId === user?.id) {
+        query = query.is('assigned_agent_id', null);
+      }
+
+      const { data, error } = await query.select('id, assigned_agent_id');
 
       if (error) {
         console.error('Failed to update assignment:', error);
@@ -892,14 +924,33 @@ export function MessageThread({
         return;
       }
 
-      // Enrich assignment_history reason from generic DB trigger value to 'claim' or 'manual_reassign'
+      if (!prevAgentId && agentId === user?.id && (!data || data.length === 0)) {
+        toast.error(t('leadAlreadyClaimed'));
+        onRefresh?.();
+        return;
+      }
+
+      // Enrich assignment_history reason from generic DB trigger value to 'claim', 'release_pool', or 'manual_reassign'
       if (conversation.contact_id && agentId !== prevAgentId) {
-        const reason = agentId && agentId === user?.id ? 'claim' : 'manual_reassign';
-        const { data: recent } = await supabase
+        const reason =
+          agentId && agentId === user?.id
+            ? 'claim'
+            : !agentId
+              ? 'release_pool'
+              : 'manual_reassign';
+
+        let queryHistory = supabase
           .from('assignment_history')
           .select('id')
-          .eq('contact_id', conversation.contact_id)
-          .eq('to_agent_id', agentId)
+          .eq('contact_id', conversation.contact_id);
+
+        if (agentId) {
+          queryHistory = queryHistory.eq('to_agent_id', agentId);
+        } else {
+          queryHistory = queryHistory.is('to_agent_id', null);
+        }
+
+        const { data: recent } = await queryHistory
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -915,9 +966,11 @@ export function MessageThread({
       onAssignChange(conversation.id, agentId);
       if (agentId && agentId === user?.id) {
         toast.success(t('leadClaimed'));
+      } else if (!agentId) {
+        toast.success(t('leadReleased'));
       }
     },
-    [conversation, onAssignChange, user?.id, t]
+    [conversation, isManager, onAssignChange, onRefresh, user?.id, t]
   );
 
   const handleClaimLead = useCallback(() => {
@@ -969,7 +1022,7 @@ export function MessageThread({
     // clipped and the hover toolbar overlaps the Tags panel. Letting the
     // root shrink lets the bubbles' break-words / max-w caps apply.
     // Issue #257.
-    <div className={cn('flex min-w-0 flex-1 flex-col', DOODLE_BG_CLASSES)}>
+    <div className={cn('flex min-w-0 min-h-0 flex-1 flex-col', DOODLE_BG_CLASSES)}>
       {/* Header — solid card surface sits on top of the doodle so the
           name/avatar/dropdowns stay legible. */}
       <div className="border-border bg-card flex items-center justify-between gap-1.5 border-b px-2.5 py-2.5 sm:px-4 sm:py-3">
@@ -998,19 +1051,46 @@ export function MessageThread({
               {displayName.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <h2 className="text-foreground truncate text-sm font-semibold">
-                {displayName}
-              </h2>
-              <p className="text-muted-foreground truncate text-[11px] sm:text-xs">
-                {contactHandle(contact)}
-              </p>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <h2 className="text-foreground truncate text-sm font-semibold">
+                  {displayName}
+                </h2>
+                {/* Session timer badge — mobile only */}
+                {sessionInfo.remaining && (
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'border-border gap-0.5 px-1.5 py-0 text-[10px] font-medium shrink-0 md:hidden',
+                      sessionInfo.expired
+                        ? 'border-red-500/30 bg-red-500/10 text-red-500 dark:text-red-400'
+                        : 'border-primary/30 bg-primary/10 text-primary'
+                    )}
+                  >
+                    <Clock className="h-2.5 w-2.5" />
+                    <span>{sessionInfo.expired ? tTimer('expired') : sessionInfo.remaining}</span>
+                  </Badge>
+                )}
+              </div>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="text-muted-foreground truncate text-[11px] sm:text-xs">
+                  {contactHandle(contact)}
+                </p>
+                {conversation.first_unanswered_at && (
+                  <span className="md:hidden shrink-0">
+                    <SlaBadge
+                      firstUnansweredAt={conversation.first_unanswered_at}
+                      className="h-3.5 px-1 py-0 text-[9px]"
+                    />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          {/* Session timer badge — hidden on mobile so the name + back arrow keep room */}
+          {/* Session timer badge — desktop only (md+) */}
           <Badge
             variant="outline"
             className={cn(
-              'border-border ml-1 hidden gap-1 text-[10px] sm:ml-2 md:inline-flex',
+              'border-border ml-1 hidden gap-1 text-[10px] sm:ml-2 md:inline-flex shrink-0',
               sessionInfo.expired ? 'text-red-400' : 'text-primary'
             )}
           >
@@ -1020,7 +1100,7 @@ export function MessageThread({
           {conversation.first_unanswered_at && (
             <SlaBadge
               firstUnansweredAt={conversation.first_unanswered_at}
-              className="ml-1 hidden md:inline-flex text-[10px] py-0.5 px-2"
+              className="ml-1 hidden md:inline-flex text-[10px] py-0.5 px-2 shrink-0"
             />
           )}
         </div>
@@ -1035,9 +1115,9 @@ export function MessageThread({
               onClick={onOpenContactSidebar}
               aria-label="View contact details"
               title="View contact details"
-              className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-8 w-8 items-center justify-center rounded-md transition-colors lg:hidden"
+              className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-md transition-colors lg:hidden"
             >
-              <User className="h-4 w-4" />
+              <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
           )}
 
@@ -1083,40 +1163,53 @@ export function MessageThread({
           )}
 
           {/* Status dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
+          {canManage ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
+                  currentStatus?.color ?? 'text-muted-foreground'
+                )}
+              >
+                <span>{currentStatus ? t(`status${currentStatus.label}`) : t('status')}</span>
+                <ChevronDown className="h-3 w-3" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="border-border bg-popover"
+              >
+                {STATUS_OPTIONS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.value}
+                    onClick={() => handleStatusChange(opt.value)}
+                    className={cn('text-sm', opt.color)}
+                  >
+                    {t(`status${opt.label}`)}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div
               className={cn(
-                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
+                'inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium cursor-not-allowed opacity-75 border border-border/40',
                 currentStatus?.color ?? 'text-muted-foreground'
               )}
+              title={t('unassignedLockedStatusTooltip')}
             >
+              <Lock className="h-3 w-3" />
               <span>{currentStatus ? t(`status${currentStatus.label}`) : t('status')}</span>
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <DropdownMenuItem
-                  key={opt.value}
-                  onClick={() => handleStatusChange(opt.value)}
-                  className={cn('text-sm', opt.color)}
-                >
-                  {t(`status${opt.label}`)}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          )}
 
           {/* Claim Lead Button (Lead Pond Speed-to-Lead) */}
-          {!assignedAgentId && user?.id && (
+          {isUnassigned && canClaim && user?.id && (
             <Button
               type="button"
               size="sm"
               variant="default"
               onClick={handleClaimLead}
-              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2 sm:px-2.5 text-xs font-medium text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2 sm:px-2.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
               title={t('claimLeadTooltip')}
             >
               <UserCheck className="h-3.5 w-3.5" />
@@ -1124,78 +1217,115 @@ export function MessageThread({
             </Button>
           )}
 
-          {/* Assign dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              className={cn(
-                'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
-                assignedAgentId ? 'text-primary' : 'text-muted-foreground'
-              )}
+          {/* Manager: Full Assign / Reassign dropdown for lead distribution */}
+          {isManager && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
+                  assignedAgentId ? 'text-primary' : 'text-muted-foreground'
+                )}
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                <span className="hidden md:inline">{assignLabel}</span>
+                <ChevronDown className="h-3 w-3" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="border-border bg-popover"
+              >
+                {profiles.length === 0 ? (
+                  <DropdownMenuItem
+                    disabled
+                    className="text-muted-foreground text-sm"
+                  >
+                    {t('noTeammates')}
+                  </DropdownMenuItem>
+                ) : (
+                  profiles.map((p) => {
+                    const isSelected = p.user_id === assignedAgentId;
+                    const presence = getPresence(p.user_id);
+                    return (
+                      <DropdownMenuItem
+                        key={p.id}
+                        onClick={() => handleAssignChange(p.user_id)}
+                        className={cn(
+                          'text-sm',
+                          isSelected ? 'text-primary' : 'text-popover-foreground'
+                        )}
+                      >
+                        <PresenceDot
+                          status={presence}
+                          label={presenceLabel(
+                            presence,
+                            getRow(p.user_id)?.last_seen_at ?? null,
+                            now
+                          )}
+                          className="mr-2"
+                        />
+                        <span className="flex-1">
+                          {p.full_name}
+                          {p.user_id === user?.id ? t('me') : ''}
+                        </span>
+                        {isSelected && <Check className="ml-2 h-3 w-3" />}
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
+                {assignedAgentId && (
+                  <>
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuItem
+                      onClick={() => handleAssignChange(null)}
+                      className="text-muted-foreground text-sm"
+                    >
+                      {t('unassign')}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Agent: Assigned to You with single controlled action to Release to Pool */}
+          {!isManager && canRelease && (
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className="hover:bg-primary/15 bg-primary/10 text-primary inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium cursor-pointer transition-colors"
+                title={t('assignedToYouTooltip')}
+              >
+                <UserCheck className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{t('assignedToYou')}</span>
+                <span className="sm:hidden">{t('assigned')}</span>
+                <ChevronDown className="h-3 w-3 opacity-60" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="border-border bg-popover">
+                <DropdownMenuItem
+                  onClick={() => handleAssignChange(null)}
+                  className="text-muted-foreground hover:text-destructive text-xs cursor-pointer gap-2"
+                >
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                  <span>{t('releaseToPool')}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+
+          {/* Read-only assignee indicator when assigned to another agent */}
+          {!isManager && isAssignedToOther && (
+            <div
+              className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs text-muted-foreground bg-muted/40 border border-border/40"
+              title={t('assignedToOther', { agent: assignLabel })}
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span className="hidden md:inline">{assignLabel}</span>
-              <ChevronDown className="h-3 w-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              className="border-border bg-popover"
-            >
-              {profiles.length === 0 ? (
-                <DropdownMenuItem
-                  disabled
-                  className="text-muted-foreground text-sm"
-                >
-                  {t('noTeammates')}
-                </DropdownMenuItem>
-              ) : (
-                profiles.map((p) => {
-                  const isSelected = p.user_id === assignedAgentId;
-                  const presence = getPresence(p.user_id);
-                  return (
-                    <DropdownMenuItem
-                      key={p.id}
-                      onClick={() => handleAssignChange(p.user_id)}
-                      className={cn(
-                        'text-sm',
-                        isSelected ? 'text-primary' : 'text-popover-foreground'
-                      )}
-                    >
-                      <PresenceDot
-                        status={presence}
-                        label={presenceLabel(
-                          presence,
-                          getRow(p.user_id)?.last_seen_at ?? null,
-                          now
-                        )}
-                        className="mr-2"
-                      />
-                      <span className="flex-1">
-                        {p.full_name}
-                        {p.user_id === user?.id ? t('me') : ''}
-                      </span>
-                      {isSelected && <Check className="ml-2 h-3 w-3" />}
-                    </DropdownMenuItem>
-                  );
-                })
-              )}
-              {assignedAgentId && (
-                <>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => handleAssignChange(null)}
-                    className="text-muted-foreground text-sm"
-                  >
-                    {t('unassign')}
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
@@ -1300,6 +1430,13 @@ export function MessageThread({
         replyTo={replyTo}
         onClearReply={() => setReplyTo(null)}
         initialText={initialDraftText}
+        claimRequired={!canManage && isUnassigned}
+        lockedReason={
+          isAssignedToOther
+            ? t('assignedToOther', { agent: assignLabel })
+            : undefined
+        }
+        onClaimLead={handleClaimLead}
       />
 
       <TemplatePicker

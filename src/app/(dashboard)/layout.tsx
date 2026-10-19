@@ -26,7 +26,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="bg-background flex h-screen w-full flex-col overflow-hidden">
+    <div className="bg-background flex h-[100dvh] w-full flex-col overflow-hidden">
       <AnnouncementBanner />
       <DashboardShell>{children}</DashboardShell>
     </div>

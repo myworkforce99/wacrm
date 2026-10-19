@@ -16,6 +16,8 @@ import {
   Plus,
   MessageSquareDashed,
   Zap,
+  Lock,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GatedButton } from '@/components/ui/gated-button';
@@ -116,6 +118,9 @@ interface MessageComposerProps {
   replyTo?: ReplyDraft | null;
   onClearReply?: () => void;
   initialText?: string | null;
+  claimRequired?: boolean;
+  lockedReason?: string;
+  onClaimLead?: () => void;
 }
 
 function formatDuration(seconds: number): string {
@@ -139,6 +144,9 @@ export function MessageComposer({
   replyTo,
   onClearReply,
   initialText,
+  claimRequired = false,
+  lockedReason,
+  onClaimLead,
 }: MessageComposerProps) {
   const t = useTranslations('Inbox.composer');
 
@@ -197,8 +205,9 @@ export function MessageComposer({
   // every capability — so the disabled branch is a no-op there.
   const canSend = useCan('send-messages');
   const readOnly = !canSend;
-  // Media (like free-form text) is only allowed inside the 24h window.
-  const inputsDisabled = readOnly || sessionExpired;
+  const isLocked = Boolean(claimRequired || lockedReason);
+  // Media (like free-form text) is only allowed inside the 24h window and when unlocked.
+  const inputsDisabled = readOnly || sessionExpired || isLocked;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -570,7 +579,7 @@ export function MessageComposer({
   // ---- Render --------------------------------------------------------
 
   return (
-    <div className="border-border bg-card border-t p-3">
+    <div className="border-border bg-card shrink-0 border-t p-2.5 sm:p-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:pb-3">
       {replyTo && (
         <div className="mb-2">
           <ReplyQuote
@@ -580,7 +589,30 @@ export function MessageComposer({
           />
         </div>
       )}
-      {sessionExpired && (
+      {claimRequired ? (
+        <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50/90 p-2.5 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+          <div className="flex items-center gap-2">
+            <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>{t('unassignedLockedHint')}</span>
+          </div>
+          {onClaimLead && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onClaimLead}
+              className="h-7 shrink-0 cursor-pointer gap-1 bg-amber-500 px-3 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              <span>{t('claimToUnlock')}</span>
+            </Button>
+          )}
+        </div>
+      ) : lockedReason ? (
+        <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-muted/60 p-2.5 text-xs text-muted-foreground">
+          <Lock className="h-4 w-4 shrink-0" />
+          <span>{lockedReason}</span>
+        </div>
+      ) : sessionExpired ? (
         <div className="mb-2 flex items-center justify-between rounded-lg bg-amber-500/10 px-3 py-2">
           <p className="text-xs text-amber-400">{t('sessionExpiredHint')}</p>
           <Button
@@ -593,7 +625,7 @@ export function MessageComposer({
             {t('templates')}
           </Button>
         </div>
-      )}
+      ) : null}
 
       {/* Hidden file inputs driven by the attach menu. */}
       <input
@@ -759,7 +791,7 @@ export function MessageComposer({
           <GatedButton
             variant="ghost"
             size="sm"
-            canAct={!readOnly}
+            canAct={!readOnly && !isLocked}
             gateReason="send messages"
             title={readOnly ? undefined : t('sendTemplate')}
             className="text-muted-foreground hover:text-foreground hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
@@ -771,9 +803,9 @@ export function MessageComposer({
           <GatedButton
             variant="ghost"
             size="sm"
-            canAct={!readOnly}
+            canAct={!readOnly && !isLocked}
             gateReason="send messages"
-            disabled={drafting}
+            disabled={drafting || isLocked}
             title={readOnly ? undefined : t('draftWithAI')}
             className="text-muted-foreground hover:text-primary hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
             onClick={handleDraft}
@@ -793,11 +825,15 @@ export function MessageComposer({
             placeholder={
               readOnly
                 ? t('readOnlyPlaceholder')
-                : sessionExpired
-                  ? t('sessionExpiredPlaceholder')
-                  : t('typeMessagePlaceholder')
+                : claimRequired
+                  ? t('claimToUnlock')
+                  : lockedReason
+                    ? lockedReason
+                    : sessionExpired
+                      ? t('sessionExpiredPlaceholder')
+                      : t('typeMessagePlaceholder')
             }
-            disabled={sessionExpired || readOnly}
+            disabled={sessionExpired || readOnly || isLocked}
             rows={1}
             // Textarea keeps its own inline title — the GatedButton
             // wrapping pattern doesn't apply to non-button inputs.
@@ -805,15 +841,15 @@ export function MessageComposer({
             title={readOnly ? t('readOnlyTitle') : undefined}
             className={cn(
               'border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors outline-none',
-              (sessionExpired || readOnly) && 'cursor-not-allowed opacity-50'
+              (sessionExpired || readOnly || isLocked) && 'cursor-not-allowed opacity-50'
             )}
           />
 
           <GatedButton
             size="sm"
-            canAct={!readOnly}
+            canAct={!readOnly && !isLocked}
             gateReason="send messages"
-            disabled={!text.trim() || sessionExpired || sending}
+            disabled={!text.trim() || sessionExpired || sending || isLocked}
             onClick={handleSend}
             className="bg-primary hover:bg-primary/90 h-9 w-9 shrink-0 p-0 disabled:opacity-40"
           >

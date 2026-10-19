@@ -255,7 +255,15 @@
       "assignmentUpdateFailed": "Failed to update assignment",
       "claimLead": "Claim Lead",
       "claimLeadTooltip": "Claim this unassigned lead and assign it to you",
-      "leadClaimed": "Lead claimed successfully"
+      "leadClaimed": "Lead claimed successfully",
+      "leadAlreadyClaimed": "This lead was already claimed by another agent",
+      "assignedToOther": "Assigned to {agent}",
+      "unassignedLockedStatusTooltip": "Claim lead to change status",
+      "assignedToYou": "Assigned to you",
+      "assignedToYouTooltip": "This lead is assigned to you",
+      "releaseToPool": "Release to unassigned pool",
+      "leadReleased": "Lead released back to pool",
+      "onlyManagersCanReassign": "Only managers can reassign leads to other teammates"
     },
     "sessionTimer": {
       "expired": "Expired",
@@ -269,6 +277,9 @@
       "templates": "Templates",
       "readOnlyPlaceholder": "Read-only — viewers can browse but not reply",
       "sessionExpiredPlaceholder": "Session expired - use a template",
+      "claimToUnlock": "Claim Lead",
+      "unassignedLockedHint": "This lead is unassigned. Claim it to reply, send templates, and manage requirements.",
+      "assignedToOtherAgentHint": "Assigned to {agent}. Only the assigned agent or an admin can reply.",
       "typeMessagePlaceholder": "Type a message... (Shift+Enter for new line)",
       "readOnlyTitle": "Read-only — your role can't send messages",
       "recording": "Recording… {current} / {max}",
@@ -379,7 +390,14 @@
       "deals": "Deals",
       "noTags": "No tags",
       "noDeals": "No deals",
-      "addNotePlaceholder": "Add a note..."
+      "addNotePlaceholder": "Add a note...",
+      "unassignedNoticeTitle": "Lead is Unassigned",
+      "unassignedNoticeBody": "Claim this lead to edit buyer requirements, add notes, and schedule site visits.",
+      "claimToSchedule": "Claim lead to schedule visits",
+      "claimToSendCostSheet": "Claim lead to send cost sheet",
+      "claimToEditRequirements": "Claim lead to edit requirements",
+      "claimToAddNotes": "Claim lead to add internal notes",
+      "claimToManageTags": "Claim lead to manage tags"
     },
     "aiBanner": {
       "pausedTitle": "AI assistant is paused here",

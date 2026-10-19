@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
-import type { Contact, Deal, ContactNote, Tag, LeadDetail } from '@/types';
+import type { Contact, Deal, ContactNote, Tag, LeadDetail, Conversation } from '@/types';
 import {
   Phone,
   Mail,
@@ -22,6 +22,8 @@ import {
   Zap,
   X,
   Loader2,
+  Lock,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -59,12 +61,21 @@ import { toast } from 'sonner';
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  conversation?: Conversation | null;
+  canManage?: boolean;
+  onClaimLead?: () => void;
   onUpdated?: () => void;
 }
 
 const CONFIG_OPTIONS = ['1BHK', '2BHK', '3BHK', '4BHK', '5BHK+', 'Villa'];
 
-export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
+export function ContactSidebar({
+  contact,
+  conversation,
+  canManage = true,
+  onClaimLead,
+  onUpdated,
+}: ContactSidebarProps) {
   const tSidebar = useTranslations('Inbox.sidebar');
   const tThread = useTranslations('Inbox.messageThread');
 
@@ -285,7 +296,7 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
 
   if (!contact) {
     return (
-      <div className="border-border bg-card flex h-full w-full lg:w-80 items-center justify-center lg:border-l">
+      <div className="border-border bg-card flex min-h-0 flex-1 w-full lg:w-80 items-center justify-center lg:border-l">
         <p className="text-muted-foreground text-sm">
           {tThread('selectConversation')}
         </p>
@@ -298,8 +309,8 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
   const availableTags = allTags.filter((at) => !tags.some((t) => t.id === at.id));
 
   return (
-    <div className="border-border bg-card flex h-full w-full lg:w-80 flex-col lg:border-l">
-      <ScrollArea className="flex-1">
+    <div className="border-border bg-card flex min-h-0 flex-1 w-full lg:w-80 flex-col lg:border-l">
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-4">
           {/* Contact Info Header */}
           <div className="flex flex-col items-center text-center">
@@ -322,6 +333,30 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
               <p className="text-muted-foreground text-xs">{contact.company}</p>
             )}
           </div>
+
+          {/* Unassigned Lead Notice & Claim Action */}
+          {!canManage && !conversation?.assigned_agent_id && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs text-amber-900 shadow-2xs dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+              <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-300">
+                <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>{tSidebar('unassignedNoticeTitle')}</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed text-amber-700/90 dark:text-amber-400/90">
+                {tSidebar('unassignedNoticeBody')}
+              </p>
+              {onClaimLead && (
+                <Button
+                  size="sm"
+                  type="button"
+                  onClick={onClaimLead}
+                  className="mt-2.5 h-7 w-full cursor-pointer gap-1.5 bg-amber-500 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+                >
+                  <UserCheck className="h-3.5 w-3.5" />
+                  <span>{tThread('claimLead')}</span>
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Quick Contact & Action Buttons */}
           <div className="space-y-2">
@@ -350,8 +385,10 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
               <Button
                 variant="outline"
                 size="sm"
+                disabled={!canManage}
+                title={!canManage ? tSidebar('claimToSchedule') : undefined}
                 onClick={() => setScheduleVisitOpen(true)}
-                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium"
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="text-primary h-3.5 w-3.5" />
                 <span>Schedule Visit</span>
@@ -359,8 +396,10 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
               <Button
                 variant="outline"
                 size="sm"
+                disabled={!canManage}
+                title={!canManage ? tSidebar('claimToSendCostSheet') : undefined}
                 onClick={() => setCostSheetOpen(true)}
-                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium"
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Zap className="h-3.5 w-3.5 text-emerald-500" />
                 <span>Cost Sheet</span>
@@ -375,15 +414,24 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
                 <Home className="text-primary h-3.5 w-3.5" />
                 <span>Requirements</span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setEditRequirementsOpen(true)}
-                className="text-muted-foreground hover:text-foreground h-6 px-1.5 text-xs"
-              >
-                <Pencil className="mr-1 h-3 w-3 text-primary" />
-                Edit
-              </Button>
+              {canManage ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditRequirementsOpen(true)}
+                  className="text-muted-foreground hover:text-foreground h-6 px-1.5 text-xs"
+                >
+                  <Pencil className="mr-1 h-3 w-3 text-primary" />
+                  Edit
+                </Button>
+              ) : (
+                <span
+                  className="text-muted-foreground/50 inline-flex items-center gap-1 text-[10px]"
+                  title={tSidebar('claimToEditRequirements')}
+                >
+                  <Lock className="h-3 w-3" />
+                </span>
+              )}
             </div>
 
             {/* Budget Range */}
@@ -465,7 +513,7 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
                 <TagIcon className="h-3.5 w-3.5" />
                 <span>{tSidebar('tags')}</span>
               </div>
-              {availableTags.length > 0 && (
+              {canManage && availableTags.length > 0 && (
                 <DropdownMenu>
                   <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center rounded-md h-6 px-1.5 text-xs transition-colors hover:bg-muted">
                     <Plus className="mr-0.5 h-3 w-3" />
@@ -505,13 +553,15 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
                     }}
                   >
                     <span>{tag.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteTag(tag.id)}
-                      className="hover:opacity-75 focus:outline-hidden"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTag(tag.id)}
+                        className="hover:opacity-75 focus:outline-hidden"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
                   </span>
                 ))
               )}
@@ -569,15 +619,20 @@ export function ContactSidebar({ contact, onUpdated }: ContactSidebarProps) {
                 <textarea
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
-                  placeholder={tSidebar('addNotePlaceholder')}
+                  placeholder={
+                    canManage
+                      ? tSidebar('addNotePlaceholder')
+                      : tSidebar('claimToAddNotes')
+                  }
+                  disabled={!canManage}
                   rows={2}
-                  className="border-border bg-muted/50 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs outline-none"
+                  className="border-border bg-muted/50 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <Button
                   size="sm"
-                  className="bg-primary hover:bg-primary/90 h-auto px-2.5"
+                  className="bg-primary hover:bg-primary/90 h-auto px-2.5 disabled:opacity-40"
                   onClick={handleAddNote}
-                  disabled={!newNote.trim() || addingNote}
+                  disabled={!canManage || !newNote.trim() || addingNote}
                 >
                   <Plus className="h-3.5 w-3.5" />
                 </Button>

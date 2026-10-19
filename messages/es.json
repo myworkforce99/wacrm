@@ -255,7 +255,15 @@
       "assignmentUpdateFailed": "Error al actualizar la asignación",
       "claimLead": "Reclamar lead",
       "claimLeadTooltip": "Reclamar este lead no asignado y asignártelo a ti",
-      "leadClaimed": "Lead reclamado con éxito"
+      "leadClaimed": "Lead reclamado con éxito",
+      "leadAlreadyClaimed": "Este cliente potencial ya fue reclamado por otro agente",
+      "assignedToOther": "Asignado a {agent}",
+      "unassignedLockedStatusTooltip": "Reclama el cliente potencial para cambiar el estado",
+      "assignedToYou": "Asignado a ti",
+      "assignedToYouTooltip": "Este cliente potencial está asignado a ti",
+      "releaseToPool": "Liberar al grupo sin asignar",
+      "leadReleased": "Cliente potencial liberado al grupo sin asignar",
+      "onlyManagersCanReassign": "Solo los administradores pueden reasignar clientes a otros compañeros"
     },
     "sessionTimer": {
       "expired": "Expirada",
@@ -269,6 +277,9 @@
       "templates": "Plantillas",
       "readOnlyPlaceholder": "Solo lectura: los observadores pueden navegar, pero no responder",
       "sessionExpiredPlaceholder": "Sesión expirada - usa una plantilla",
+      "claimToUnlock": "Reclamar cliente",
+      "unassignedLockedHint": "Este cliente no está asignado. Reclámalo para responder, enviar plantillas y gestionar requisitos.",
+      "assignedToOtherAgentHint": "Asignado a {agent}. Solo el agente asignado o un administrador pueden responder.",
       "typeMessagePlaceholder": "Escribe un mensaje... (Shift+Enter para nueva línea)",
       "readOnlyTitle": "Solo lectura: tu rol no puede enviar mensajes",
       "recording": "Grabando… {current} / {max}",
@@ -379,7 +390,14 @@
       "deals": "Negocios",
       "noTags": "Sin etiquetas",
       "noDeals": "Sin negocios",
-      "addNotePlaceholder": "Agregar una nota..."
+      "addNotePlaceholder": "Agregar una nota...",
+      "unassignedNoticeTitle": "Cliente sin asignar",
+      "unassignedNoticeBody": "Reclama este cliente para editar requisitos, añadir notas y programar visitas.",
+      "claimToSchedule": "Reclama el cliente para programar visitas",
+      "claimToSendCostSheet": "Reclama el cliente para enviar la hoja de costos",
+      "claimToEditRequirements": "Reclama el cliente para editar requisitos",
+      "claimToAddNotes": "Reclama el cliente para añadir notas internas",
+      "claimToManageTags": "Reclama el cliente para gestionar etiquetas"
     },
     "aiBanner": {
       "pausedTitle": "El asistente de IA está en pausa aquí",
