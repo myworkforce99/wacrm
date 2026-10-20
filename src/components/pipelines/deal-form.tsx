@@ -666,7 +666,7 @@ export function DealForm({
                     {t('assignedTo')}
                   </Label>
                   {!isManager && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground/80">
+                    <span className="text-muted-foreground/80 flex items-center gap-1 text-[11px] font-medium">
                       <Lock className="size-3" />
                       {t('reassignManagerOnly')}
                     </span>

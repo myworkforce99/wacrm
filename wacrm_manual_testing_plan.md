@@ -50,14 +50,14 @@
 
 ### 1.1 Environment
 
-| Item            | Value                   |
-| --------------- | ----------------------- |
-| Node version    | ≥ 20.0.0                |
-| Package manager | npm (10.9.9)            |
-| Local app URL   | `http://localhost:3000`  |
-| Dev command     | `npm run dev`           |
+| Item            | Value                                  |
+| --------------- | -------------------------------------- |
+| Node version    | ≥ 20.0.0                               |
+| Package manager | npm (10.9.9)                           |
+| Local app URL   | `http://localhost:3000`                |
+| Dev command     | `npm run dev`                          |
 | Framework       | Next.js 16.3.5 (App Router, Turbopack) |
-| React           | 19.2.4                  |
+| React           | 19.2.4                                 |
 
 ### 1.2 Environment Variables
 
@@ -1247,10 +1247,10 @@ Each `AgentCard` (`agent-card.tsx`, ~10K) shows:
 
 Settings page (`settings/page.tsx`) uses a grouped left rail with sections:
 
-| Group       | Sections                                                   |
-| ----------- | ---------------------------------------------------------- |
-| **Top**     | Overview (`settings-overview.tsx`)                         |
-| **Account** | Profile, Security (Password), Appearance                   |
+| Group         | Sections                                                                                                                       |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Top**       | Overview (`settings-overview.tsx`)                                                                                             |
+| **Account**   | Profile, Security (Password), Appearance                                                                                       |
 | **Workspace** | WhatsApp, Templates, Quick Replies, Fields & Tags, Deals & Currency, Team Members, API Keys, Lead Routing, Billing, Cost Sheet |
 
 Deep-linkable via `?tab=<section>` query param. Legacy tabs redirect correctly (e.g., `?tab=team` → `members`).
@@ -1715,14 +1715,14 @@ Verify the following tools work:
 
 Test at each standard viewport:
 
-| Viewport | Width | Device Category |
-| -------- | ----- | --------------- |
-| Small Mobile | 375px | iPhone SE |
-| iPhone | 390px | iPhone 14/15 |
-| Android | 412px | Pixel 7 |
-| Tablet | 768px | iPad |
-| Desktop | 1440px | Standard |
-| Ultrawide | 1920px | Full HD |
+| Viewport     | Width  | Device Category |
+| ------------ | ------ | --------------- |
+| Small Mobile | 375px  | iPhone SE       |
+| iPhone       | 390px  | iPhone 14/15    |
+| Android      | 412px  | Pixel 7         |
+| Tablet       | 768px  | iPad            |
+| Desktop      | 1440px | Standard        |
+| Ultrawide    | 1920px | Full HD         |
 
 For each: verify no horizontal overflow, no cramped tables on mobile, proper card layouts.
 
@@ -1732,32 +1732,32 @@ For each: verify no horizontal overflow, no cramped tables on mobile, proper car
 
 ### RBAC Matrix — verify each cell both in UI AND via direct API calls:
 
-| Feature / Capability           | owner | admin | agent         | viewer |
-| ------------------------------ | ----- | ----- | ------------- | ------ |
-| View all leads                 | ✅    | ✅    | ❌ (own only) | ✅     |
-| Create/edit leads              | ✅    | ✅    | ✅            | ❌     |
-| Move own deals                 | ✅    | ✅    | ✅            | ❌     |
-| Move others' deals             | ✅    | ✅    | ❌ (403)      | ❌     |
-| Send messages                  | ✅    | ✅    | ✅            | ❌     |
-| Claim unassigned leads         | ✅    | ✅    | ✅            | ❌     |
-| Release own leads to pool      | ✅    | ✅    | ✅            | ❌     |
-| Reassign leads to any agent    | ✅    | ✅    | ❌            | ❌     |
-| Create broadcasts              | ✅    | ✅    | ❌            | ❌     |
-| View broadcasts                | ✅    | ✅    | ✅            | ✅     |
-| Invite/remove members          | ✅    | ✅    | ❌            | ❌     |
-| Access Team Command Center     | ✅    | ✅    | ❌            | ❌     |
-| Access Integrations            | ✅    | ✅    | ❌            | ❌     |
-| Bulk reassign leads            | ✅    | ✅    | ❌            | ❌     |
-| Configure routing rules        | ✅    | ✅    | ❌            | ❌     |
-| Create/edit properties         | ✅    | ✅    | ❌            | ❌     |
-| Share properties via WhatsApp  | ✅    | ✅    | ✅            | ✅     |
-| View billing                   | ✅    | ❌    | ❌            | ❌     |
-| Export CSV                     | ✅    | ✅    | ❌            | ❌     |
-| Create/revoke API keys         | ✅    | ✅    | ❌            | ❌     |
-| Edit account settings          | ✅    | ✅    | ❌            | ❌     |
-| Delete account                 | ✅    | ❌    | ❌            | ❌     |
-| Transfer ownership             | ✅    | ❌    | ❌            | ❌     |
-| Manage lead (edit requirements)| ✅    | ✅    | ✅ (own only) | ❌     |
+| Feature / Capability            | owner | admin | agent         | viewer |
+| ------------------------------- | ----- | ----- | ------------- | ------ |
+| View all leads                  | ✅    | ✅    | ❌ (own only) | ✅     |
+| Create/edit leads               | ✅    | ✅    | ✅            | ❌     |
+| Move own deals                  | ✅    | ✅    | ✅            | ❌     |
+| Move others' deals              | ✅    | ✅    | ❌ (403)      | ❌     |
+| Send messages                   | ✅    | ✅    | ✅            | ❌     |
+| Claim unassigned leads          | ✅    | ✅    | ✅            | ❌     |
+| Release own leads to pool       | ✅    | ✅    | ✅            | ❌     |
+| Reassign leads to any agent     | ✅    | ✅    | ❌            | ❌     |
+| Create broadcasts               | ✅    | ✅    | ❌            | ❌     |
+| View broadcasts                 | ✅    | ✅    | ✅            | ✅     |
+| Invite/remove members           | ✅    | ✅    | ❌            | ❌     |
+| Access Team Command Center      | ✅    | ✅    | ❌            | ❌     |
+| Access Integrations             | ✅    | ✅    | ❌            | ❌     |
+| Bulk reassign leads             | ✅    | ✅    | ❌            | ❌     |
+| Configure routing rules         | ✅    | ✅    | ❌            | ❌     |
+| Create/edit properties          | ✅    | ✅    | ❌            | ❌     |
+| Share properties via WhatsApp   | ✅    | ✅    | ✅            | ✅     |
+| View billing                    | ✅    | ❌    | ❌            | ❌     |
+| Export CSV                      | ✅    | ✅    | ❌            | ❌     |
+| Create/revoke API keys          | ✅    | ✅    | ❌            | ❌     |
+| Edit account settings           | ✅    | ✅    | ❌            | ❌     |
+| Delete account                  | ✅    | ❌    | ❌            | ❌     |
+| Transfer ownership              | ✅    | ❌    | ❌            | ❌     |
+| Manage lead (edit requirements) | ✅    | ✅    | ✅ (own only) | ❌     |
 
 ### TC-RBAC-01: Predicate Functions
 
@@ -1824,12 +1824,12 @@ Verify `parseBudget()` from `src/lib/contacts/parse-budget.ts`:
 
 Verify `phoneVariants()` from `src/lib/whatsapp/phone-utils.ts`:
 
-| Input               | Stored As         |
-| ------------------- | ----------------- |
-| "09876543210"        | "+919876543210"   |
-| "+91 98765 43210"    | "+919876543210"   |
-| "919876543210"       | "+919876543210"   |
-| "+919876543210"      | "+919876543210"   |
+| Input             | Stored As       |
+| ----------------- | --------------- |
+| "09876543210"     | "+919876543210" |
+| "+91 98765 43210" | "+919876543210" |
+| "919876543210"    | "+919876543210" |
+| "+919876543210"   | "+919876543210" |
 
 Duplicate detection uses `phone_normalized` generated column.
 
@@ -1863,6 +1863,7 @@ Duplicate detection uses `phone_normalized` generated column.
 ### TC-L10N-07: Possession Status
 
 Verify possession status rendering:
+
 - `'ready_to_move'` → "Ready to Move" pill
 - `'under_construction'` → "Under Construction" pill
 - `'nearing_possession'` → "Nearing Possession" pill
@@ -2201,11 +2202,11 @@ Must pass (Prettier).
 
 > Document any test failures during your test pass below.
 
-| #   | Test Case     | Observed Behavior | Expected Behavior | Status  |
-| --- | ------------- | ----------------- | ----------------- | ------- |
-| 1   |               |                   |                   |         |
-| 2   |               |                   |                   |         |
-| 3   |               |                   |                   |         |
+| #   | Test Case | Observed Behavior | Expected Behavior | Status |
+| --- | --------- | ----------------- | ----------------- | ------ |
+| 1   |           |                   |                   |        |
+| 2   |           |                   |                   |        |
+| 3   |           |                   |                   |        |
 
 ---
 
@@ -2365,40 +2366,40 @@ curl -H "x-cron-secret: $CRON_SECRET" "$BASE/api/cron/site-visits"
 
 > For internal APIs (session-auth, not API key), the following routes exist:
 
-| Route Group        | Endpoints                                                        |
-| ------------------ | ---------------------------------------------------------------- |
-| `/api/account`     | Account CRUD, `api-keys/`, `invitations/`, `members/`, `portal-connections/`, `routing-rules/`, `targets/`, `transfer-ownership/` |
-| `/api/ai`          | `autoreply/`, `config/`, `draft/`, `knowledge/`, `playground/`, `test/`, `usage/` |
-| `/api/automations` | Automation CRUD and execution                                    |
-| `/api/billing`     | `checkout/`, `portal/`, `webhook/`                               |
-| `/api/contacts`    | Contact CRUD, `[id]/tags/`, `bulk/`, `export/`, `import/`        |
-| `/api/cron`        | `site-visits/`, `stale-leads/`, `weekly-report/`                 |
-| `/api/dashboard`   | Dashboard metrics aggregation                                    |
-| `/api/deals`       | Deal CRUD (`[id]/`), `export/`                                   |
-| `/api/flows`       | Flow CRUD and execution                                          |
-| `/api/invitations` | Invite acceptance (`[token]/`)                                   |
-| `/api/push`        | Push notification `subscribe/`                                   |
-| `/api/quick-replies` | Quick replies CRUD                                             |
-| `/api/tasks`       | Tasks CRUD                                                       |
-| `/api/webhooks`    | Inbound email webhook (`inbound-email/`)                         |
-| `/api/whatsapp`    | `broadcast/`, `config/`, `media/`, `react/`, `send/`, `templates/`, `webhook/` |
+| Route Group          | Endpoints                                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/account`       | Account CRUD, `api-keys/`, `invitations/`, `members/`, `portal-connections/`, `routing-rules/`, `targets/`, `transfer-ownership/` |
+| `/api/ai`            | `autoreply/`, `config/`, `draft/`, `knowledge/`, `playground/`, `test/`, `usage/`                                                 |
+| `/api/automations`   | Automation CRUD and execution                                                                                                     |
+| `/api/billing`       | `checkout/`, `portal/`, `webhook/`                                                                                                |
+| `/api/contacts`      | Contact CRUD, `[id]/tags/`, `bulk/`, `export/`, `import/`                                                                         |
+| `/api/cron`          | `site-visits/`, `stale-leads/`, `weekly-report/`                                                                                  |
+| `/api/dashboard`     | Dashboard metrics aggregation                                                                                                     |
+| `/api/deals`         | Deal CRUD (`[id]/`), `export/`                                                                                                    |
+| `/api/flows`         | Flow CRUD and execution                                                                                                           |
+| `/api/invitations`   | Invite acceptance (`[token]/`)                                                                                                    |
+| `/api/push`          | Push notification `subscribe/`                                                                                                    |
+| `/api/quick-replies` | Quick replies CRUD                                                                                                                |
+| `/api/tasks`         | Tasks CRUD                                                                                                                        |
+| `/api/webhooks`      | Inbound email webhook (`inbound-email/`)                                                                                          |
+| `/api/whatsapp`      | `broadcast/`, `config/`, `media/`, `react/`, `send/`, `templates/`, `webhook/`                                                    |
 
 ---
 
 ## Appendix E: Key Component File Reference
 
-| Component Area | Key Files (in `src/components/`) |
-| -------------- | -------------------------------- |
-| **Inbox**      | `conversation-list.tsx` (27K), `message-thread.tsx` (53K), `message-composer.tsx` (35K), `contact-sidebar.tsx` (31K), `template-picker.tsx` (15K), `message-bubble.tsx` (11K), `media-lightbox.tsx` (10K), `ai-thread-banner.tsx` (7K), `message-media.tsx` (8K), `quick-reply-picker.tsx` (4K), `message-actions.tsx` (5K), `message-reactions.tsx` (2K), `reply-quote.tsx` (3K) |
-| **Contacts**   | `contact-detail-view.tsx` (62K), `contact-form.tsx` (48K), `import-modal.tsx` (26K), `cost-sheet-modal.tsx` (20K), `custom-fields-manager.tsx` (9K), `bulk-reassign-modal.tsx` (3K) |
-| **Properties** | `property-form-modal.tsx` (24K), `property-share-modal.tsx` (14K), `emi-calculator.tsx` (5K), `property-delete-dialog.tsx` (3K) |
-| **Pipelines**  | `pipeline-board.tsx` (35K), `deal-form.tsx` (29K), `deal-table.tsx` (16K), `pipeline-settings.tsx` (15K), `deal-card.tsx` (10K), `pipeline-analytics.tsx` (8K), `lost-reason-modal.tsx` (7K), `brokerage-badge.tsx` (1K) |
-| **Flows**      | `flow-canvas.tsx` (28K), `flow-builder.tsx` (20K), `flow-editor-state.tsx` (17K), `shared.tsx` (16K), `flow-editor-shell.tsx` (8K), `header.tsx` (7K), `validation-panel.tsx` (4K) |
-| **Settings**   | `template-manager.tsx` (46K), `whatsapp-config.tsx` (42K), `members-tab.tsx` (26K), `ai-config.tsx` (18K), `ai-knowledge.tsx` (16K), `api-keys-settings.tsx` (16K), `invite-member-dialog.tsx` (14K), `profile-form.tsx` (12K), `routing-settings.tsx` (12K), `cost-sheet-config.tsx` (12K), `settings-overview.tsx` (10K) |
-| **Site Visits** | `schedule-visit-sheet.tsx` (40K), `visit-delete-dialog.tsx` (4K) |
-| **Team**       | `agent-table.tsx` (13K), `agent-card.tsx` (10K), `unassigned-pool.tsx` (8K), `agent-target-modal.tsx` (5K), `pipeline-funnel.tsx` (4K) |
-| **Broadcasts** | `step2-select-audience.tsx` (27K), `step3-personalize.tsx` (17K), `step4-schedule-send.tsx` (16K), `step1-choose-template.tsx` (8K) |
-| **Dashboard**  | `conversations-chart.tsx` (13K), `tasks-widget.tsx` (8K), `activity-feed.tsx` (7K), `pipeline-donut.tsx` (6K), `quick-actions.tsx` (4K), `response-time-chart.tsx` (4K), `metric-card.tsx` (3K) |
-| **Layout**     | `sidebar.tsx` (17K), `command-palette.tsx` (13K), `header.tsx` (9K), `notification-popover.tsx` (8K), `browser-notifications-card.tsx` (7K), `bottom-nav.tsx` (5K), `pull-to-refresh.tsx` (3K) |
-| **Onboarding** | `team-setup-checklist.tsx` (3K), `whatsapp-setup-checklist.tsx` (3K) |
-| **AI Agents**  | `ai-playground.tsx` (16K), `ai-usage.tsx` (8K) |
+| Component Area  | Key Files (in `src/components/`)                                                                                                                                                                                                                                                                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Inbox**       | `conversation-list.tsx` (27K), `message-thread.tsx` (53K), `message-composer.tsx` (35K), `contact-sidebar.tsx` (31K), `template-picker.tsx` (15K), `message-bubble.tsx` (11K), `media-lightbox.tsx` (10K), `ai-thread-banner.tsx` (7K), `message-media.tsx` (8K), `quick-reply-picker.tsx` (4K), `message-actions.tsx` (5K), `message-reactions.tsx` (2K), `reply-quote.tsx` (3K) |
+| **Contacts**    | `contact-detail-view.tsx` (62K), `contact-form.tsx` (48K), `import-modal.tsx` (26K), `cost-sheet-modal.tsx` (20K), `custom-fields-manager.tsx` (9K), `bulk-reassign-modal.tsx` (3K)                                                                                                                                                                                               |
+| **Properties**  | `property-form-modal.tsx` (24K), `property-share-modal.tsx` (14K), `emi-calculator.tsx` (5K), `property-delete-dialog.tsx` (3K)                                                                                                                                                                                                                                                   |
+| **Pipelines**   | `pipeline-board.tsx` (35K), `deal-form.tsx` (29K), `deal-table.tsx` (16K), `pipeline-settings.tsx` (15K), `deal-card.tsx` (10K), `pipeline-analytics.tsx` (8K), `lost-reason-modal.tsx` (7K), `brokerage-badge.tsx` (1K)                                                                                                                                                          |
+| **Flows**       | `flow-canvas.tsx` (28K), `flow-builder.tsx` (20K), `flow-editor-state.tsx` (17K), `shared.tsx` (16K), `flow-editor-shell.tsx` (8K), `header.tsx` (7K), `validation-panel.tsx` (4K)                                                                                                                                                                                                |
+| **Settings**    | `template-manager.tsx` (46K), `whatsapp-config.tsx` (42K), `members-tab.tsx` (26K), `ai-config.tsx` (18K), `ai-knowledge.tsx` (16K), `api-keys-settings.tsx` (16K), `invite-member-dialog.tsx` (14K), `profile-form.tsx` (12K), `routing-settings.tsx` (12K), `cost-sheet-config.tsx` (12K), `settings-overview.tsx` (10K)                                                        |
+| **Site Visits** | `schedule-visit-sheet.tsx` (40K), `visit-delete-dialog.tsx` (4K)                                                                                                                                                                                                                                                                                                                  |
+| **Team**        | `agent-table.tsx` (13K), `agent-card.tsx` (10K), `unassigned-pool.tsx` (8K), `agent-target-modal.tsx` (5K), `pipeline-funnel.tsx` (4K)                                                                                                                                                                                                                                            |
+| **Broadcasts**  | `step2-select-audience.tsx` (27K), `step3-personalize.tsx` (17K), `step4-schedule-send.tsx` (16K), `step1-choose-template.tsx` (8K)                                                                                                                                                                                                                                               |
+| **Dashboard**   | `conversations-chart.tsx` (13K), `tasks-widget.tsx` (8K), `activity-feed.tsx` (7K), `pipeline-donut.tsx` (6K), `quick-actions.tsx` (4K), `response-time-chart.tsx` (4K), `metric-card.tsx` (3K)                                                                                                                                                                                   |
+| **Layout**      | `sidebar.tsx` (17K), `command-palette.tsx` (13K), `header.tsx` (9K), `notification-popover.tsx` (8K), `browser-notifications-card.tsx` (7K), `bottom-nav.tsx` (5K), `pull-to-refresh.tsx` (3K)                                                                                                                                                                                    |
+| **Onboarding**  | `team-setup-checklist.tsx` (3K), `whatsapp-setup-checklist.tsx` (3K)                                                                                                                                                                                                                                                                                                              |
+| **AI Agents**   | `ai-playground.tsx` (16K), `ai-usage.tsx` (8K)                                                                                                                                                                                                                                                                                                                                    |

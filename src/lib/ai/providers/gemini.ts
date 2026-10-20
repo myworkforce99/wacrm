@@ -74,7 +74,9 @@ export async function generateGemini(
 
   // Handle Gemini API response
   if (!res.ok) {
-    const errorBody = (await res.json().catch(() => null)) as GeminiResponse | null;
+    const errorBody = (await res
+      .json()
+      .catch(() => null)) as GeminiResponse | null;
     const isCreditsDepleted =
       res.status === 402 ||
       (typeof errorBody?.error?.message === 'string' &&
@@ -94,10 +96,17 @@ export async function generateGemini(
       }
 
       // Check for real estate property recommendation test query
-      const lastUserMsg = messages[messages.length - 1]?.content.toLowerCase() || '';
-      if (lastUserMsg.includes('3bhk') || lastUserMsg.includes('powai') || lastUserMsg.includes('recommend') || lastUserMsg.includes('property')) {
+      const lastUserMsg =
+        messages[messages.length - 1]?.content.toLowerCase() || '';
+      if (
+        lastUserMsg.includes('3bhk') ||
+        lastUserMsg.includes('powai') ||
+        lastUserMsg.includes('recommend') ||
+        lastUserMsg.includes('property')
+      ) {
         return {
-          text: `Certainly! Based on your criteria, I recommend **Apex Grandeur — 3BHK Lake View** in Powai, Mumbai.\n\n` +
+          text:
+            `Certainly! Based on your criteria, I recommend **Apex Grandeur — 3BHK Lake View** in Powai, Mumbai.\n\n` +
             `• **Configuration:** 3BHK (1,500 sq ft carpet area)\n` +
             `• **Price:** ₹1.65 Cr (within your ₹2.0 Cr budget)\n` +
             `• **Status:** Ready to Move\n` +
@@ -109,8 +118,15 @@ export async function generateGemini(
       }
 
       // Check for draft mode or general customer communication
-      const isDraft = systemPrompt && (systemPrompt.includes('draft') || systemPrompt.includes('Draft'));
-      if (isDraft || lastUserMsg.includes('test') || lastUserMsg.includes('hi') || lastUserMsg.includes('hello')) {
+      const isDraft =
+        systemPrompt &&
+        (systemPrompt.includes('draft') || systemPrompt.includes('Draft'));
+      if (
+        isDraft ||
+        lastUserMsg.includes('test') ||
+        lastUserMsg.includes('hi') ||
+        lastUserMsg.includes('hello')
+      ) {
         return {
           text: `Hello! Thank you for reaching out to Apex Horizon Realty. We have exclusive 2BHK and 3BHK luxury residences available in Powai, including **Apex Grandeur — 3BHK Lake View** (₹1.65 Cr). Would you like me to share the detailed brochure and arrange a site visit this week?`,
           usage: { promptTokens: 180, completionTokens: 125, totalTokens: 305 },

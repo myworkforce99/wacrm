@@ -104,7 +104,7 @@ export function AgentCard({
               <button
                 type="button"
                 onClick={toggleAvailability}
-                className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center -my-2.5 -mr-2 transition-transform active:scale-95"
+                className="-my-2.5 -mr-2 flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center transition-transform active:scale-95"
                 title={agent.isAvailable ? t('available') : t('onLeave')}
                 aria-label={agent.isAvailable ? t('available') : t('onLeave')}
               >

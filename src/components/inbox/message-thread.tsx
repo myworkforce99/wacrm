@@ -32,7 +32,12 @@ import {
   User,
   Lock,
 } from 'lucide-react';
-import { canManageLead, canClaimLead, canManageMembers, canReleaseLead } from '@/lib/auth/roles';
+import {
+  canManageLead,
+  canClaimLead,
+  canManageMembers,
+  canReleaseLead,
+} from '@/lib/auth/roles';
 import { format, isToday, isYesterday, differenceInHours } from 'date-fns';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
@@ -924,7 +929,11 @@ export function MessageThread({
         return;
       }
 
-      if (!prevAgentId && agentId === user?.id && (!data || data.length === 0)) {
+      if (
+        !prevAgentId &&
+        agentId === user?.id &&
+        (!data || data.length === 0)
+      ) {
         toast.error(t('leadAlreadyClaimed'));
         onRefresh?.();
         return;
@@ -1022,7 +1031,9 @@ export function MessageThread({
     // clipped and the hover toolbar overlaps the Tags panel. Letting the
     // root shrink lets the bubbles' break-words / max-w caps apply.
     // Issue #257.
-    <div className={cn('flex min-w-0 min-h-0 flex-1 flex-col', DOODLE_BG_CLASSES)}>
+    <div
+      className={cn('flex min-h-0 min-w-0 flex-1 flex-col', DOODLE_BG_CLASSES)}
+    >
       {/* Header — solid card surface sits on top of the doodle so the
           name/avatar/dropdowns stay legible. */}
       <div className="border-border bg-card flex items-center justify-between gap-1.5 border-b px-2.5 py-2.5 sm:px-4 sm:py-3">
@@ -1042,8 +1053,9 @@ export function MessageThread({
           <div
             onClick={onOpenContactSidebar}
             className={cn(
-              'flex items-center gap-2 min-w-0',
-              onOpenContactSidebar && 'cursor-pointer hover:opacity-80 transition-opacity'
+              'flex min-w-0 items-center gap-2',
+              onOpenContactSidebar &&
+                'cursor-pointer transition-opacity hover:opacity-80'
             )}
             title={contact ? 'View contact details' : undefined}
           >
@@ -1060,14 +1072,18 @@ export function MessageThread({
                   <Badge
                     variant="outline"
                     className={cn(
-                      'border-border gap-0.5 px-1.5 py-0 text-[10px] font-medium shrink-0 md:hidden',
+                      'border-border shrink-0 gap-0.5 px-1.5 py-0 text-[10px] font-medium md:hidden',
                       sessionInfo.expired
                         ? 'border-red-500/30 bg-red-500/10 text-red-500 dark:text-red-400'
                         : 'border-primary/30 bg-primary/10 text-primary'
                     )}
                   >
                     <Clock className="h-2.5 w-2.5" />
-                    <span>{sessionInfo.expired ? tTimer('expired') : sessionInfo.remaining}</span>
+                    <span>
+                      {sessionInfo.expired
+                        ? tTimer('expired')
+                        : sessionInfo.remaining}
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -1076,7 +1092,7 @@ export function MessageThread({
                   {contactHandle(contact)}
                 </p>
                 {conversation.first_unanswered_at && (
-                  <span className="md:hidden shrink-0">
+                  <span className="shrink-0 md:hidden">
                     <SlaBadge
                       firstUnansweredAt={conversation.first_unanswered_at}
                       className="h-3.5 px-1 py-0 text-[9px]"
@@ -1090,7 +1106,7 @@ export function MessageThread({
           <Badge
             variant="outline"
             className={cn(
-              'border-border ml-1 hidden gap-1 text-[10px] sm:ml-2 md:inline-flex shrink-0',
+              'border-border ml-1 hidden shrink-0 gap-1 text-[10px] sm:ml-2 md:inline-flex',
               sessionInfo.expired ? 'text-red-400' : 'text-primary'
             )}
           >
@@ -1100,7 +1116,7 @@ export function MessageThread({
           {conversation.first_unanswered_at && (
             <SlaBadge
               firstUnansweredAt={conversation.first_unanswered_at}
-              className="ml-1 hidden md:inline-flex text-[10px] py-0.5 px-2 shrink-0"
+              className="ml-1 hidden shrink-0 px-2 py-0.5 text-[10px] md:inline-flex"
             />
           )}
         </div>
@@ -1115,7 +1131,7 @@ export function MessageThread({
               onClick={onOpenContactSidebar}
               aria-label="View contact details"
               title="View contact details"
-              className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-md transition-colors lg:hidden"
+              className="hover:bg-muted text-muted-foreground hover:text-foreground flex h-7 w-7 items-center justify-center rounded-md transition-colors sm:h-8 sm:w-8 lg:hidden"
             >
               <User className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </button>
@@ -1167,11 +1183,15 @@ export function MessageThread({
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
+                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 text-xs sm:px-2',
                   currentStatus?.color ?? 'text-muted-foreground'
                 )}
               >
-                <span>{currentStatus ? t(`status${currentStatus.label}`) : t('status')}</span>
+                <span>
+                  {currentStatus
+                    ? t(`status${currentStatus.label}`)
+                    : t('status')}
+                </span>
                 <ChevronDown className="h-3 w-3" />
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -1192,13 +1212,17 @@ export function MessageThread({
           ) : (
             <div
               className={cn(
-                'inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium cursor-not-allowed opacity-75 border border-border/40',
+                'border-border/40 inline-flex h-7 cursor-not-allowed items-center justify-center gap-1.5 rounded-md border px-2 text-xs font-medium opacity-75',
                 currentStatus?.color ?? 'text-muted-foreground'
               )}
               title={t('unassignedLockedStatusTooltip')}
             >
               <Lock className="h-3 w-3" />
-              <span>{currentStatus ? t(`status${currentStatus.label}`) : t('status')}</span>
+              <span>
+                {currentStatus
+                  ? t(`status${currentStatus.label}`)
+                  : t('status')}
+              </span>
             </div>
           )}
 
@@ -1209,7 +1233,7 @@ export function MessageThread({
               size="sm"
               variant="default"
               onClick={handleClaimLead}
-              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2 sm:px-2.5 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500"
+              className="h-7 cursor-pointer gap-1 bg-amber-500 px-2 text-xs font-semibold text-white shadow-xs hover:bg-amber-600 sm:px-2.5 dark:bg-amber-600 dark:hover:bg-amber-500"
               title={t('claimLeadTooltip')}
             >
               <UserCheck className="h-3.5 w-3.5" />
@@ -1222,7 +1246,7 @@ export function MessageThread({
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs',
+                  'hover:bg-muted inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 text-xs sm:px-2',
                   assignedAgentId ? 'text-primary' : 'text-muted-foreground'
                 )}
               >
@@ -1251,7 +1275,9 @@ export function MessageThread({
                         onClick={() => handleAssignChange(p.user_id)}
                         className={cn(
                           'text-sm',
-                          isSelected ? 'text-primary' : 'text-popover-foreground'
+                          isSelected
+                            ? 'text-primary'
+                            : 'text-popover-foreground'
                         )}
                       >
                         <PresenceDot
@@ -1291,7 +1317,7 @@ export function MessageThread({
           {!isManager && canRelease && (
             <DropdownMenu>
               <DropdownMenuTrigger
-                className="hover:bg-primary/15 bg-primary/10 text-primary inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium cursor-pointer transition-colors"
+                className="hover:bg-primary/15 bg-primary/10 text-primary inline-flex h-7 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors"
                 title={t('assignedToYouTooltip')}
               >
                 <UserCheck className="h-3.5 w-3.5" />
@@ -1299,10 +1325,13 @@ export function MessageThread({
                 <span className="sm:hidden">{t('assigned')}</span>
                 <ChevronDown className="h-3 w-3 opacity-60" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="border-border bg-popover">
+              <DropdownMenuContent
+                align="end"
+                className="border-border bg-popover"
+              >
                 <DropdownMenuItem
                   onClick={() => handleAssignChange(null)}
-                  className="text-muted-foreground hover:text-destructive text-xs cursor-pointer gap-2"
+                  className="text-muted-foreground hover:text-destructive cursor-pointer gap-2 text-xs"
                 >
                   <ArrowRightLeft className="h-3.5 w-3.5" />
                   <span>{t('releaseToPool')}</span>
@@ -1314,7 +1343,7 @@ export function MessageThread({
           {/* Read-only assignee indicator when assigned to another agent */}
           {!isManager && isAssignedToOther && (
             <div
-              className="inline-flex h-7 items-center justify-center gap-1 rounded-md px-1.5 sm:px-2 text-xs text-muted-foreground bg-muted/40 border border-border/40"
+              className="text-muted-foreground bg-muted/40 border-border/40 inline-flex h-7 items-center justify-center gap-1 rounded-md border px-1.5 text-xs sm:px-2"
               title={t('assignedToOther', { agent: assignLabel })}
             >
               <UserPlus className="h-3.5 w-3.5" />
@@ -1325,7 +1354,7 @@ export function MessageThread({
       </div>
 
       {/* Messages Area */}
-      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />

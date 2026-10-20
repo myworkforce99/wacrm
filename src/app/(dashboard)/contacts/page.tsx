@@ -166,7 +166,6 @@ function formatBudgetDisplay(
   return `${format(min as number)} – ${format(max as number)}`;
 }
 
-
 interface ContactWithTags extends Contact {
   tags?: Tag[];
   first_unanswered_at?: string | null;
@@ -806,7 +805,7 @@ export default function ContactsPage() {
                 canAct={canEdit}
                 gateReason="add or import contacts"
                 onClick={openAddForm}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 rounded-full px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-medium shadow-xs shrink-0 flex items-center gap-1.5 whitespace-nowrap"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-medium whitespace-nowrap shadow-xs sm:px-4 sm:text-sm"
               >
                 <Plus className="size-4 shrink-0" />
                 <span>{t('addContactBtn')}</span>
@@ -1232,7 +1231,7 @@ export default function ContactsPage() {
                   <div className="flex items-start justify-between gap-3">
                     {/* Separate Touch-Optimized Checkbox (Propagation Isolated) */}
                     <div
-                      className="flex size-9 -ml-1 shrink-0 cursor-pointer items-center justify-center rounded-lg hover:bg-muted/60 transition-colors"
+                      className="hover:bg-muted/60 -ml-1 flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors"
                       onClick={(e) => {
                         e.stopPropagation();
                         toggleSelect(contact.id);
@@ -1280,7 +1279,7 @@ export default function ContactsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex shrink-0 items-center gap-1">
                       {dealStage && <StatusBadge status={dealStage} />}
                       <DropdownMenu>
                         <DropdownMenuTrigger
@@ -1303,7 +1302,9 @@ export default function ContactsPage() {
                           <DropdownMenuItem
                             onClick={async (e) => {
                               e.stopPropagation();
-                              await navigator.clipboard.writeText(contact.phone);
+                              await navigator.clipboard.writeText(
+                                contact.phone
+                              );
                               toast.success(
                                 t('copyPhoneAction') ||
                                   'Phone copied to clipboard'
@@ -1485,7 +1486,7 @@ export default function ContactsPage() {
                 Array.from({ length: 8 }).map((_, i) => (
                   <TableRow key={i} className="border-border">
                     <TableCell className="w-12 px-3 text-center">
-                      <Skeleton className="size-4 rounded-[4px] mx-auto" />
+                      <Skeleton className="mx-auto size-4 rounded-[4px]" />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2.5">

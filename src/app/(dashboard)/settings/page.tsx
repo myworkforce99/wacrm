@@ -98,9 +98,7 @@ function SettingsPageInner() {
         <h2 className="mb-2 text-xl font-semibold">
           {t('accessRestrictedTitle')}
         </h2>
-        <p className="text-muted-foreground">
-          {t('accessRestrictedDesc')}
-        </p>
+        <p className="text-muted-foreground">{t('accessRestrictedDesc')}</p>
         <button
           onClick={() => go('profile')}
           className="text-primary mt-6 hover:underline"

@@ -84,7 +84,11 @@ function InboxPageInner() {
 
   const effectiveUserId = authUser?.id || currentUserId;
   const canManageActiveLead = accountRole
-    ? canManageLead(accountRole, activeConversation?.assigned_agent_id, effectiveUserId)
+    ? canManageLead(
+        accountRole,
+        activeConversation?.assigned_agent_id,
+        effectiveUserId
+      )
     : false;
   /**
    * Bumped whenever we want children (ConversationList, MessageThread)
@@ -211,7 +215,8 @@ function InboxPageInner() {
   useEffect(() => {
     if (!deepLinkConvId && !deepLinkContactId) return;
     const targetKey =
-      deepLinkConvId || (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
+      deepLinkConvId ||
+      (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
     if (!targetKey || autoSelectedForDeepLinkRef.current === targetKey) return;
 
     let cancelled = false;
@@ -485,7 +490,9 @@ function InboxPageInner() {
       // react-hooks/set-state-in-effect. Runs once per ?c=<id> URL value
       // via the ref, so realtime refreshes of the list can't snap the
       // user back to the deep-linked thread after they've navigated.
-      const deepLinkIdentifier = deepLinkConvId || (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
+      const deepLinkIdentifier =
+        deepLinkConvId ||
+        (deepLinkContactId ? `contact:${deepLinkContactId}` : null);
       if (
         deepLinkIdentifier &&
         autoSelectedForDeepLinkRef.current !== deepLinkIdentifier &&
@@ -709,14 +716,16 @@ function InboxPageInner() {
         </div>
       )}
 
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         {/* Left panel: Conversation list.
             Hidden on mobile when a conversation is selected so the
             thread can occupy the full width. Always visible on lg+. */}
         <div
           className={cn(
             'min-h-0 flex-1 lg:flex-none',
-            hasActiveConv ? 'hidden lg:flex lg:w-[340px]' : 'flex w-full lg:w-[340px]'
+            hasActiveConv
+              ? 'hidden lg:flex lg:w-[340px]'
+              : 'flex w-full lg:w-[340px]'
           )}
         >
           <ConversationList
@@ -741,7 +750,7 @@ function InboxPageInner() {
             on the right. Issue #165. */}
         <div
           className={cn(
-            'min-h-0 min-w-0 flex-1 flex flex-col',
+            'flex min-h-0 min-w-0 flex-1 flex-col',
             hasActiveConv ? 'flex w-full' : 'hidden lg:flex'
           )}
         >
@@ -783,13 +792,16 @@ function InboxPageInner() {
 
       {/* Mobile slide-over Sheet for ContactSidebar */}
       <Sheet open={mobileContactOpen} onOpenChange={setMobileContactOpen}>
-        <SheetContent side="right" className="w-[90vw] sm:max-w-md p-0 overflow-hidden flex flex-col">
-          <SheetHeader className="p-4 border-b border-border shrink-0">
+        <SheetContent
+          side="right"
+          className="flex w-[90vw] flex-col overflow-hidden p-0 sm:max-w-md"
+        >
+          <SheetHeader className="border-border shrink-0 border-b p-4">
             <SheetTitle className="text-left text-base">
               {activeContact?.name || activeContact?.phone || 'Contact Details'}
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <ContactSidebar
               contact={activeContact}
               conversation={activeConversation}

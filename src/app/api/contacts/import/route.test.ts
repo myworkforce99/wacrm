@@ -13,7 +13,9 @@ vi.mock('@/lib/auth/account', () => ({
 }));
 
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn().mockImplementation(() => Promise.resolve(mocks.supabase)),
+  createClient: vi
+    .fn()
+    .mockImplementation(() => Promise.resolve(mocks.supabase)),
 }));
 
 describe('POST /api/contacts/import', () => {

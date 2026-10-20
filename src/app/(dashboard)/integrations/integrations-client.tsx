@@ -14,7 +14,10 @@ import {
   Layers,
   ShieldAlert,
 } from 'lucide-react';
-import { PortalConnectModal, type PortalItem } from '@/components/integrations/portal-connect-modal';
+import {
+  PortalConnectModal,
+  type PortalItem,
+} from '@/components/integrations/portal-connect-modal';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
@@ -41,7 +44,9 @@ export function IntegrationsClient({
 }: IntegrationsClientProps) {
   const t = useTranslations('Integrations');
   const [copied, setCopied] = useState(false);
-  const [selectedPortal, setSelectedPortal] = useState<PortalConfig | null>(null);
+  const [selectedPortal, setSelectedPortal] = useState<PortalConfig | null>(
+    null
+  );
 
   const handleCopy = async () => {
     try {
@@ -75,9 +80,12 @@ export function IntegrationsClient({
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-4 pb-20 md:pb-6">
       {/* Page Title & Intro */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Integrations</h1>
+        <h1 className="text-foreground text-2xl font-bold tracking-tight">
+          Integrations
+        </h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Connect your Indian real estate portals and lead channels to automatically stream leads into WaCRM.
+          Connect your Indian real estate portals and lead channels to
+          automatically stream leads into WaCRM.
         </p>
       </div>
 
@@ -86,18 +94,20 @@ export function IntegrationsClient({
         <div className="border-border bg-muted/50 text-muted-foreground flex items-center gap-3 rounded-xl border p-4 text-xs sm:text-sm">
           <ShieldAlert className="size-4 shrink-0 text-amber-500" />
           <span>
-            <strong>Read-only access:</strong> You are signed in with the <strong>{role}</strong> role. Only organization owners and administrators can configure portal credentials and webhooks.
+            <strong>Read-only access:</strong> You are signed in with the{' '}
+            <strong>{role}</strong> role. Only organization owners and
+            administrators can configure portal credentials and webhooks.
           </span>
         </div>
       )}
 
       {/* Universal Capture Email Hero Card */}
       <div className="bg-primary/5 border-primary/20 rounded-xl border-2 p-5 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-          <h2 className="text-primary text-base sm:text-lg font-semibold">
+        <div className="mb-2 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <h2 className="text-primary text-base font-semibold sm:text-lg">
             Universal Capture Email
           </h2>
-          <span className="text-muted-foreground text-xs font-mono">
+          <span className="text-muted-foreground font-mono text-xs">
             Direct Email Ingestion
           </span>
         </div>
@@ -105,14 +115,14 @@ export function IntegrationsClient({
           {t('capture_email.subtitle')}
         </p>
         <div className="bg-background border-border flex flex-col justify-between gap-3 rounded-lg border p-3 sm:flex-row sm:items-center">
-          <code className="font-mono text-xs sm:text-sm font-medium text-foreground break-all select-all">
+          <code className="text-foreground font-mono text-xs font-medium break-all select-all sm:text-sm">
             {captureEmail}
           </code>
           <Button
             variant="secondary"
             size="sm"
             onClick={handleCopy}
-            className="shrink-0 text-xs h-8"
+            className="h-8 shrink-0 text-xs"
           >
             {copied ? (
               <Check className="mr-1.5 size-3.5 text-emerald-500" />
@@ -142,7 +152,7 @@ export function IntegrationsClient({
                   </div>
                   <div>
                     {isConnected && (
-                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-600 dark:text-emerald-400 uppercase">
+                      <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
                         ✓ Connected
                       </span>
                     )}
@@ -159,7 +169,9 @@ export function IntegrationsClient({
                   </div>
                 </div>
 
-                <h3 className="mb-1 text-base font-semibold text-foreground">{portal.name}</h3>
+                <h3 className="text-foreground mb-1 text-base font-semibold">
+                  {portal.name}
+                </h3>
 
                 <div className="mb-4 min-h-[20px]">
                   {portal.test_lead ? (
@@ -167,7 +179,7 @@ export function IntegrationsClient({
                       <Check className="mr-1 size-3.5" /> Test lead received
                     </span>
                   ) : (
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-muted-foreground text-[11px]">
                       {isComingSoon
                         ? 'Direct portal connector in development'
                         : isConnected
@@ -184,7 +196,7 @@ export function IntegrationsClient({
                     Coming Soon
                   </Button>
                 ) : portal.isNative ? (
-                  <Link href="/settings?tab=whatsapp" className="w-full block">
+                  <Link href="/settings?tab=whatsapp" className="block w-full">
                     <Button variant="outline" className="w-full text-xs">
                       Manage <ExternalLink className="ml-2 size-3.5" />
                     </Button>
@@ -192,7 +204,7 @@ export function IntegrationsClient({
                 ) : !canManage ? (
                   <Button
                     variant="outline"
-                    className="w-full text-xs opacity-50 cursor-not-allowed"
+                    className="w-full cursor-not-allowed text-xs opacity-50"
                     disabled
                     title="Admin permissions required"
                   >

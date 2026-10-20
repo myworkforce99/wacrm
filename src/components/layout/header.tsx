@@ -15,7 +15,8 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { DropdownMenu,
+import {
+  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
@@ -130,13 +131,13 @@ export function Header({ onOpenSidebar }: HeaderProps) {
         <button
           type="button"
           onClick={() => setCommandOpen(true)}
-          className="border-border bg-muted/60 hover:bg-muted text-muted-foreground focus:ring-primary/30 flex w-full items-center justify-between rounded-lg border py-1.5 px-3 text-sm transition-colors focus:ring-2 focus:outline-none"
+          className="border-border bg-muted/60 hover:bg-muted text-muted-foreground focus:ring-primary/30 flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-sm transition-colors focus:ring-2 focus:outline-none"
         >
           <div className="flex items-center gap-2">
-            <Search className="size-4 shrink-0 text-muted-foreground" />
+            <Search className="text-muted-foreground size-4 shrink-0" />
             <span className="truncate">{t('searchPlaceholder')}</span>
           </div>
-          <kbd className="inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-card px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+          <kbd className="border-border bg-card text-muted-foreground inline-flex h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium select-none">
             ⌘K
           </kbd>
         </button>

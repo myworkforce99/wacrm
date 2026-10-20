@@ -257,7 +257,10 @@ export default function ImportLeadsPage() {
           <p className="text-muted-foreground mb-6 text-sm">
             Supported formats: .csv, .xlsx (Max 2000 rows)
           </p>
-          <Button onClick={() => fileInputRef.current?.click()} className="rounded-full px-6">
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            className="rounded-full px-6"
+          >
             Browse Files
           </Button>
         </div>
@@ -265,12 +268,16 @@ export default function ImportLeadsPage() {
 
       {step === 2 && (
         <div className="space-y-6">
-          <div className="border-border bg-card rounded-xl border shadow-xs overflow-x-auto">
+          <div className="border-border bg-card overflow-x-auto rounded-xl border shadow-xs">
             <table className="w-full text-sm">
               <thead className="bg-muted/50 text-left">
                 <tr className="border-border border-b">
-                  <th className="p-3 font-medium whitespace-nowrap text-muted-foreground">File Column Header</th>
-                  <th className="p-3 font-medium whitespace-nowrap text-muted-foreground">CRM Field</th>
+                  <th className="text-muted-foreground p-3 font-medium whitespace-nowrap">
+                    File Column Header
+                  </th>
+                  <th className="text-muted-foreground p-3 font-medium whitespace-nowrap">
+                    CRM Field
+                  </th>
                   <th className="text-muted-foreground p-3 font-medium whitespace-nowrap">
                     Preview (Row 1)
                   </th>
@@ -279,10 +286,12 @@ export default function ImportLeadsPage() {
               <tbody className="divide-border/60 divide-y">
                 {headers.map((header, idx) => (
                   <tr key={idx} className="hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-medium text-foreground whitespace-nowrap">{header}</td>
+                    <td className="text-foreground p-3 font-medium whitespace-nowrap">
+                      {header}
+                    </td>
                     <td className="p-3">
                       <select
-                        className="bg-background border-border text-foreground rounded-lg border px-3 py-1.5 text-xs focus:ring-2 focus:ring-primary/30 focus:outline-none"
+                        className="bg-background border-border text-foreground focus:ring-primary/30 rounded-lg border px-3 py-1.5 text-xs focus:ring-2 focus:outline-none"
                         value={mapping[idx]}
                         onChange={(e) =>
                           setMapping((prev) => ({
@@ -307,8 +316,12 @@ export default function ImportLeadsPage() {
             </table>
           </div>
 
-          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3">
-            <Button variant="outline" onClick={() => setStep(1)} className="border-border">
+          <div className="flex flex-col-reverse justify-end gap-3 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setStep(1)}
+              className="border-border"
+            >
               Cancel
             </Button>
             <Button onClick={handleImport} disabled={importing}>
@@ -323,7 +336,9 @@ export default function ImportLeadsPage() {
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
             <PlayCircle className="size-6" />
           </div>
-          <h2 className="text-foreground text-xl font-semibold">Import Complete</h2>
+          <h2 className="text-foreground text-xl font-semibold">
+            Import Complete
+          </h2>
           <div className="flex justify-center gap-8 pt-4">
             <div>
               <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
@@ -338,7 +353,9 @@ export default function ImportLeadsPage() {
               <p className="text-muted-foreground text-sm">Skipped (Dupes)</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-rose-500 dark:text-rose-400">{result.errors}</p>
+              <p className="text-3xl font-bold text-rose-500 dark:text-rose-400">
+                {result.errors}
+              </p>
               <p className="text-muted-foreground text-sm">Errors</p>
             </div>
           </div>

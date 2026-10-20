@@ -267,7 +267,7 @@ function VisitCard({
     <div
       onClick={() => onEdit(visit)}
       className={cn(
-        'border-border bg-card group relative flex items-stretch overflow-hidden rounded-2xl border transition-shadow hover:shadow-md cursor-pointer hover:border-primary/40',
+        'border-border bg-card group hover:border-primary/40 relative flex cursor-pointer items-stretch overflow-hidden rounded-2xl border transition-shadow hover:shadow-md',
         isVisitToday && 'ring-primary/20 ring-2'
       )}
     >
@@ -456,7 +456,7 @@ function VisitCard({
             href={`https://wa.me/${visit.contact.phone.replace(/\D/g, '')}`}
             target="_blank"
             rel="noreferrer"
-            className="text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg p-1.5 transition-colors"
+            className="text-muted-foreground rounded-lg p-1.5 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
             title={t('chatWhatsApp')}
           >
             <WhatsAppIcon className="size-4" />
@@ -538,7 +538,7 @@ function MobileVisitCard({
     <div
       onClick={() => onEdit(visit)}
       className={cn(
-        'border-border bg-card space-y-3 overflow-hidden rounded-2xl border p-4 shadow-xs cursor-pointer hover:border-primary/40 transition-colors',
+        'border-border bg-card hover:border-primary/40 cursor-pointer space-y-3 overflow-hidden rounded-2xl border p-4 shadow-xs transition-colors',
         isVisitToday && 'ring-primary/20 ring-2'
       )}
     >
@@ -832,15 +832,14 @@ export default function SiteVisitsPage() {
         );
       }
       // Fallback: check contact's assigned agent / creator
-      const contactUserId = (visit.contact as { user_id?: string } | null)?.user_id;
+      const contactUserId = (visit.contact as { user_id?: string } | null)
+        ?.user_id;
       if (
         contactUserId &&
         (profilesByUserId[contactUserId] || profilesById[contactUserId])
       ) {
         return (
-          profilesByUserId[contactUserId] ||
-          profilesById[contactUserId] ||
-          null
+          profilesByUserId[contactUserId] || profilesById[contactUserId] || null
         );
       }
       return null;
@@ -904,10 +903,11 @@ export default function SiteVisitsPage() {
         SiteVisit & {
           contact?:
             | (Contact & {
-                lead_details?:
-                  | VisitWithDetails['contact'] extends { lead_details?: infer L }
-                    ? L
-                    : unknown;
+                lead_details?: VisitWithDetails['contact'] extends {
+                  lead_details?: infer L;
+                }
+                  ? L
+                  : unknown;
               })
             | null;
           property?: Property | null;
@@ -1417,21 +1417,15 @@ export default function SiteVisitsPage() {
               <SelectContent>
                 <SelectLabel>{t('filterStatus')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allStatuses')}
-                </SelectItem>
-                <SelectItem value="pending">
-                  {t('statusPending')}
-                </SelectItem>
+                <SelectItem value="all">{t('allStatuses')}</SelectItem>
+                <SelectItem value="pending">{t('statusPending')}</SelectItem>
                 <SelectItem value="confirmed">
                   {t('statusConfirmed')}
                 </SelectItem>
                 <SelectItem value="completed">
                   {t('statusCompleted')}
                 </SelectItem>
-                <SelectItem value="no_show">
-                  {t('statusNoShow')}
-                </SelectItem>
+                <SelectItem value="no_show">{t('statusNoShow')}</SelectItem>
                 <SelectItem value="rescheduled">
                   {t('statusRescheduled')}
                 </SelectItem>
@@ -1452,18 +1446,12 @@ export default function SiteVisitsPage() {
               <SelectContent>
                 <SelectLabel>{t('filterTimeframe')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allTimeframes')}
-                </SelectItem>
-                <SelectItem value="today">
-                  {t('timeframeToday')}
-                </SelectItem>
+                <SelectItem value="all">{t('allTimeframes')}</SelectItem>
+                <SelectItem value="today">{t('timeframeToday')}</SelectItem>
                 <SelectItem value="upcoming">
                   {t('timeframeUpcoming')}
                 </SelectItem>
-                <SelectItem value="past">
-                  {t('timeframePast')}
-                </SelectItem>
+                <SelectItem value="past">{t('timeframePast')}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -1481,9 +1469,7 @@ export default function SiteVisitsPage() {
               <SelectContent>
                 <SelectLabel>{t('filterConfig')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allConfigs')}
-                </SelectItem>
+                <SelectItem value="all">{t('allConfigs')}</SelectItem>
                 {PROPERTY_CONFIGURATIONS.map((cfg) => (
                   <SelectItem key={cfg} value={cfg}>
                     {cfg}
@@ -1506,15 +1492,9 @@ export default function SiteVisitsPage() {
               <SelectContent>
                 <SelectLabel>{t('filterPickup')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allPickups')}
-                </SelectItem>
-                <SelectItem value="needed">
-                  {t('pickupNeeded')}
-                </SelectItem>
-                <SelectItem value="self">
-                  {t('pickupSelf')}
-                </SelectItem>
+                <SelectItem value="all">{t('allPickups')}</SelectItem>
+                <SelectItem value="needed">{t('pickupNeeded')}</SelectItem>
+                <SelectItem value="self">{t('pickupSelf')}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -1533,17 +1513,10 @@ export default function SiteVisitsPage() {
                 <SelectContent>
                   <SelectLabel>{t('filterAgent')}</SelectLabel>
                   <SelectSeparator />
-                  <SelectItem value="all">
-                    {t('allAgents')}
-                  </SelectItem>
-                  <SelectItem value="unassigned">
-                    {t('unassigned')}
-                  </SelectItem>
+                  <SelectItem value="all">{t('allAgents')}</SelectItem>
+                  <SelectItem value="unassigned">{t('unassigned')}</SelectItem>
                   {profiles.map((p) => (
-                    <SelectItem
-                      key={p.id}
-                      value={p.user_id || p.id}
-                    >
+                    <SelectItem key={p.id} value={p.user_id || p.id}>
                       {p.full_name || p.email}
                     </SelectItem>
                   ))}
@@ -1842,7 +1815,7 @@ export default function SiteVisitsPage() {
                                   href={`https://wa.me/${v.contact.phone.replace(/\D/g, '')}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-muted-foreground hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-md p-1.5 transition-colors"
+                                  className="text-muted-foreground rounded-md p-1.5 transition-colors hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
                                   title={t('chatWhatsApp')}
                                 >
                                   <WhatsAppIcon className="size-3.5" />

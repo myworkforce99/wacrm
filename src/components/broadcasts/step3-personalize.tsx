@@ -430,9 +430,9 @@ export function Step3Personalize({
             <Loader2 className="text-primary h-3.5 w-3.5 animate-spin" />
           )}
         </div>
-        <div className="rounded-lg bg-muted/60 border border-border/50 p-3">
+        <div className="bg-muted/60 border-border/50 rounded-lg border p-3">
           <div className="bg-primary text-primary-foreground ml-auto max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5 shadow-sm">
-            <p className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+            <p className="text-sm [overflow-wrap:anywhere] break-words whitespace-pre-wrap">
               {previewText}
             </p>
           </div>

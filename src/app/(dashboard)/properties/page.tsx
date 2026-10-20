@@ -396,10 +396,7 @@ export default function PropertiesPage() {
           subtitle={t('subtitle')}
           action={
             canManageInventory ? (
-              <Button
-                onClick={handleOpenCreate}
-                className="gap-1.5 shadow-sm"
-              >
+              <Button onClick={handleOpenCreate} className="gap-1.5 shadow-sm">
                 <Plus className="size-4" />
                 {t('addProperty')}
               </Button>
@@ -578,9 +575,7 @@ export default function PropertiesPage() {
               <SelectContent>
                 <SelectLabel>{t('filterConfig')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allConfigs')}
-                </SelectItem>
+                <SelectItem value="all">{t('allConfigs')}</SelectItem>
                 {PROPERTY_CONFIGURATIONS.map((cfg) => (
                   <SelectItem key={cfg} value={cfg}>
                     {cfg}
@@ -603,9 +598,7 @@ export default function PropertiesPage() {
               <SelectContent>
                 <SelectLabel>{t('filterType')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allTypes')}
-                </SelectItem>
+                <SelectItem value="all">{t('allTypes')}</SelectItem>
                 {PROPERTY_TYPES.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -628,12 +621,8 @@ export default function PropertiesPage() {
               <SelectContent>
                 <SelectLabel>{t('filterPossession')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allPossessions')}
-                </SelectItem>
-                <SelectItem value="ready_to_move">
-                  {t('statReady')}
-                </SelectItem>
+                <SelectItem value="all">{t('allPossessions')}</SelectItem>
+                <SelectItem value="ready_to_move">{t('statReady')}</SelectItem>
                 <SelectItem value="under_construction">
                   {t('statUnderConst')}
                 </SelectItem>
@@ -657,24 +646,12 @@ export default function PropertiesPage() {
               <SelectContent>
                 <SelectLabel>{t('filterPrice')}</SelectLabel>
                 <SelectSeparator />
-                <SelectItem value="all">
-                  {t('allPrices')}
-                </SelectItem>
-                <SelectItem value="under_50l">
-                  {t('priceUnder50L')}
-                </SelectItem>
-                <SelectItem value="50l_to_1cr">
-                  {t('price50Lto1Cr')}
-                </SelectItem>
-                <SelectItem value="1cr_to_2cr">
-                  {t('price1Crto2Cr')}
-                </SelectItem>
-                <SelectItem value="2cr_to_5cr">
-                  {t('price2Crto5Cr')}
-                </SelectItem>
-                <SelectItem value="above_5cr">
-                  {t('priceAbove5Cr')}
-                </SelectItem>
+                <SelectItem value="all">{t('allPrices')}</SelectItem>
+                <SelectItem value="under_50l">{t('priceUnder50L')}</SelectItem>
+                <SelectItem value="50l_to_1cr">{t('price50Lto1Cr')}</SelectItem>
+                <SelectItem value="1cr_to_2cr">{t('price1Crto2Cr')}</SelectItem>
+                <SelectItem value="2cr_to_5cr">{t('price2Crto5Cr')}</SelectItem>
+                <SelectItem value="above_5cr">{t('priceAbove5Cr')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -950,7 +927,7 @@ export default function PropertiesPage() {
                 >
                   {/* Property Visual Header / Thumbnail Placeholder */}
                   <div className="bg-muted/40 border-border/50 group relative flex h-32 w-full items-center justify-center overflow-hidden border-b">
-                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] opacity-30 [background-size:14px_14px] dark:bg-[radial-gradient(#475569_1px,transparent_1px)]" />
+                    <div className="absolute inset-0 bg-[radial-gradient(#94a3b8_1px,transparent_1px)] [background-size:14px_14px] opacity-30 dark:bg-[radial-gradient(#475569_1px,transparent_1px)]" />
                     <div className="text-muted-foreground/60 z-10 flex flex-col items-center justify-center gap-1 transition-transform duration-200 group-hover:scale-105">
                       <Building className="size-7" />
                       <span className="text-[10px] font-semibold tracking-wider uppercase">

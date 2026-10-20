@@ -206,13 +206,21 @@ describe('generateReply — Anthropic', () => {
     const fetchMock = vi.fn().mockResolvedValue(
       okResponse({
         candidates: [{ content: { parts: [{ text: 'Gemini reply' }] } }],
-        usageMetadata: { promptTokenCount: 5, candidatesTokenCount: 2, totalTokenCount: 7 },
+        usageMetadata: {
+          promptTokenCount: 5,
+          candidatesTokenCount: 2,
+          totalTokenCount: 7,
+        },
       })
     );
     vi.stubGlobal('fetch', fetchMock);
 
     const res = await generateReply({
-      config: config({ provider: 'gemini', model: 'gemini-2.5-flash', apiKey: 'test-gemini-key' }),
+      config: config({
+        provider: 'gemini',
+        model: 'gemini-2.5-flash',
+        apiKey: 'test-gemini-key',
+      }),
       systemPrompt: 'sys',
       messages: [{ role: 'user', content: 'Hi' }],
     });

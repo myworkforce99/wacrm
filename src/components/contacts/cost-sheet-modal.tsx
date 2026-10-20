@@ -338,22 +338,20 @@ export function CostSheetModal({
     let template = templateContent;
     // Sanitize any residual advance breakdown or base_rate to simple single price
     template = template
-      .replace(/📊?\s*\*?Itemized Cost Breakdown[\s\S]*?(?=(\n\s*\n\s*[💰📞]|$))/i, '')
+      .replace(
+        /📊?\s*\*?Itemized Cost Breakdown[\s\S]*?(?=(\n\s*\n\s*[💰📞]|$))/i,
+        ''
+      )
       .trim();
     if (template.includes('Base Rate: {{base_rate}}')) {
-      template = template.replace('Base Rate: {{base_rate}}', 'Price: {{price}}');
+      template = template.replace(
+        'Base Rate: {{base_rate}}',
+        'Price: {{price}}'
+      );
     }
 
-    return template.replace(
-      /\{\{(\w+)\}\}/g,
-      (_, key) => dataMap[key] ?? ''
-    );
-  }, [
-    templateContent,
-    selectedProperty,
-    contactData,
-    agentDetails,
-  ]);
+    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => dataMap[key] ?? '');
+  }, [templateContent, selectedProperty, contactData, agentDetails]);
 
   const handleSend = async () => {
     if (!templateContent || !selectedContactId) return;

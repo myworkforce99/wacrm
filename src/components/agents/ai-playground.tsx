@@ -43,12 +43,24 @@ const REAL_ESTATE_QUICK_PROMPTS = [
 ];
 
 const AVAILABLE_MODELS = [
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google Gemini' },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'Google Gemini',
+  },
   { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google Gemini' },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
   { id: 'gpt-4o-mini', name: 'GPT-4o Mini', provider: 'OpenAI' },
-  { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'Anthropic' },
-  { id: 'claude-3-5-haiku-20241022', name: 'Claude 3.5 Haiku', provider: 'Anthropic' },
+  {
+    id: 'claude-3-5-sonnet-20241022',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'Anthropic',
+  },
+  {
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
+    provider: 'Anthropic',
+  },
 ];
 
 /** Renders bold text (**text**), bullet lines (* / - / •), and INR amounts cleanly */
@@ -66,19 +78,24 @@ function FormattedMessage({ content }: { content: string }) {
         const textContent = isBullet ? trimmed.replace(/^[•*-]\s+/, '') : line;
 
         // Parse **bold** and currency inside the line
-        const parts = textContent.split(/(\*\*[^*]+\*\*|₹[\d,.]+(?:\s*(?:Cr|Lakh|k))?)/g);
+        const parts = textContent.split(
+          /(\*\*[^*]+\*\*|₹[\d,.]+(?:\s*(?:Cr|Lakh|k))?)/g
+        );
 
         const renderedLine = parts.map((part, pIdx) => {
           if (part.startsWith('**') && part.endsWith('**')) {
             return (
-              <strong key={pIdx} className="font-semibold text-foreground">
+              <strong key={pIdx} className="text-foreground font-semibold">
                 {part.slice(2, -2)}
               </strong>
             );
           }
           if (part.startsWith('₹')) {
             return (
-              <span key={pIdx} className="font-semibold text-emerald-600 dark:text-emerald-400">
+              <span
+                key={pIdx}
+                className="font-semibold text-emerald-600 dark:text-emerald-400"
+              >
                 {part}
               </span>
             );
@@ -88,7 +105,7 @@ function FormattedMessage({ content }: { content: string }) {
 
         if (isBullet) {
           return (
-            <div key={lIdx} className="flex items-start gap-1.5 ml-2">
+            <div key={lIdx} className="ml-2 flex items-start gap-1.5">
               <span className="text-primary mt-1 text-xs">•</span>
               <span className="flex-1">{renderedLine}</span>
             </div>
@@ -116,7 +133,8 @@ export function AiPlayground({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
+  const [selectedModel, setSelectedModel] =
+    useState<string>('gemini-2.5-flash');
   const [systemPrompt, setSystemPrompt] = useState<string>('');
   const [promptOpen, setPromptOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -138,7 +156,10 @@ export function AiPlayground({
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    scrollRef.current?.scrollTo({
+      top: scrollRef.current.scrollHeight,
+      behavior: 'smooth',
+    });
   }, [turns, sending]);
 
   const sendMessage = async (textToSend?: string) => {
@@ -178,7 +199,10 @@ export function AiPlayground({
         ...next,
         {
           role: 'assistant',
-          content: typeof data.reply === 'string' && data.reply.trim() ? data.reply : '',
+          content:
+            typeof data.reply === 'string' && data.reply.trim()
+              ? data.reply
+              : '',
           handoff: Boolean(data.handoff),
         },
       ]);
@@ -199,17 +223,17 @@ export function AiPlayground({
   };
 
   return (
-    <div className="border-border bg-card flex h-[calc(100vh-230px)] sm:h-[650px] min-h-[440px] flex-col rounded-xl border shadow-xs">
+    <div className="border-border bg-card flex h-[calc(100vh-230px)] min-h-[440px] flex-col rounded-xl border shadow-xs sm:h-[650px]">
       {/* Interactive Controls Header */}
       <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b p-3 sm:px-4">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           <Bot className="text-primary size-5 shrink-0" />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-foreground text-sm font-semibold tracking-tight">
                 {t('title')}
               </span>
-              <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+              <span className="border-primary/20 bg-primary/10 text-primary rounded-full border px-2 py-0.5 text-[10px] font-medium">
                 Co-Pilot Simulation
               </span>
             </div>
@@ -219,7 +243,7 @@ export function AiPlayground({
         <div className="flex items-center gap-2">
           {/* Model Selector Dropdown */}
           <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground text-xs hidden sm:inline-block">
+            <span className="text-muted-foreground hidden text-xs sm:inline-block">
               {t('modelSelector')}:
             </span>
             <Select
@@ -228,14 +252,16 @@ export function AiPlayground({
                 if (val) setSelectedModel(val);
               }}
             >
-              <SelectTrigger className="h-8 text-xs font-mono w-[160px] sm:w-[190px]">
+              <SelectTrigger className="h-8 w-[160px] font-mono text-xs sm:w-[190px]">
                 <SelectValue placeholder="Select Model" />
               </SelectTrigger>
               <SelectContent>
                 {AVAILABLE_MODELS.map((m) => (
                   <SelectItem key={m.id} value={m.id} className="text-xs">
                     <span className="font-medium">{m.name}</span>{' '}
-                    <span className="text-muted-foreground text-[10px]">({m.provider})</span>
+                    <span className="text-muted-foreground text-[10px]">
+                      ({m.provider})
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -245,28 +271,30 @@ export function AiPlayground({
           {/* System Prompt Preview Popover */}
           <Popover open={promptOpen} onOpenChange={setPromptOpen}>
             <PopoverTrigger
-              className="inline-flex items-center justify-center rounded-lg border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors h-8"
+              className="border-border bg-card text-muted-foreground hover:text-foreground hover:bg-muted inline-flex h-8 items-center justify-center rounded-lg border px-2.5 py-1 text-xs transition-colors"
               title="System Prompt Preview"
             >
               <Info className="size-3.5 sm:mr-1.5" />
               <span className="hidden sm:inline">Prompt</span>
             </PopoverTrigger>
-            <PopoverContent className="w-80 sm:w-96 p-4 text-xs space-y-2 border-border bg-popover" align="end">
-              <div className="flex items-center justify-between border-b border-border pb-1.5">
-                <h4 className="font-semibold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="size-3.5 text-primary" />
+            <PopoverContent
+              className="border-border bg-popover w-80 space-y-2 p-4 text-xs sm:w-96"
+              align="end"
+            >
+              <div className="border-border flex items-center justify-between border-b pb-1.5">
+                <h4 className="text-foreground flex items-center gap-1.5 font-semibold">
+                  <Sparkles className="text-primary size-3.5" />
                   Active System Prompt Preview
                 </h4>
               </div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">
-                Appended to the foundational WhatsApp customer assistant instructions and real estate knowledge excerpts:
+                Appended to the foundational WhatsApp customer assistant
+                instructions and real estate knowledge excerpts:
               </p>
-              <div className="bg-muted border border-border p-2.5 rounded-md font-mono text-[11px] text-foreground max-h-48 overflow-y-auto whitespace-pre-wrap">
-                {systemPrompt ? (
-                  systemPrompt
-                ) : (
-                  'Apex Horizon Realty real estate sales co-pilot: qualifying budget (₹ INR), preferred BHK, Powai/Mumbai locations, RERA inventory, and scheduling site visits.'
-                )}
+              <div className="bg-muted border-border text-foreground max-h-48 overflow-y-auto rounded-md border p-2.5 font-mono text-[11px] whitespace-pre-wrap">
+                {systemPrompt
+                  ? systemPrompt
+                  : 'Apex Horizon Realty real estate sales co-pilot: qualifying budget (₹ INR), preferred BHK, Powai/Mumbai locations, RERA inventory, and scheduling site visits.'}
               </div>
               {onGoToSetup && (
                 <Button
@@ -276,7 +304,7 @@ export function AiPlayground({
                     setPromptOpen(false);
                     onGoToSetup();
                   }}
-                  className="h-auto p-0 text-xs text-primary"
+                  className="text-primary h-auto p-0 text-xs"
                 >
                   Edit Prompt in Setup →
                 </Button>
@@ -290,7 +318,7 @@ export function AiPlayground({
             size="sm"
             onClick={() => setTurns([])}
             disabled={turns.length === 0 || sending}
-            className="h-8 text-xs text-muted-foreground hover:text-foreground px-2 sm:px-3"
+            className="text-muted-foreground hover:text-foreground h-8 px-2 text-xs sm:px-3"
           >
             <RotateCcw className="size-3.5 sm:mr-1.5" />
             <span className="hidden sm:inline">{t('reset')}</span>
@@ -301,20 +329,20 @@ export function AiPlayground({
       {/* Transcript Chat Area */}
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
         {turns.length === 0 && (
-          <div className="text-muted-foreground flex h-full flex-col items-center justify-center text-center p-4">
-            <div className="bg-primary/10 text-primary p-3 rounded-full mb-3">
+          <div className="text-muted-foreground flex h-full flex-col items-center justify-center p-4 text-center">
+            <div className="bg-primary/10 text-primary mb-3 rounded-full p-3">
               <Building2 className="size-8" />
             </div>
-            <p className="text-foreground font-semibold text-base sm:text-lg">
+            <p className="text-foreground text-base font-semibold sm:text-lg">
               {t('emptyTitle')}
             </p>
-            <p className="mt-1 max-w-md text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground mt-1 max-w-md text-xs leading-relaxed sm:text-sm">
               {t('emptyDesc')}
             </p>
 
             {/* Quick Prompts Suggestions */}
             <div className="mt-6 w-full max-w-lg space-y-2">
-              <p className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 {t('quickPrompts')}
               </p>
               <div className="flex flex-wrap justify-center gap-2">
@@ -323,7 +351,7 @@ export function AiPlayground({
                     key={idx}
                     type="button"
                     onClick={() => void sendMessage(q)}
-                    className="border-border bg-muted/60 hover:bg-muted hover:border-primary/40 text-foreground transition-all rounded-full border px-3 py-1.5 text-xs text-left"
+                    className="border-border bg-muted/60 hover:bg-muted hover:border-primary/40 text-foreground rounded-full border px-3 py-1.5 text-left text-xs transition-all"
                   >
                     💬 {q}
                   </button>
@@ -337,7 +365,7 @@ export function AiPlayground({
                   variant="link"
                   size="sm"
                   onClick={onGoToKnowledge}
-                  className="h-auto p-0 text-xs text-primary"
+                  className="text-primary h-auto p-0 text-xs"
                 >
                   Manage Knowledge Base <ArrowRight className="ml-1 size-3" />
                 </Button>
@@ -362,16 +390,16 @@ export function AiPlayground({
 
             <div
               className={cn(
-                'max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 shadow-2xs',
+                'max-w-[85%] rounded-2xl px-4 py-3 shadow-2xs sm:max-w-[75%]',
                 turn.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-br-xs'
-                  : 'bg-muted/80 text-foreground border border-border/60 rounded-bl-xs'
+                  : 'bg-muted/80 text-foreground border-border/60 rounded-bl-xs border'
               )}
             >
               {turn.content && <FormattedMessage content={turn.content} />}
 
               {turn.role === 'assistant' && turn.handoff && (
-                <div className="mt-2.5 border-t border-amber-500/20 pt-2 flex items-center gap-1.5 text-xs font-medium text-amber-500">
+                <div className="mt-2.5 flex items-center gap-1.5 border-t border-amber-500/20 pt-2 text-xs font-medium text-amber-500">
                   <UserCircle2 className="size-3.5" />
                   <span>{t('handoff')}</span>
                 </div>
@@ -387,12 +415,12 @@ export function AiPlayground({
         ))}
 
         {sending && (
-          <div className="text-muted-foreground flex items-center gap-2 text-sm pl-2">
+          <div className="text-muted-foreground flex items-center gap-2 pl-2 text-sm">
             <div className="bg-primary/10 text-primary flex size-7 shrink-0 items-center justify-center rounded-full">
               <Bot className="size-4" />
             </div>
-            <div className="bg-muted border border-border rounded-xl px-3 py-2 flex items-center gap-2 text-xs">
-              <Loader2 className="size-3.5 animate-spin text-primary" />
+            <div className="bg-muted border-border flex items-center gap-2 rounded-xl border px-3 py-2 text-xs">
+              <Loader2 className="text-primary size-3.5 animate-spin" />
               <span>{t('thinking')}</span>
             </div>
           </div>
@@ -407,13 +435,13 @@ export function AiPlayground({
           onKeyDown={handleKeyDown}
           placeholder={t('placeholder')}
           rows={1}
-          className="border-border bg-muted/80 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3.5 py-2.5 text-xs sm:text-sm outline-none transition-colors"
+          className="border-border bg-muted/80 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3.5 py-2.5 text-xs transition-colors outline-none sm:text-sm"
         />
         <Button
           size="sm"
           onClick={() => void sendMessage()}
           disabled={!input.trim() || sending}
-          className="h-10 w-10 shrink-0 p-0 rounded-xl"
+          className="h-10 w-10 shrink-0 rounded-xl p-0"
           aria-label="Send message"
         >
           {sending ? (

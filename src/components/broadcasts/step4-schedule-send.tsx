@@ -148,12 +148,14 @@ export function Step4ScheduleSend({
         <p className="text-foreground text-sm font-medium">
           {t('scheduleSend.summary')}
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 text-sm">
+        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
           <div>
             <p className="text-muted-foreground text-xs">
               {t('scheduleSend.template')}
             </p>
-            <p className="text-foreground font-medium truncate">{template.name}</p>
+            <p className="text-foreground truncate font-medium">
+              {template.name}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">
@@ -182,7 +184,9 @@ export function Step4ScheduleSend({
             <p className="text-muted-foreground text-xs">
               {t('scheduleSend.language')}
             </p>
-            <p className="text-foreground font-medium">{template.language ?? 'en_US'}</p>
+            <p className="text-foreground font-medium">
+              {template.language ?? 'en_US'}
+            </p>
           </div>
           <div>
             <p className="text-muted-foreground text-xs">Category</p>
@@ -206,19 +210,19 @@ export function Step4ScheduleSend({
           <label className="text-foreground block text-sm font-semibold">
             Delivery Schedule
           </label>
-          <p className="text-muted-foreground text-xs mt-0.5">
+          <p className="text-muted-foreground mt-0.5 text-xs">
             Select when this broadcast campaign should be dispatched.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {/* Card 1: Send Immediately */}
           <button
             type="button"
             onClick={() => setSendLater(false)}
-            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all ${
               !sendLater
-                ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                ? 'border-primary bg-primary/10 ring-primary/40 ring-1'
                 : 'border-border bg-card/60 hover:bg-card hover:border-border'
             }`}
           >
@@ -264,9 +268,9 @@ export function Step4ScheduleSend({
                 setScheduledTime(localISO);
               }
             }}
-            className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all cursor-pointer ${
+            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-left transition-all ${
               sendLater
-                ? 'border-primary bg-primary/10 ring-1 ring-primary/40'
+                ? 'border-primary bg-primary/10 ring-primary/40 ring-1'
                 : 'border-border bg-card/60 hover:bg-card hover:border-border'
             }`}
           >
@@ -306,7 +310,7 @@ export function Step4ScheduleSend({
                 Choose Broadcast Date & Time
               </label>
             </div>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <Input
                 type="datetime-local"
                 value={scheduledTime}
@@ -320,7 +324,8 @@ export function Step4ScheduleSend({
               />
               <span className="text-muted-foreground text-xs">
                 Local Timezone (
-                {Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata'}
+                {Intl.DateTimeFormat().resolvedOptions().timeZone ||
+                  'Asia/Kolkata'}
                 )
               </span>
             </div>

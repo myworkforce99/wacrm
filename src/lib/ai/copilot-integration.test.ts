@@ -7,7 +7,8 @@ describe('TC-MAW-51: AI Co-Pilot Real Estate Assistant', () => {
     provider: 'gemini',
     model: 'gemini-2.5-flash',
     apiKey: process.env.GEMINI_API_KEY || 'test-gemini-key',
-    systemPrompt: 'You are an AI sales assistant for Apex Horizon Realty, a premier real estate firm in Mumbai. You help prospective buyers find their dream homes, schedule site visits, and share property brochures and cost breakdowns.',
+    systemPrompt:
+      'You are an AI sales assistant for Apex Horizon Realty, a premier real estate firm in Mumbai. You help prospective buyers find their dream homes, schedule site visits, and share property brochures and cost breakdowns.',
     isActive: true,
     autoReplyEnabled: true,
     autoReplyMaxPerConversation: 5,

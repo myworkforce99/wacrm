@@ -142,8 +142,8 @@ export default function NewBroadcastPage() {
 
       {/* Step Indicator */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between sm:hidden px-1">
-          <span className="text-xs font-semibold uppercase tracking-wider text-primary">
+        <div className="flex items-center justify-between px-1 sm:hidden">
+          <span className="text-primary text-xs font-semibold tracking-wider uppercase">
             Step {currentStep + 1} of {steps.length}
           </span>
           <span className="text-foreground text-xs font-medium">
@@ -151,47 +151,47 @@ export default function NewBroadcastPage() {
           </span>
         </div>
         <div className="flex items-center justify-between">
-        {steps.map((step, index) => {
-          const isActive = index === currentStep;
-          const isCompleted = index < currentStep;
+          {steps.map((step, index) => {
+            const isActive = index === currentStep;
+            const isCompleted = index < currentStep;
 
-          return (
-            <div key={step.key} className="flex flex-1 items-center">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all ${
-                    isCompleted
-                      ? 'bg-primary text-primary-foreground'
-                      : isActive
-                        ? 'border-primary bg-primary/10 text-primary border-2'
-                        : 'border-border bg-muted text-muted-foreground border'
-                  }`}
-                >
-                  {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
+            return (
+              <div key={step.key} className="flex flex-1 items-center">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium transition-all ${
+                      isCompleted
+                        ? 'bg-primary text-primary-foreground'
+                        : isActive
+                          ? 'border-primary bg-primary/10 text-primary border-2'
+                          : 'border-border bg-muted text-muted-foreground border'
+                    }`}
+                  >
+                    {isCompleted ? <Check className="h-4 w-4" /> : index + 1}
+                  </div>
+                  <span
+                    className={`hidden text-sm font-medium sm:block ${
+                      isActive
+                        ? 'text-foreground'
+                        : isCompleted
+                          ? 'text-primary'
+                          : 'text-muted-foreground'
+                    }`}
+                  >
+                    {t(`steps.${step.label}`)}
+                  </span>
                 </div>
-                <span
-                  className={`hidden text-sm font-medium sm:block ${
-                    isActive
-                      ? 'text-foreground'
-                      : isCompleted
-                        ? 'text-primary'
-                        : 'text-muted-foreground'
-                  }`}
-                >
-                  {t(`steps.${step.label}`)}
-                </span>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`mx-3 h-px flex-1 ${
+                      index < currentStep ? 'bg-primary' : 'bg-muted'
+                    }`}
+                  />
+                )}
               </div>
-              {index < steps.length - 1 && (
-                <div
-                  className={`mx-3 h-px flex-1 ${
-                    index < currentStep ? 'bg-primary' : 'bg-muted'
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Step Content */}

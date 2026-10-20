@@ -25,17 +25,13 @@ export async function getAgentAssignedContactIds(
       .not('contact_id', 'is', null),
   ]);
 
-  const dealContactIds = (
-    dealsRes.data
-      ?.map((d: { contact_id: string | null }) => d.contact_id)
-      .filter(Boolean) ?? []
-  ) as string[];
+  const dealContactIds = (dealsRes.data
+    ?.map((d: { contact_id: string | null }) => d.contact_id)
+    .filter(Boolean) ?? []) as string[];
 
-  const convContactIds = (
-    convsRes.data
-      ?.map((c: { contact_id: string | null }) => c.contact_id)
-      .filter(Boolean) ?? []
-  ) as string[];
+  const convContactIds = (convsRes.data
+    ?.map((c: { contact_id: string | null }) => c.contact_id)
+    .filter(Boolean) ?? []) as string[];
 
   return Array.from(new Set([...dealContactIds, ...convContactIds]));
 }

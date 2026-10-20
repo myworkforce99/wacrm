@@ -49,7 +49,7 @@ Reply to schedule a visit or ask any questions!`;
  * Builder: {{builder_name}}
  * Possession: {{possession_status}}
  * Area: {{carpet_area}} sq ft
- * 
+ *
  * 📊 *Itemized Cost Breakdown (Indian Standard)*
  * • Agreement Value: {{price}}
  * • Covered Parking: {{parking}}
@@ -58,13 +58,13 @@ Reply to schedule a visit or ask any questions!`;
  * • Registration Fee: {{registration}}
  * --------------------------------
  * *All-Inclusive Total Estimate:* {{total_cost}}
- * 
+ *
  * 💰 *Your Budget*
  * {{budget_min}} – {{budget_max}}
- * 
+ *
  * 📞 *Your Agent*
  * {{agent_name}} – {{agent_phone}}
- * 
+ *
  * Reply to schedule a visit or ask any questions!`;
  * ============================================================ */
 
@@ -340,7 +340,9 @@ export function CostSheetConfig() {
               variant="ghost"
               onClick={() => {
                 setContent(DEFAULT_TEMPLATE);
-                toast.info('Template reset to default. Click "Save Template" to persist.');
+                toast.info(
+                  'Template reset to default. Click "Save Template" to persist.'
+                );
               }}
             >
               Reset to Default
@@ -359,4 +361,3 @@ export function CostSheetConfig() {
     </div>
   );
 }
-

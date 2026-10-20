@@ -28,11 +28,17 @@ describe('agent-scoping', () => {
         'c-2',
         'c-1',
       ]);
-      expect(filter).toBe('user_id.eq.user-1,user_id.eq.profile-1,id.in.(c-1,c-2)');
+      expect(filter).toBe(
+        'user_id.eq.user-1,user_id.eq.profile-1,id.in.(c-1,c-2)'
+      );
     });
 
     it('ignores empty/falsy strings in additionalContactIds', () => {
-      const filter = buildAgentContactFilter('user-1', null, ['c-1', '', 'c-3']);
+      const filter = buildAgentContactFilter('user-1', null, [
+        'c-1',
+        '',
+        'c-3',
+      ]);
       expect(filter).toBe('user_id.eq.user-1,id.in.(c-1,c-3)');
     });
   });

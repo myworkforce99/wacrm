@@ -92,14 +92,7 @@ const PROPERTY_TYPES = [
   'Builder Floor',
 ];
 
-const BHK_CONFIGURATIONS = [
-  'Studio',
-  '1BHK',
-  '2BHK',
-  '3BHK',
-  '4BHK',
-  '5+ BHK',
-];
+const BHK_CONFIGURATIONS = ['Studio', '1BHK', '2BHK', '3BHK', '4BHK', '5+ BHK'];
 
 const INTENT_OPTIONS = ['End Use', 'Investment', 'Rental Yield'];
 

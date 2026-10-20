@@ -40,7 +40,9 @@ async function postWebhook(entryObj) {
 }
 
 async function main() {
-  console.log('=== TC-FLOW-02: Real Estate Qualifier Flow End-to-End Test ===\n');
+  console.log(
+    '=== TC-FLOW-02: Real Estate Qualifier Flow End-to-End Test ===\n'
+  );
 
   const testPhone = '918381043430';
   const testWabaId = '2111247669610431';
@@ -56,7 +58,10 @@ async function main() {
     .eq('account_id', testAccountId);
 
   for (const c of oldContacts || []) {
-    const { data: convs } = await supabase.from('conversations').select('id').eq('contact_id', c.id);
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('contact_id', c.id);
     for (const cv of convs || []) {
       await supabase.from('messages').delete().eq('conversation_id', cv.id);
       await supabase.from('flow_runs').delete().eq('conversation_id', cv.id);
@@ -126,7 +131,14 @@ async function main() {
     .eq('contact_id', contact.id)
     .single();
 
-  console.log('✅ Flow run status:', run1?.status, 'Flow:', run1?.flows?.name, 'Current node:', run1?.current_node_key);
+  console.log(
+    '✅ Flow run status:',
+    run1?.status,
+    'Flow:',
+    run1?.flows?.name,
+    'Current node:',
+    run1?.current_node_key
+  );
 
   // Step 2: Customer replies with budget ("₹45L")
   console.log('\n--- Step 2: Customer replies with budget "₹45L" ---');
@@ -168,11 +180,16 @@ async function main() {
     .eq('contact_id', contact.id)
     .maybeSingle();
 
-  console.log('✅ Flow current node after budget:', runAfterBudget?.current_node_key);
+  console.log(
+    '✅ Flow current node after budget:',
+    runAfterBudget?.current_node_key
+  );
   console.log('✅ lead_details.budget_max:', leadAfterBudget?.budget_max);
 
   // Step 3: Customer replies with interactive button tap "2bhk"
-  console.log('\n--- Step 3: Customer taps button "2 BHK" (reply_id: 2bhk) ---');
+  console.log(
+    '\n--- Step 3: Customer taps button "2 BHK" (reply_id: 2bhk) ---'
+  );
   await postWebhook({
     id: testWabaId,
     changes: [
@@ -218,7 +235,10 @@ async function main() {
     .maybeSingle();
 
   console.log('✅ Flow current node after BHK:', runAfterBhk?.current_node_key);
-  console.log('✅ lead_details.configuration_preference:', leadAfterBhk?.configuration_preference);
+  console.log(
+    '✅ lead_details.configuration_preference:',
+    leadAfterBhk?.configuration_preference
+  );
 
   // Step 4: Customer replies with location "Noida"
   console.log('\n--- Step 4: Customer replies with location "Noida" ---');
@@ -262,13 +282,27 @@ async function main() {
 
   const { data: conv } = await supabase
     .from('conversations')
-    .select('*, assigned_agent:profiles!conversations_assigned_agent_id_fkey(full_name, email)')
+    .select(
+      '*, assigned_agent:profiles!conversations_assigned_agent_id_fkey(full_name, email)'
+    )
     .eq('contact_id', contact.id)
     .single();
 
-  console.log('✅ Final flow run status:', finalRun?.status, 'end_reason:', finalRun?.end_reason);
-  console.log('✅ lead_details.location_preference:', finalLead?.location_preference);
-  console.log('✅ Conversation assigned agent:', conv?.assigned_agent?.full_name, `(${conv?.assigned_agent?.email})`);
+  console.log(
+    '✅ Final flow run status:',
+    finalRun?.status,
+    'end_reason:',
+    finalRun?.end_reason
+  );
+  console.log(
+    '✅ lead_details.location_preference:',
+    finalLead?.location_preference
+  );
+  console.log(
+    '✅ Conversation assigned agent:',
+    conv?.assigned_agent?.full_name,
+    `(${conv?.assigned_agent?.email})`
+  );
 
   // Step 5: Verify Agent manual reply pauses active flow (TC-FLOW-02 step 8)
   console.log('\n--- Step 5: Verify Agent manual reply pauses active flow ---');
@@ -288,7 +322,10 @@ async function main() {
     .select()
     .single();
 
-  console.log('Created test active run for pause verification:', testRunPause?.id);
+  console.log(
+    'Created test active run for pause verification:',
+    testRunPause?.id
+  );
 
   // Simulate agent reply pause
   await supabase
@@ -308,7 +345,12 @@ async function main() {
     .eq('id', testRunPause.id)
     .single();
 
-  console.log('✅ Paused run status:', pausedRun?.status, 'end_reason:', pausedRun?.end_reason);
+  console.log(
+    '✅ Paused run status:',
+    pausedRun?.status,
+    'end_reason:',
+    pausedRun?.end_reason
+  );
   console.log('\n=== TC-FLOW-02 Completed Successfully! ===');
 }
 

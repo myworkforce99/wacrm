@@ -78,9 +78,7 @@ export function BillingTab() {
         <h2 className="mb-2 text-xl font-semibold">
           {t('accessRestrictedTitle')}
         </h2>
-        <p className="text-muted-foreground">
-          {t('accessRestrictedDesc')}
-        </p>
+        <p className="text-muted-foreground">{t('accessRestrictedDesc')}</p>
       </div>
     );
   }
@@ -132,16 +130,16 @@ export function BillingTab() {
   };
 
   const renewalText = data.current_period_end
-    ? t('renewsOn', { date: new Date(data.current_period_end).toLocaleDateString() })
+    ? t('renewsOn', {
+        date: new Date(data.current_period_end).toLocaleDateString(),
+      })
     : t('noActiveRenewal');
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-medium">{t('title')}</h2>
-        <p className="text-muted-foreground text-sm">
-          {t('description')}
-        </p>
+        <p className="text-muted-foreground text-sm">{t('description')}</p>
       </div>
 
       <Card>
@@ -149,7 +147,9 @@ export function BillingTab() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <span className="capitalize">{data.plan_tier} {t('planSuffix')}</span>
+                <span className="capitalize">
+                  {data.plan_tier} {t('planSuffix')}
+                </span>
                 <span
                   className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[data.subscription_status] || statusColors.canceled}`}
                 >
@@ -195,7 +195,10 @@ export function BillingTab() {
                 />
               </div>
               <span className="text-muted-foreground text-sm whitespace-nowrap">
-                {t('seatsUsed', { usage: data.seat_usage, limit: data.seat_limit })}
+                {t('seatsUsed', {
+                  usage: data.seat_usage,
+                  limit: data.seat_limit,
+                })}
               </span>
             </div>
           </div>

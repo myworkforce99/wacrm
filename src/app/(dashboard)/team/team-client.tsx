@@ -1,6 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState, useMemo, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { loadTeamPerformance } from '@/lib/dashboard/queries';
 import type { AgentPerformance } from '@/lib/dashboard/types';
@@ -311,7 +317,7 @@ export function TeamDashboardClient() {
         )}
 
         {/* Situational Awareness KPI Strip */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:grid-cols-4 print:gap-2 print:break-inside-avoid">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 print:break-inside-avoid print:grid-cols-4 print:gap-2">
           {/* Card 1: Team Strength */}
           <div className="border-border bg-card relative overflow-hidden rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md print:break-inside-avoid">
             <div className="flex items-center justify-between">
@@ -557,7 +563,7 @@ export function TeamDashboardClient() {
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`flex h-8 items-center gap-1 rounded-md px-2 sm:px-2.5 text-xs font-semibold transition-all ${
+                  className={`flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold transition-all sm:px-2.5 ${
                     effectiveViewMode === 'table'
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -565,12 +571,14 @@ export function TeamDashboardClient() {
                   title={tFilters('viewTable')}
                 >
                   <TableProperties className="size-3.5" />
-                  <span className="hidden sm:inline">{tFilters('viewTable')}</span>
+                  <span className="hidden sm:inline">
+                    {tFilters('viewTable')}
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('grid')}
-                  className={`flex h-8 items-center gap-1 rounded-md px-2 sm:px-2.5 text-xs font-semibold transition-all ${
+                  className={`flex h-8 items-center gap-1 rounded-md px-2 text-xs font-semibold transition-all sm:px-2.5 ${
                     effectiveViewMode === 'grid'
                       ? 'bg-card text-foreground shadow-xs'
                       : 'text-muted-foreground hover:text-foreground'
@@ -578,7 +586,9 @@ export function TeamDashboardClient() {
                   title={tFilters('viewGrid')}
                 >
                   <LayoutGrid className="size-3.5" />
-                  <span className="hidden sm:inline">{tFilters('viewGrid')}</span>
+                  <span className="hidden sm:inline">
+                    {tFilters('viewGrid')}
+                  </span>
                 </button>
               </div>
             </div>

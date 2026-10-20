@@ -88,7 +88,9 @@ export function PipelineBoard({
   const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
 
   const [activeTab, setActiveTab] = useState<string | undefined>(undefined);
-  const [lostInterceptDealId, setLostInterceptDealId] = useState<string | null>(null);
+  const [lostInterceptDealId, setLostInterceptDealId] = useState<string | null>(
+    null
+  );
   const [lostInterceptLoading, setLostInterceptLoading] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -197,7 +199,9 @@ export function PipelineBoard({
     sortedStages.findIndex((s) => s.id === currentTab)
   );
   const activeStage = sortedStages[activeStageIndex] || sortedStages[0];
-  const activeStageDeals = activeStage ? (dealsByStage.get(activeStage.id) ?? []) : [];
+  const activeStageDeals = activeStage
+    ? (dealsByStage.get(activeStage.id) ?? [])
+    : [];
   const activeStageTotalValue = activeStageDeals.reduce(
     (sum, d) => sum + Number(d.value || 0),
     0
@@ -332,36 +336,36 @@ export function PipelineBoard({
         </div>
 
         {/* Mobile Stage Navigator & Deals View */}
-        <div className="lg:hidden space-y-4">
+        <div className="space-y-4 lg:hidden">
           {/* Stage Navigator Card */}
-          <div className="border-border/70 bg-card rounded-2xl border p-3.5 shadow-xs space-y-3">
+          <div className="border-border/70 bg-card space-y-3 rounded-2xl border p-3.5 shadow-xs">
             {/* Context Header: Identifies Kanban Board Pipeline Stages & Scroll hint */}
-            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+            <div className="border-border/50 flex items-center justify-between border-b pb-2">
               <div className="flex items-center gap-1.5">
-                <Kanban className="size-3.5 text-primary" />
-                <span className="text-[11px] font-semibold tracking-wide uppercase text-muted-foreground">
+                <Kanban className="text-primary size-3.5" />
+                <span className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase">
                   Pipeline Stages ({sortedStages.length})
                 </span>
               </div>
-              <span className="text-[10px] text-muted-foreground/80 flex items-center gap-0.5">
+              <span className="text-muted-foreground/80 flex items-center gap-0.5 text-[10px]">
                 Swipe &bull; Jump to any stage &rarr;
               </span>
             </div>
 
             {/* Header: Stage Step Indicator, Quick Dropdown, and Prev/Next Chevrons */}
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
                 <div
-                  className="size-2.5 rounded-full shrink-0"
+                  className="size-2.5 shrink-0 rounded-full"
                   style={{
                     backgroundColor: activeStage?.color ?? 'var(--primary)',
                   }}
                 />
-                <span className="text-xs font-bold text-foreground shrink-0">
+                <span className="text-foreground shrink-0 text-xs font-bold">
                   Stage {activeStageIndex + 1} of {sortedStages.length}:
                 </span>
                 <span
-                  className="text-xs font-semibold truncate max-w-[130px]"
+                  className="max-w-[130px] truncate text-xs font-semibold"
                   style={{ color: activeStage?.color ?? 'var(--primary)' }}
                 >
                   {activeStage?.name}
@@ -369,11 +373,11 @@ export function PipelineBoard({
               </div>
 
               {/* Controls: All Stages Dropdown + Prev/Next buttons */}
-              <div className="flex items-center gap-1.5 shrink-0">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="border-border/70 bg-muted/40 hover:bg-muted text-foreground inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium shadow-2xs cursor-pointer">
+                  <DropdownMenuTrigger className="border-border/70 bg-muted/40 hover:bg-muted text-foreground inline-flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium shadow-2xs">
                     <span>All Stages</span>
-                    <ChevronDown className="size-3 text-muted-foreground" />
+                    <ChevronDown className="text-muted-foreground size-3" />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
                     align="end"
@@ -389,7 +393,7 @@ export function PipelineBoard({
                             setActiveTab(s.id);
                             scrollToStage(s.id);
                           }}
-                          className={`flex items-center justify-between text-xs cursor-pointer py-2 ${
+                          className={`flex cursor-pointer items-center justify-between py-2 text-xs ${
                             isSelected
                               ? 'bg-primary/10 text-primary font-semibold'
                               : 'text-foreground'
@@ -397,7 +401,7 @@ export function PipelineBoard({
                         >
                           <div className="flex items-center gap-2">
                             <span
-                              className="size-2 rounded-full shrink-0"
+                              className="size-2 shrink-0 rounded-full"
                               style={{ backgroundColor: s.color }}
                             />
                             <span>
@@ -405,7 +409,7 @@ export function PipelineBoard({
                             </span>
                           </div>
                           <span
-                            className={`text-[10px] font-bold rounded-full px-1.5 py-0.2 ${
+                            className={`py-0.2 rounded-full px-1.5 text-[10px] font-bold ${
                               isSelected
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted text-muted-foreground'
@@ -431,7 +435,7 @@ export function PipelineBoard({
                       scrollToStage(prevId);
                     }
                   }}
-                  className="border-border/70 bg-muted/40 hover:bg-muted size-7 rounded-lg border shadow-2xs disabled:opacity-30 cursor-pointer"
+                  className="border-border/70 bg-muted/40 hover:bg-muted size-7 cursor-pointer rounded-lg border shadow-2xs disabled:opacity-30"
                   title="Previous Stage"
                 >
                   <ChevronLeft className="size-3.5" />
@@ -449,7 +453,7 @@ export function PipelineBoard({
                       scrollToStage(nextId);
                     }
                   }}
-                  className="border-border/70 bg-muted/40 hover:bg-muted size-7 rounded-lg border shadow-2xs disabled:opacity-30 cursor-pointer"
+                  className="border-border/70 bg-muted/40 hover:bg-muted size-7 cursor-pointer rounded-lg border shadow-2xs disabled:opacity-30"
                   title="Next Stage"
                 >
                   <ChevronRight className="size-3.5" />
@@ -475,21 +479,21 @@ export function PipelineBoard({
                       setActiveTab(s.id);
                       scrollToStage(s.id);
                     }}
-                    className="group py-0.5 cursor-pointer focus:outline-none"
+                    className="group cursor-pointer py-0.5 focus:outline-none"
                     title={`${idx + 1}. ${s.name}`}
                   >
                     <div
                       className={`h-1.5 rounded-full transition-all ${
                         isCurrent
-                          ? 'ring-2 ring-primary/40 ring-offset-1 ring-offset-card'
+                          ? 'ring-primary/40 ring-offset-card ring-2 ring-offset-1'
                           : 'opacity-70 group-hover:opacity-100'
                       }`}
                       style={{
                         backgroundColor: isCurrent
                           ? s.color
                           : isPast
-                          ? s.color + 'aa'
-                          : 'var(--muted)',
+                            ? s.color + 'aa'
+                            : 'var(--muted)',
                       }}
                     />
                   </button>
@@ -500,16 +504,16 @@ export function PipelineBoard({
             {/* Scrollable Stage Pills with gradient overflow indicators */}
             <div className="relative -mx-1">
               {canScrollLeft && (
-                <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-card to-transparent z-10" />
+                <div className="from-card pointer-events-none absolute top-0 bottom-0 left-0 z-10 w-8 bg-gradient-to-r to-transparent" />
               )}
               {canScrollRight && (
-                <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-card to-transparent z-10" />
+                <div className="from-card pointer-events-none absolute top-0 right-0 bottom-0 z-10 w-8 bg-gradient-to-l to-transparent" />
               )}
 
               <div
                 ref={scrollContainerRef}
                 onScroll={checkScroll}
-                className="flex gap-2 overflow-x-auto px-1 pb-1 scroll-smooth [&::-webkit-scrollbar]:hidden"
+                className="flex gap-2 overflow-x-auto scroll-smooth px-1 pb-1 [&::-webkit-scrollbar]:hidden"
                 style={{ scrollbarWidth: 'none' }}
               >
                 {sortedStages.map((s) => {
@@ -533,7 +537,7 @@ export function PipelineBoard({
                         setActiveTab(s.id);
                         scrollToStage(s.id);
                       }}
-                      className={`flex flex-col gap-1 rounded-xl border p-2.5 shrink-0 text-left transition-all cursor-pointer min-w-[130px] ${
+                      className={`flex min-w-[130px] shrink-0 cursor-pointer flex-col gap-1 rounded-xl border p-2.5 text-left transition-all ${
                         isSelected
                           ? 'shadow-xs'
                           : 'border-border/70 bg-muted/30 hover:bg-muted/70 text-muted-foreground'
@@ -549,20 +553,20 @@ export function PipelineBoard({
                       }
                     >
                       <div className="flex items-center justify-between gap-1.5">
-                        <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="flex min-w-0 items-center gap-1.5">
                           <span
-                            className="size-2 rounded-full shrink-0"
+                            className="size-2 shrink-0 rounded-full"
                             style={{ backgroundColor: s.color }}
                           />
                           <span
-                            className="text-xs font-semibold truncate"
+                            className="truncate text-xs font-semibold"
                             style={{ color: isSelected ? s.color : undefined }}
                           >
                             {s.name}
                           </span>
                         </div>
                         <span
-                          className={`text-[10px] font-bold rounded-full px-1.5 py-0.2 shrink-0 ${
+                          className={`py-0.2 shrink-0 rounded-full px-1.5 text-[10px] font-bold ${
                             isSelected ? 'text-white' : ''
                           }`}
                           style={
@@ -600,10 +604,10 @@ export function PipelineBoard({
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-2">
                 <span
-                  className="size-2.5 rounded-full shrink-0"
+                  className="size-2.5 shrink-0 rounded-full"
                   style={{ backgroundColor: activeStage?.color }}
                 />
-                <span className="text-sm font-bold text-foreground">
+                <span className="text-foreground text-sm font-bold">
                   {activeStage?.name}
                 </span>
                 <span
@@ -630,8 +634,8 @@ export function PipelineBoard({
 
             {activeStageDeals.length === 0 ? (
               <div className="border-border text-muted-foreground flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-12 text-center">
-                <Kanban className="size-8 text-muted-foreground/40 mb-2" />
-                <p className="text-xs font-medium text-foreground">
+                <Kanban className="text-muted-foreground/40 mb-2 size-8" />
+                <p className="text-foreground text-xs font-medium">
                   {t('dropDealHere')}
                 </p>
                 <p className="text-muted-foreground mt-1 text-[11px]">
@@ -658,7 +662,7 @@ export function PipelineBoard({
               variant="outline"
               size="sm"
               onClick={() => onAddDeal(activeStage.id)}
-              className="border-border text-foreground hover:bg-muted shadow-2xs h-9 w-full justify-center text-xs font-medium cursor-pointer"
+              className="border-border text-foreground hover:bg-muted h-9 w-full cursor-pointer justify-center text-xs font-medium shadow-2xs"
             >
               <Plus className="text-primary mr-1.5 size-3.5" />
               <span>
@@ -725,7 +729,7 @@ export function PipelineBoard({
                     }
                     setMoveDealId(null);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg border p-3 transition-colors cursor-pointer ${
+                  className={`flex w-full cursor-pointer items-center justify-between rounded-lg border p-3 transition-colors ${
                     isActive
                       ? 'bg-primary/10 border-primary/20 text-primary cursor-default'
                       : 'bg-card border-border hover:bg-muted text-foreground'
@@ -749,15 +753,15 @@ export function PipelineBoard({
 
             {/* Quick Deal Closure Actions */}
             {moveDeal && moveDeal.status === 'open' && (
-              <div className="border-t border-border pt-3 mt-3 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="border-border mt-3 space-y-2 border-t pt-3">
+                <p className="text-muted-foreground text-[11px] font-semibold tracking-wider uppercase">
                   Quick Actions
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => handleMarkWon(moveDeal.id)}
-                    className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 font-medium text-xs transition-colors cursor-pointer min-h-[40px]"
+                    className="flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2.5 text-xs font-medium text-emerald-600 transition-colors hover:bg-emerald-500/20 dark:text-emerald-400"
                   >
                     <Trophy className="size-3.5" />
                     <span>{tCard('won') ? 'Mark as Won' : 'Mark as Won'}</span>
@@ -768,10 +772,12 @@ export function PipelineBoard({
                       setLostInterceptDealId(moveDeal.id);
                       setMoveDealId(null);
                     }}
-                    className="flex items-center justify-center gap-2 p-2.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20 font-medium text-xs transition-colors cursor-pointer min-h-[40px]"
+                    className="flex min-h-[40px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-2.5 text-xs font-medium text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
                   >
                     <XCircle className="size-3.5" />
-                    <span>{tCard('lost') ? 'Mark as Lost' : 'Mark as Lost'}</span>
+                    <span>
+                      {tCard('lost') ? 'Mark as Lost' : 'Mark as Lost'}
+                    </span>
                   </button>
                 </div>
               </div>

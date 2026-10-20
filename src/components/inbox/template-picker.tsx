@@ -15,7 +15,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, ChevronRight, LayoutTemplate, Loader2, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  ChevronRight,
+  LayoutTemplate,
+  Loader2,
+  RefreshCw,
+} from 'lucide-react';
 import { extractVariableIndices } from '@/lib/whatsapp/template-validators';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';

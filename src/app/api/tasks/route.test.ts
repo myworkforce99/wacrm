@@ -26,19 +26,22 @@ describe('/api/tasks', () => {
     vi.clearAllMocks();
 
     // For GET
-    orderMock = vi
-      .fn()
-      .mockResolvedValue({ data: [{ id: '1' }], error: null });
+    orderMock = vi.fn().mockResolvedValue({ data: [{ id: '1' }], error: null });
     orMock = vi.fn().mockImplementation(() => ({ order: orderMock }));
     eqMock = vi.fn().mockImplementation(() => ({
       eq: eqMock,
       or: orMock,
       order: orderMock,
     }));
-    const lteMock = vi.fn().mockReturnValue({ eq: eqMock, or: orMock, order: orderMock });
-    const selectMockGet = vi
+    const lteMock = vi
       .fn()
-      .mockReturnValue({ lte: lteMock, eq: eqMock, or: orMock, order: orderMock });
+      .mockReturnValue({ eq: eqMock, or: orMock, order: orderMock });
+    const selectMockGet = vi.fn().mockReturnValue({
+      lte: lteMock,
+      eq: eqMock,
+      or: orMock,
+      order: orderMock,
+    });
 
     // For POST
     const singleMock = vi
@@ -85,7 +88,9 @@ describe('/api/tasks', () => {
     const req = new Request('http://localhost/api/tasks?due_today=true');
     const res = await GET(req);
     expect(res.status).toBe(200);
-    expect(orMock).toHaveBeenCalledWith('assigned_to.eq.usr1,created_by.eq.usr1');
+    expect(orMock).toHaveBeenCalledWith(
+      'assigned_to.eq.usr1,created_by.eq.usr1'
+    );
   });
 
   it('GET /api/tasks allows agent to query their own tasks by assigned_to=usr1', async () => {
@@ -110,7 +115,9 @@ describe('/api/tasks', () => {
       role: 'agent',
     });
 
-    const req = new Request('http://localhost/api/tasks?assigned_to=other_user');
+    const req = new Request(
+      'http://localhost/api/tasks?assigned_to=other_user'
+    );
     const res = await GET(req);
     expect(res.status).toBe(200);
     const json = await res.json();

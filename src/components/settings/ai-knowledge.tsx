@@ -105,7 +105,9 @@ export function AiKnowledgeCard({
   };
 
   const handleFileUpload = (file: File) => {
-    const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+    const fileNameWithoutExt = file.name
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[-_]/g, ' ');
     const reader = new FileReader();
 
     reader.onload = (e) => {
@@ -207,12 +209,12 @@ export function AiKnowledgeCard({
   return (
     <Card className="border-border bg-card">
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
               <BookOpen className="text-primary size-5" /> {t('title')}
             </CardTitle>
-            <CardDescription className="text-xs sm:text-sm mt-1">
+            <CardDescription className="mt-1 text-xs sm:text-sm">
               {t('description', {
                 searchType: hasEmbeddingsKey
                   ? t('semanticSearchOn')
@@ -222,8 +224,13 @@ export function AiKnowledgeCard({
           </div>
 
           {canEdit && (
-            <div className="flex items-center gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={openNew} className="text-xs h-8">
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openNew}
+                className="h-8 text-xs"
+              >
                 <Plus className="mr-1.5 size-3.5" /> {t('addDoc')}
               </Button>
               {hasEmbeddingsKey && docs.length > 0 && (
@@ -233,7 +240,7 @@ export function AiKnowledgeCard({
                   onClick={reindex}
                   disabled={reindexing}
                   title={t('reindexTooltip')}
-                  className="text-xs h-8 text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground h-8 text-xs"
                 >
                   {reindexing ? (
                     <Loader2 className="mr-1.5 size-3.5 animate-spin" />
@@ -259,7 +266,7 @@ export function AiKnowledgeCard({
             onDragLeave={() => setDragOver(false)}
             onDrop={onDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-5 sm:p-6 text-center cursor-pointer transition-colors ${
+            className={`cursor-pointer rounded-xl border-2 border-dashed p-5 text-center transition-colors sm:p-6 ${
               dragOver
                 ? 'border-primary bg-primary/5'
                 : 'border-border bg-muted/30 hover:border-primary/40 hover:bg-muted/50'
@@ -277,14 +284,15 @@ export function AiKnowledgeCard({
               }}
             />
             <div className="flex flex-col items-center justify-center gap-2">
-              <div className="bg-primary/10 text-primary p-2.5 rounded-full">
+              <div className="bg-primary/10 text-primary rounded-full p-2.5">
                 <UploadCloud className="size-6" />
               </div>
-              <p className="text-sm font-semibold text-foreground">
+              <p className="text-foreground text-sm font-semibold">
                 Upload Property Brochure or FAQ Document
               </p>
-              <p className="text-xs text-muted-foreground max-w-sm">
-                Drag and drop PDF brochures, project specifications, or FAQ documents (.txt, .md, .pdf, .json) to index knowledge.
+              <p className="text-muted-foreground max-w-sm text-xs">
+                Drag and drop PDF brochures, project specifications, or FAQ
+                documents (.txt, .md, .pdf, .json) to index knowledge.
               </p>
             </div>
           </div>
@@ -293,7 +301,8 @@ export function AiKnowledgeCard({
         {/* Loading State */}
         {loading ? (
           <div className="text-muted-foreground flex items-center justify-center py-8 text-sm">
-            <Loader2 className="mr-2 size-4 animate-spin text-primary" /> {t('loading')}
+            <Loader2 className="text-primary mr-2 size-4 animate-spin" />{' '}
+            {t('loading')}
           </div>
         ) : (
           <>
@@ -301,9 +310,10 @@ export function AiKnowledgeCard({
             {docs.length === 0 && editing === null && (
               <div className="text-muted-foreground border-border bg-muted/20 flex flex-col items-center justify-center rounded-xl border p-8 text-center text-sm">
                 <FileText className="text-muted-foreground/60 mb-2 size-8" />
-                <p className="font-medium text-foreground">{t('noDocs')}</p>
-                <p className="mt-1 text-xs max-w-sm text-muted-foreground">
-                  Upload project brochures or click &quot;+ Add Document&quot; to provide context on properties, pricing, and FAQs.
+                <p className="text-foreground font-medium">{t('noDocs')}</p>
+                <p className="text-muted-foreground mt-1 max-w-sm text-xs">
+                  Upload project brochures or click &quot;+ Add Document&quot;
+                  to provide context on properties, pricing, and FAQs.
                 </p>
               </div>
             )}
@@ -311,12 +321,12 @@ export function AiKnowledgeCard({
             {/* Document Index List */}
             {docs.length > 0 && editing === null && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <div className="text-muted-foreground flex items-center justify-between px-1 text-xs">
                   <span>Indexed Documents ({docs.length})</span>
                   <span>RAG Status</span>
                 </div>
 
-                <div className="divide-border border-border divide-y rounded-xl border bg-card overflow-hidden">
+                <div className="divide-border border-border bg-card divide-y overflow-hidden rounded-xl border">
                   {docs.map((doc) => {
                     const estimatedChunks = Math.max(
                       1,
@@ -326,32 +336,36 @@ export function AiKnowledgeCard({
                     return (
                       <div
                         key={doc.id}
-                        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 hover:bg-muted/40 transition-colors"
+                        className="hover:bg-muted/40 flex flex-col justify-between gap-3 p-3.5 transition-colors sm:flex-row sm:items-center"
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
-                            <BookOpen className="size-4 shrink-0 text-primary" />
-                            <h4 className="text-foreground text-sm font-medium truncate">
+                            <BookOpen className="text-primary size-4 shrink-0" />
+                            <h4 className="text-foreground truncate text-sm font-medium">
                               {doc.title}
                             </h4>
                           </div>
-                          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-[11px]">
                             <span>
-                              {new Date(doc.updated_at).toLocaleDateString(undefined, {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric',
-                              })}
+                              {new Date(doc.updated_at).toLocaleDateString(
+                                undefined,
+                                {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                }
+                              )}
                             </span>
                             <span>•</span>
-                            <span className="font-mono text-muted-foreground">
-                              {estimatedChunks} {estimatedChunks === 1 ? 'chunk' : 'chunks'}
+                            <span className="text-muted-foreground font-mono">
+                              {estimatedChunks}{' '}
+                              {estimatedChunks === 1 ? 'chunk' : 'chunks'}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
-                          <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center gap-1">
+                        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
+                          <span className="flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
                             <CheckCircle2 className="size-3" /> Indexed
                           </span>
 
@@ -360,7 +374,7 @@ export function AiKnowledgeCard({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-8 p-0 text-muted-foreground hover:text-foreground"
+                                className="text-muted-foreground hover:text-foreground size-8 p-0"
                                 onClick={() => void openEdit(doc.id)}
                                 title={t('editDoc')}
                               >
@@ -369,7 +383,7 @@ export function AiKnowledgeCard({
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="size-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 size-8 p-0"
                                 onClick={() => void remove(doc.id)}
                                 title={t('deleteDoc')}
                               >
@@ -388,11 +402,18 @@ export function AiKnowledgeCard({
             {/* Document Editor Form */}
             {editing !== null && (
               <div className="border-border bg-muted/20 space-y-4 rounded-xl border p-4 sm:p-5">
-                <div className="flex items-center justify-between border-b border-border pb-2">
-                  <h4 className="text-sm font-semibold text-foreground">
-                    {editing === 'new' ? 'New Knowledge Document' : 'Edit Document'}
+                <div className="border-border flex items-center justify-between border-b pb-2">
+                  <h4 className="text-foreground text-sm font-semibold">
+                    {editing === 'new'
+                      ? 'New Knowledge Document'
+                      : 'Edit Document'}
                   </h4>
-                  <Button variant="ghost" size="sm" onClick={cancelEdit} className="text-xs h-7">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={cancelEdit}
+                    className="h-7 text-xs"
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -422,10 +443,11 @@ export function AiKnowledgeCard({
                     placeholder={t('editDocContentPlaceholder')}
                     rows={8}
                     disabled={saving}
-                    className="text-xs leading-relaxed font-mono"
+                    className="font-mono text-xs leading-relaxed"
                   />
-                  <p className="text-[11px] text-muted-foreground">
-                    Content will be automatically chunked and indexed into vector embeddings for the AI sales assistant.
+                  <p className="text-muted-foreground text-[11px]">
+                    Content will be automatically chunked and indexed into
+                    vector embeddings for the AI sales assistant.
                   </p>
                 </div>
 
@@ -439,8 +461,15 @@ export function AiKnowledgeCard({
                   >
                     {t('cancel')}
                   </Button>
-                  <Button size="sm" onClick={save} disabled={saving} className="text-xs">
-                    {saving && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+                  <Button
+                    size="sm"
+                    onClick={save}
+                    disabled={saving}
+                    className="text-xs"
+                  >
+                    {saving && (
+                      <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    )}
                     {t('saveDoc')}
                   </Button>
                 </div>

@@ -24,21 +24,28 @@ async function testInboundWebhook() {
   const keyHash = hashApiKey(plaintext);
   const keyPrefix = `wacrm_live_${randomBody.slice(0, 8)}`;
 
-  const { data: insertedKey, error: insErr } = await supabase.from('api_keys').insert({
-    account_id: accountId,
-    created_by: userId,
-    name: 'Portal Test Key',
-    key_prefix: keyPrefix,
-    key_hash: keyHash,
-    scopes: ['contacts:read', 'contacts:write'],
-  }).select().single();
+  const { data: insertedKey, error: insErr } = await supabase
+    .from('api_keys')
+    .insert({
+      account_id: accountId,
+      created_by: userId,
+      name: 'Portal Test Key',
+      key_prefix: keyPrefix,
+      key_hash: keyHash,
+      scopes: ['contacts:read', 'contacts:write'],
+    })
+    .select()
+    .single();
 
   if (insErr) {
     console.error('API Key insert error:', insErr);
     return;
   }
 
-  console.log('Created temporary API key with contacts:write scope:', insertedKey.id);
+  console.log(
+    'Created temporary API key with contacts:write scope:',
+    insertedKey.id
+  );
 
   const testPhone = '+919876543999';
   const testPhoneNorm = '919876543999';
@@ -60,7 +67,10 @@ async function testInboundWebhook() {
   // 2. Send inbound email webhook from 99acres
   console.log('Step 1: Sending inbound lead email webhook from 99acres...');
   const formData = new FormData();
-  formData.append('subject', 'New enquiry on 99acres for 3 BHK in Noida Sector 62');
+  formData.append(
+    'subject',
+    'New enquiry on 99acres for 3 BHK in Noida Sector 62'
+  );
   formData.append(
     'text',
     'Name: Rohit Agrawal\nPhone: +91 98765 43999\nEmail: rohit.agrawal@testlead.com\nSource: 99acres'
@@ -85,13 +95,21 @@ async function testInboundWebhook() {
     .eq('account_id', accountId)
     .single();
 
-  console.log('✅ Created contact:', contact?.name, contact?.phone, 'ID:', contact?.id);
+  console.log(
+    '✅ Created contact:',
+    contact?.name,
+    contact?.phone,
+    'ID:',
+    contact?.id
+  );
   console.log('✅ lead_details source:', contact?.lead_details?.source);
   const tagNames = (contact?.contact_tags || []).map((t) => t.tags?.name);
   console.log('✅ Contact tags:', tagNames);
 
   // 4. Test Deduplication: Re-send same lead email
-  console.log('\nStep 2: Testing deduplication by sending the same lead email again...');
+  console.log(
+    '\nStep 2: Testing deduplication by sending the same lead email again...'
+  );
   const res2 = await fetch(
     `http://localhost:3000/api/webhooks/inbound-email?token=${plaintext}`,
     {
@@ -99,7 +117,11 @@ async function testInboundWebhook() {
       body: formData,
     }
   );
-  console.log('Second webhook POST response status:', res2.status, await res2.json());
+  console.log(
+    'Second webhook POST response status:',
+    res2.status,
+    await res2.json()
+  );
 
   // Count total contacts with this phone number
   const { count } = await supabase

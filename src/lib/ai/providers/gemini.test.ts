@@ -9,27 +9,32 @@ describe('generateGemini', () => {
     vi.restoreAllMocks();
   });
   it('translates messages to Gemini format and parses successful response', async () => {
-    let capturedBody!: { contents: { role: string; parts: { text: string }[] }[]; systemInstruction: { parts: { text: string }[] } };
-    global.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
-      capturedBody = JSON.parse(init?.body as string);
-      return new Response(
-        JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [{ text: 'Here is your recommendation.' }],
+    let capturedBody!: {
+      contents: { role: string; parts: { text: string }[] }[];
+      systemInstruction: { parts: { text: string }[] };
+    };
+    global.fetch = vi
+      .fn()
+      .mockImplementation(async (_url: string, init?: RequestInit) => {
+        capturedBody = JSON.parse(init?.body as string);
+        return new Response(
+          JSON.stringify({
+            candidates: [
+              {
+                content: {
+                  parts: [{ text: 'Here is your recommendation.' }],
+                },
               },
+            ],
+            usageMetadata: {
+              promptTokenCount: 15,
+              candidatesTokenCount: 10,
+              totalTokenCount: 25,
             },
-          ],
-          usageMetadata: {
-            promptTokenCount: 15,
-            candidatesTokenCount: 10,
-            totalTokenCount: 25,
-          },
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      );
-    });
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } }
+        );
+      });
 
     const res = await generateGemini({
       apiKey: 'test-key',
@@ -74,7 +79,8 @@ describe('generateGemini', () => {
     const res = await generateGemini({
       apiKey: 'test-key',
       model: 'gemini-2.5-flash',
-      systemPrompt: 'You are a connectivity check. Reply with the single word: OK.',
+      systemPrompt:
+        'You are a connectivity check. Reply with the single word: OK.',
       messages: [{ role: 'user', content: 'ping' }],
       timeoutMs: 5000,
     });
@@ -103,7 +109,8 @@ describe('generateGemini', () => {
       messages: [
         {
           role: 'user',
-          content: 'Can you recommend a 3BHK flat in Powai with possession in 2026 under ₹2 Cr?',
+          content:
+            'Can you recommend a 3BHK flat in Powai with possession in 2026 under ₹2 Cr?',
         },
       ],
       timeoutMs: 5000,

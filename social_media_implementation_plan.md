@@ -215,11 +215,7 @@ export interface SocialAccount {
 }
 
 export type SocialPostStatus =
-  | 'draft'
-  | 'scheduled'
-  | 'publishing'
-  | 'published'
-  | 'failed';
+  'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
 
 /**
  * A social media post record. `media_url` holds the Supabase
@@ -256,6 +252,7 @@ export interface SocialPost {
 Create three files following the `src/lib/whatsapp/` module pattern:
 
 #### `src/lib/social/meta-api.ts`
+
 ```ts
 /**
  * Meta Graph API helpers for Instagram Content Publishing and
@@ -288,25 +285,25 @@ export interface PublishImageResult {
 export async function publishInstagramPost(params: {
   igUserId: string;
   accessToken: string;
-  imageUrl: string;   // Must be a publicly reachable URL
+  imageUrl: string; // Must be a publicly reachable URL
   caption?: string;
 }): Promise<PublishImageResult> {
   // Step 1: Create container
-  const containerRes = await fetch(
-    `${GRAPH_BASE}/${params.igUserId}/media`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: params.imageUrl,
-        caption: params.caption ?? '',
-        access_token: params.accessToken,
-      }),
-    }
-  );
+  const containerRes = await fetch(`${GRAPH_BASE}/${params.igUserId}/media`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      image_url: params.imageUrl,
+      caption: params.caption ?? '',
+      access_token: params.accessToken,
+    }),
+  });
   const containerData = await containerRes.json();
   if (!containerRes.ok || !containerData.id) {
-    return { success: false, error: containerData.error?.message ?? 'Container creation failed' };
+    return {
+      success: false,
+      error: containerData.error?.message ?? 'Container creation failed',
+    };
   }
 
   // Step 2: Publish container
@@ -323,7 +320,10 @@ export async function publishInstagramPost(params: {
   );
   const publishData = await publishRes.json();
   if (!publishRes.ok || !publishData.id) {
-    return { success: false, error: publishData.error?.message ?? 'Publish failed' };
+    return {
+      success: false,
+      error: publishData.error?.message ?? 'Publish failed',
+    };
   }
   return { success: true, platform_post_id: publishData.id as string };
 }
@@ -355,6 +355,7 @@ export async function publishFacebookPost(params: {
 ```
 
 #### `src/lib/social/encryption.ts`
+
 ```ts
 /**
  * Social account token encryption/decryption.
@@ -365,10 +366,14 @@ export async function publishFacebookPost(params: {
  * cipher logic here. This file is a thin adapter that names
  * the domain clearly so callers stay readable.
  */
-export { encrypt as encryptToken, decrypt as decryptToken } from '@/lib/whatsapp/encryption';
+export {
+  encrypt as encryptToken,
+  decrypt as decryptToken,
+} from '@/lib/whatsapp/encryption';
 ```
 
 #### `src/lib/social/accounts.ts`
+
 ```ts
 /**
  * Server-side helpers for social_accounts table access.
@@ -387,7 +392,9 @@ export async function getActiveSocialAccounts(
   const db = await createClient();
   const { data, error } = await db
     .from('social_accounts')
-    .select('id, account_id, platform, display_name, platform_user_id, token_expires_at, avatar_url, is_active, created_at, updated_at')
+    .select(
+      'id, account_id, platform, display_name, platform_user_id, token_expires_at, avatar_url, is_active, created_at, updated_at'
+    )
     .eq('account_id', accountId)
     .eq('is_active', true)
     .order('created_at', { ascending: true });
@@ -403,6 +410,7 @@ export async function getActiveSocialAccounts(
 **Directory:** `src/app/api/social/`
 
 #### `src/app/api/social/connect/route.ts`
+
 Initiates the Meta OAuth flow. Redirects the user to Meta's login dialog.
 
 ```ts
@@ -437,6 +445,7 @@ export async function GET(request: NextRequest) {
 ```
 
 #### `src/app/api/social/callback/route.ts`
+
 Handles the OAuth redirect: exchanges the code for a long-lived token, fetches the platform account details, encrypts the token, and upserts into `social_accounts`.
 
 ```ts
@@ -453,7 +462,9 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get('code');
   const rawState = request.nextUrl.searchParams.get('state');
   if (!code || !rawState) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=oauth_cancelled`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=oauth_cancelled`
+    );
   }
 
   const { platform } = JSON.parse(Buffer.from(rawState, 'base64').toString());
@@ -465,7 +476,9 @@ export async function GET(request: NextRequest) {
   );
   const tokenData = await tokenRes.json();
   if (!tokenData.access_token) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=token_exchange_failed`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=token_exchange_failed`
+    );
   }
 
   // For Instagram: get the connected Instagram Business Account
@@ -476,26 +489,43 @@ export async function GET(request: NextRequest) {
   const accessToken: string = tokenData.access_token;
 
   if (platform === 'instagram') {
-    const meRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`);
+    const meRes = await fetch(
+      `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
+    );
     const meData = await meRes.json();
     const page = meData.data?.[0];
-    if (!page) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_page_found`);
+    if (!page)
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_page_found`
+      );
 
-    const igRes = await fetch(`https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`);
+    const igRes = await fetch(
+      `https://graph.facebook.com/v21.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+    );
     const igData = await igRes.json();
     const igAccount = igData.instagram_business_account;
-    if (!igAccount) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_ig_account`);
+    if (!igAccount)
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_ig_account`
+      );
 
-    const igDetailRes = await fetch(`https://graph.facebook.com/v21.0/${igAccount.id}?fields=name,profile_picture_url&access_token=${page.access_token}`);
+    const igDetailRes = await fetch(
+      `https://graph.facebook.com/v21.0/${igAccount.id}?fields=name,profile_picture_url&access_token=${page.access_token}`
+    );
     const igDetail = await igDetailRes.json();
     platformUserId = igAccount.id as string;
     displayName = (igDetail.name ?? '@instagram_account') as string;
     avatarUrl = (igDetail.profile_picture_url ?? null) as string | null;
   } else {
-    const pagesRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`);
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v21.0/me/accounts?access_token=${accessToken}`
+    );
     const pagesData = await pagesRes.json();
     const page = pagesData.data?.[0];
-    if (!page) return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_page_found`);
+    if (!page)
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=no_page_found`
+      );
     platformUserId = page.id as string;
     displayName = (page.name ?? 'Facebook Page') as string;
   }
@@ -521,14 +551,19 @@ export async function GET(request: NextRequest) {
   );
 
   if (error) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=db_save_failed`);
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=db_save_failed`
+    );
   }
 
-  return NextResponse.redirect(`${process.env.NEXT_PUBLIC_SITE_URL}/social-media?connected=${platform}`);
+  return NextResponse.redirect(
+    `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?connected=${platform}`
+  );
 }
 ```
 
 #### `src/app/api/social/publish/route.ts`
+
 Accepts a `social_post` ID, decrypts the token, calls Meta Graph API, and updates the post status.
 
 ```ts
@@ -537,7 +572,10 @@ import { getCurrentAccount } from '@/lib/auth/account';
 import { canManageSocialPosts } from '@/lib/auth/roles';
 import { createClient } from '@/lib/supabase/server';
 import { decryptToken } from '@/lib/social/encryption';
-import { publishInstagramPost, publishFacebookPost } from '@/lib/social/meta-api';
+import {
+  publishInstagramPost,
+  publishFacebookPost,
+} from '@/lib/social/meta-api';
 
 export async function POST(request: NextRequest) {
   const { role, accountId } = await getCurrentAccount();
@@ -545,7 +583,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
-  const { post_id } = await request.json() as { post_id: string };
+  const { post_id } = (await request.json()) as { post_id: string };
   const db = await createClient();
 
   // Fetch post + social account (RLS ensures tenant isolation)
@@ -556,13 +594,18 @@ export async function POST(request: NextRequest) {
     .eq('account_id', accountId)
     .single();
 
-  if (postErr || !post) return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
-  if (!post.media_url) return NextResponse.json({ error: 'MISSING_MEDIA' }, { status: 400 });
+  if (postErr || !post)
+    return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
+  if (!post.media_url)
+    return NextResponse.json({ error: 'MISSING_MEDIA' }, { status: 400 });
 
   const accessToken = decryptToken(post.social_account.access_token_enc);
 
   // Mark as publishing
-  await db.from('social_posts').update({ status: 'publishing', last_attempt_at: new Date().toISOString() }).eq('id', post_id);
+  await db
+    .from('social_posts')
+    .update({ status: 'publishing', last_attempt_at: new Date().toISOString() })
+    .eq('id', post_id);
 
   let result;
   if (post.social_account.platform === 'instagram') {
@@ -581,14 +624,21 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  await db.from('social_posts').update({
-    status: result.success ? 'published' : 'failed',
-    platform_post_id: result.platform_post_id ?? null,
-    failure_reason: result.error ?? null,
-  }).eq('id', post_id);
+  await db
+    .from('social_posts')
+    .update({
+      status: result.success ? 'published' : 'failed',
+      platform_post_id: result.platform_post_id ?? null,
+      failure_reason: result.error ?? null,
+    })
+    .eq('id', post_id);
 
-  if (!result.success) return NextResponse.json({ error: result.error }, { status: 502 });
-  return NextResponse.json({ success: true, platform_post_id: result.platform_post_id });
+  if (!result.success)
+    return NextResponse.json({ error: result.error }, { status: 502 });
+  return NextResponse.json({
+    success: true,
+    platform_post_id: result.platform_post_id,
+  });
 }
 ```
 
@@ -615,7 +665,9 @@ export default async function SocialMediaPage() {
   const db = await createClient();
   const { data: posts } = await db
     .from('social_posts')
-    .select('*, social_account:social_accounts(platform, display_name, avatar_url)')
+    .select(
+      '*, social_account:social_accounts(platform, display_name, avatar_url)'
+    )
     .eq('account_id', accountId)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -645,6 +697,7 @@ This is the main client component. Structure it with these sections:
 4. **Post history table** — desktop: table with columns `Platform | Caption (truncated) | Status | Date`. Mobile: stacked cards with status badge.
 
 **Component conventions to match:**
+
 - Use `useCan('manage-social-posts')` hook (add this capability string to `use-can.ts` in Step 1.8)
 - Use `useTranslations('SocialMedia')` for all strings
 - Loading state: `<Loader2 className="text-primary h-6 w-6 animate-spin" />`
@@ -689,6 +742,7 @@ import { Share2 } from 'lucide-react'; // add to icon imports at top
 **File:** `src/components/layout/bottom-nav.tsx`
 
 Add to `moreNavItems`:
+
 ```ts
 import { Share2 } from 'lucide-react'; // add to imports
 
@@ -699,6 +753,7 @@ import { Share2 } from 'lucide-react'; // add to imports
 **File:** `src/app/(dashboard)/dashboard-shell.tsx`
 
 Add to `pageTitles`:
+
 ```ts
 '/social-media': 'socialMedia',
 ```
@@ -710,6 +765,7 @@ Add to `pageTitles`:
 **Add to all 4 locale files** (`messages/en.json`, `messages/es.json`, `messages/pt.json`, `messages/ko.json`).
 
 In `messages/en.json`, add at the top level:
+
 ```json
 "SocialMedia": {
   "page": {
@@ -766,6 +822,7 @@ In `messages/en.json`, add at the top level:
 ```
 
 In `messages/en.json`, also add the `socialMedia` key to the `Sidebar` namespace:
+
 ```json
 "Sidebar": {
   ...existing keys...,
@@ -776,6 +833,7 @@ In `messages/en.json`, also add the `socialMedia` key to the `Sidebar` namespace
 **Mirror all these keys identically in `es.json`, `pt.json`, and `ko.json`** (use English values as stubs; the key hierarchy must match exactly or `i18n/messages.test.ts` will fail).
 
 Also add to `Header` namespace in all 4 files:
+
 ```json
 "Header": {
   ...existing keys...,
@@ -854,6 +912,7 @@ npm run test        # all 1,076+ tests pass
 ```
 
 Manual verification:
+
 - [ ] Admin can navigate to `/social-media` via sidebar
 - [ ] Agent and viewer cannot see the "Connect Account" button (RBAC gated)
 - [ ] Viewer sees post history as read-only (no "New Post" button)
@@ -899,10 +958,12 @@ Deno.serve(async () => {
   // Fetch all due scheduled posts (max 20 per invocation to prevent timeouts)
   const { data: duePosts } = await db
     .from('social_posts')
-    .select('id, account_id, social_account_id, caption, media_url, retry_count, social_account:social_accounts(platform, platform_user_id, access_token_enc)')
+    .select(
+      'id, account_id, social_account_id, caption, media_url, retry_count, social_account:social_accounts(platform, platform_user_id, access_token_enc)'
+    )
     .eq('status', 'scheduled')
     .lte('scheduled_at', now)
-    .lt('retry_count', 3)          // Give up after 3 attempts
+    .lt('retry_count', 3) // Give up after 3 attempts
     .order('scheduled_at', { ascending: true })
     .limit(20);
 
@@ -911,11 +972,14 @@ Deno.serve(async () => {
   const results = await Promise.allSettled(
     duePosts.map(async (post) => {
       // Mark publishing first (prevents double-trigger on overlapping cron ticks)
-      await db.from('social_posts').update({
-        status: 'publishing',
-        last_attempt_at: now,
-        retry_count: post.retry_count + 1,
-      }).eq('id', post.id);
+      await db
+        .from('social_posts')
+        .update({
+          status: 'publishing',
+          last_attempt_at: now,
+          retry_count: post.retry_count + 1,
+        })
+        .eq('id', post.id);
 
       // Call the internal publish API route (reuses the existing publish logic)
       const publishRes = await fetch(
@@ -933,15 +997,20 @@ Deno.serve(async () => {
 
       if (!publishRes.ok) {
         const err = await publishRes.json();
-        await db.from('social_posts').update({
-          status: post.retry_count >= 2 ? 'failed' : 'scheduled',
-          failure_reason: err.error ?? 'Scheduler publish failed',
-        }).eq('id', post.id);
+        await db
+          .from('social_posts')
+          .update({
+            status: post.retry_count >= 2 ? 'failed' : 'scheduled',
+            failure_reason: err.error ?? 'Scheduler publish failed',
+          })
+          .eq('id', post.id);
       }
     })
   );
 
-  return new Response(JSON.stringify({ processed: results.length }), { status: 200 });
+  return new Response(JSON.stringify({ processed: results.length }), {
+    status: 200,
+  });
 });
 ```
 
@@ -1034,6 +1103,7 @@ Build a monthly calendar view showing scheduled posts as colored dots/pills on t
 ### Step 2.6 — i18n Additions (Phase 2)
 
 Add to `SocialMedia.composer` in all 4 locale files:
+
 ```json
 "schedulePost": "Schedule for later",
 "scheduleFor": "Schedule for {time}",
@@ -1042,6 +1112,7 @@ Add to `SocialMedia.composer` in all 4 locale files:
 ```
 
 Add to `SocialMedia.page`:
+
 ```json
 "calendarTab": "Calendar",
 "postsTab": "Posts",
@@ -1102,9 +1173,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
-  const { platform, property_details, tone } = await request.json() as {
+  const { platform, property_details, tone } = (await request.json()) as {
     platform: 'instagram' | 'facebook';
-    property_details: string;  // Free-text: "3BHK in Noida, ₹1.2 Cr, ready to move"
+    property_details: string; // Free-text: "3BHK in Noida, ₹1.2 Cr, ready to move"
     tone?: 'professional' | 'friendly' | 'urgent';
   };
 
@@ -1131,33 +1202,38 @@ Add a "✨ Generate Caption" button above the caption textarea:
 
 ```tsx
 <div className="flex items-center justify-between">
-  <label className="text-sm font-medium text-foreground">
+  <label className="text-foreground text-sm font-medium">
     {t('composer.caption')}
   </label>
   <button
     type="button"
     onClick={handleGenerateCaption}
     disabled={generating || !propertyDetails}
-    className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-primary hover:bg-primary/10 disabled:opacity-50"
+    className="text-primary hover:bg-primary/10 flex items-center gap-1 rounded-md px-2 py-1 text-xs disabled:opacity-50"
   >
-    {generating
-      ? <Loader2 className="h-3 w-3 animate-spin" />
-      : <Sparkles className="h-3 w-3" />
-    }
+    {generating ? (
+      <Loader2 className="h-3 w-3 animate-spin" />
+    ) : (
+      <Sparkles className="h-3 w-3" />
+    )}
     {t('composer.generateCaption')}
   </button>
-</div>
+</div>;
 
-{/* Property details input (shown when AI assist is enabled) */}
-{showAiAssist && (
-  <input
-    type="text"
-    placeholder={t('composer.propertyDetailsPlaceholder')}
-    value={propertyDetails}
-    onChange={(e) => setPropertyDetails(e.target.value)}
-    className="border-border bg-muted rounded-md border px-3 py-2 text-sm w-full"
-  />
-)}
+{
+  /* Property details input (shown when AI assist is enabled) */
+}
+{
+  showAiAssist && (
+    <input
+      type="text"
+      placeholder={t('composer.propertyDetailsPlaceholder')}
+      value={propertyDetails}
+      onChange={(e) => setPropertyDetails(e.target.value)}
+      className="border-border bg-muted w-full rounded-md border px-3 py-2 text-sm"
+    />
+  );
+}
 ```
 
 ---
@@ -1177,8 +1253,9 @@ Static template library (no DB table needed — similar to `src/lib/automations/
 export interface SocialPostTemplate {
   id: string;
   title: string;
-  category: 'property_launch' | 'site_visit' | 'testimonial' | 'offer' | 'general';
-  promptSeed: string;  // Sent as `property_details` to the generate-caption API
+  category:
+    'property_launch' | 'site_visit' | 'testimonial' | 'offer' | 'general';
+  promptSeed: string; // Sent as `property_details` to the generate-caption API
   suggestedHashtags: string[];
 }
 
@@ -1187,35 +1264,45 @@ export const SOCIAL_POST_TEMPLATES: SocialPostTemplate[] = [
     id: 'new-launch',
     title: 'New Project Launch',
     category: 'property_launch',
-    promptSeed: 'New residential project launch. Highlight exclusivity and early-bird pricing.',
-    suggestedHashtags: ['#NewLaunch', '#RealEstate', '#IndianRealty', '#DreamHome'],
+    promptSeed:
+      'New residential project launch. Highlight exclusivity and early-bird pricing.',
+    suggestedHashtags: [
+      '#NewLaunch',
+      '#RealEstate',
+      '#IndianRealty',
+      '#DreamHome',
+    ],
   },
   {
     id: 'site-visit-invite',
     title: 'Site Visit Invitation',
     category: 'site_visit',
-    promptSeed: 'Inviting leads to visit the site. Emphasize the experience and personal tour.',
+    promptSeed:
+      'Inviting leads to visit the site. Emphasize the experience and personal tour.',
     suggestedHashtags: ['#SiteVisit', '#PropertyTour', '#BookNow'],
   },
   {
     id: 'happy-client',
     title: 'Happy Client Story',
     category: 'testimonial',
-    promptSeed: 'Sharing a client success story. Warm, grateful, community-focused tone.',
+    promptSeed:
+      'Sharing a client success story. Warm, grateful, community-focused tone.',
     suggestedHashtags: ['#HappyClient', '#Testimonial', '#RealEstateIndia'],
   },
   {
     id: 'limited-offer',
     title: 'Limited-Time Offer',
     category: 'offer',
-    promptSeed: 'Special pricing or offer ending soon. Create urgency without being pushy.',
+    promptSeed:
+      'Special pricing or offer ending soon. Create urgency without being pushy.',
     suggestedHashtags: ['#LimitedOffer', '#EarlyBird', '#RealEstateDeals'],
   },
   {
     id: 'project-update',
     title: 'Project Construction Update',
     category: 'general',
-    promptSeed: 'Project construction milestone update. Build trust and excitement.',
+    promptSeed:
+      'Project construction milestone update. Build trust and excitement.',
     suggestedHashtags: ['#ConstructionUpdate', '#Progress', '#YourDreamHome'],
   },
 ];
@@ -1228,6 +1315,7 @@ export const SOCIAL_POST_TEMPLATES: SocialPostTemplate[] = [
 **File:** `src/components/social/template-picker.tsx`
 
 A grid of template cards shown in a Dialog (triggered by "Use Template" button in the composer). On template selection:
+
 1. Pre-fills `propertyDetails` with the template's `promptSeed`.
 2. Inserts `suggestedHashtags` at the end of the caption textarea.
 3. Auto-triggers the AI caption generation.
@@ -1239,6 +1327,7 @@ Pattern to follow: `src/components/broadcasts/` step wizard component grid style
 ### Step 3.5 — i18n Additions (Phase 3)
 
 Add to `SocialMedia.composer` in all 4 locale files:
+
 ```json
 "generateCaption": "Generate Caption",
 "generating": "Generating...",
@@ -1248,6 +1337,7 @@ Add to `SocialMedia.composer` in all 4 locale files:
 ```
 
 Add `SocialMedia.templates` namespace:
+
 ```json
 "templates": {
   "title": "Post Templates",
@@ -1280,60 +1370,60 @@ Add `SocialMedia.templates` namespace:
 
 ## Cross-Phase Guardrails (Apply Throughout)
 
-| Rule | Reference |
-|---|---|
-| Never import from `@radix-ui/*` | Use `@base-ui/react` via existing `src/components/ui/` wrappers |
-| Never hardcode hex colors | Use `globals.css` CSS variables only |
-| Never compare role strings inline | Always call predicates from `src/lib/auth/roles.ts` |
-| Never call Meta Graph API from client components | API routes only |
-| Never store plaintext access tokens | Always use `encryptToken`/`decryptToken` from `src/lib/social/encryption.ts` |
-| Never skip i18n for new strings | All 4 locale files must have identical key hierarchy |
-| Always add RLS to new account-scoped tables | `is_account_member(account_id)` pattern |
-| Run verification gates before declaring done | `typecheck`, `lint`, `format:check`, `test` |
-| Add tests for new `lib/` logic | Co-locate `<file>.test.ts` per existing convention |
-| Update `docs/agent/SCHEMA_REFERENCE.md` | Any new migration = update the table inventory |
+| Rule                                             | Reference                                                                    |
+| ------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Never import from `@radix-ui/*`                  | Use `@base-ui/react` via existing `src/components/ui/` wrappers              |
+| Never hardcode hex colors                        | Use `globals.css` CSS variables only                                         |
+| Never compare role strings inline                | Always call predicates from `src/lib/auth/roles.ts`                          |
+| Never call Meta Graph API from client components | API routes only                                                              |
+| Never store plaintext access tokens              | Always use `encryptToken`/`decryptToken` from `src/lib/social/encryption.ts` |
+| Never skip i18n for new strings                  | All 4 locale files must have identical key hierarchy                         |
+| Always add RLS to new account-scoped tables      | `is_account_member(account_id)` pattern                                      |
+| Run verification gates before declaring done     | `typecheck`, `lint`, `format:check`, `test`                                  |
+| Add tests for new `lib/` logic                   | Co-locate `<file>.test.ts` per existing convention                           |
+| Update `docs/agent/SCHEMA_REFERENCE.md`          | Any new migration = update the table inventory                               |
 
 ---
 
 ## Summary of New Files Created Across All Phases
 
-| File | Phase |
-|---|---|
-| `supabase/migrations/131_social_accounts.sql` | 1 |
-| `supabase/migrations/132_social_posts.sql` | 1 |
-| `supabase/migrations/133_social_scheduler_cron.sql` | 2 |
-| `supabase/functions/social-post-scheduler/index.ts` | 2 |
-| `src/lib/social/meta-api.ts` | 1 |
-| `src/lib/social/encryption.ts` | 1 |
-| `src/lib/social/accounts.ts` | 1 |
-| `src/lib/social/templates.ts` | 3 |
-| `src/app/api/social/connect/route.ts` | 1 |
-| `src/app/api/social/callback/route.ts` | 1 |
-| `src/app/api/social/publish/route.ts` | 1 |
-| `src/app/api/social/generate-caption/route.ts` | 3 |
-| `src/app/(dashboard)/social-media/page.tsx` | 1 |
-| `src/app/(dashboard)/social-media/social-media-client.tsx` | 1 |
-| `src/components/social/social-account-tile.tsx` | 1 |
-| `src/components/social/post-composer-sheet.tsx` | 1 |
-| `src/components/social/post-status-badge.tsx` | 1 |
-| `src/components/social/post-history-table.tsx` | 1 |
-| `src/components/social/post-calendar.tsx` | 2 |
-| `src/components/social/template-picker.tsx` | 3 |
+| File                                                       | Phase |
+| ---------------------------------------------------------- | ----- |
+| `supabase/migrations/131_social_accounts.sql`              | 1     |
+| `supabase/migrations/132_social_posts.sql`                 | 1     |
+| `supabase/migrations/133_social_scheduler_cron.sql`        | 2     |
+| `supabase/functions/social-post-scheduler/index.ts`        | 2     |
+| `src/lib/social/meta-api.ts`                               | 1     |
+| `src/lib/social/encryption.ts`                             | 1     |
+| `src/lib/social/accounts.ts`                               | 1     |
+| `src/lib/social/templates.ts`                              | 3     |
+| `src/app/api/social/connect/route.ts`                      | 1     |
+| `src/app/api/social/callback/route.ts`                     | 1     |
+| `src/app/api/social/publish/route.ts`                      | 1     |
+| `src/app/api/social/generate-caption/route.ts`             | 3     |
+| `src/app/(dashboard)/social-media/page.tsx`                | 1     |
+| `src/app/(dashboard)/social-media/social-media-client.tsx` | 1     |
+| `src/components/social/social-account-tile.tsx`            | 1     |
+| `src/components/social/post-composer-sheet.tsx`            | 1     |
+| `src/components/social/post-status-badge.tsx`              | 1     |
+| `src/components/social/post-history-table.tsx`             | 1     |
+| `src/components/social/post-calendar.tsx`                  | 2     |
+| `src/components/social/template-picker.tsx`                | 3     |
 
 ## Summary of Modified Files Across All Phases
 
-| File | What Changes |
-|---|---|
-| `src/lib/auth/roles.ts` | +2 predicates (`canManageSocialPosts`, `canConnectSocialAccount`) |
-| `src/hooks/use-can.ts` | +2 capability strings |
-| `src/types/index.ts` | +`SocialAccount`, `SocialPost`, `SocialPostStatus` types |
-| `src/components/layout/sidebar.tsx` | +1 nav item (`socialMedia`) |
-| `src/components/layout/bottom-nav.tsx` | +1 nav item in `moreNavItems` |
-| `src/app/(dashboard)/dashboard-shell.tsx` | +1 entry in `pageTitles` |
-| `src/app/(dashboard)/integrations/page.tsx` | Instagram tile: add `link` prop |
-| `messages/en.json` | +`SocialMedia` namespace, +`socialMedia` key in `Sidebar` & `Header` |
-| `messages/es.json` | Same (mirrored keys) |
-| `messages/pt.json` | Same (mirrored keys) |
-| `messages/ko.json` | Same (mirrored keys) |
-| `.env.local.example` | +`META_APP_ID` comment |
-| `docs/agent/SCHEMA_REFERENCE.md` | +2 new table rows, updated migration number |
+| File                                        | What Changes                                                         |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| `src/lib/auth/roles.ts`                     | +2 predicates (`canManageSocialPosts`, `canConnectSocialAccount`)    |
+| `src/hooks/use-can.ts`                      | +2 capability strings                                                |
+| `src/types/index.ts`                        | +`SocialAccount`, `SocialPost`, `SocialPostStatus` types             |
+| `src/components/layout/sidebar.tsx`         | +1 nav item (`socialMedia`)                                          |
+| `src/components/layout/bottom-nav.tsx`      | +1 nav item in `moreNavItems`                                        |
+| `src/app/(dashboard)/dashboard-shell.tsx`   | +1 entry in `pageTitles`                                             |
+| `src/app/(dashboard)/integrations/page.tsx` | Instagram tile: add `link` prop                                      |
+| `messages/en.json`                          | +`SocialMedia` namespace, +`socialMedia` key in `Sidebar` & `Header` |
+| `messages/es.json`                          | Same (mirrored keys)                                                 |
+| `messages/pt.json`                          | Same (mirrored keys)                                                 |
+| `messages/ko.json`                          | Same (mirrored keys)                                                 |
+| `.env.local.example`                        | +`META_APP_ID` comment                                               |
+| `docs/agent/SCHEMA_REFERENCE.md`            | +2 new table rows, updated migration number                          |

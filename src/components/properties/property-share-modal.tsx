@@ -319,7 +319,7 @@ export function PropertyShareModal({
                     variant="ghost"
                     size="sm"
                     onClick={handleShareWhatsAppGeneric}
-                    className="text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-400 h-7 gap-1 text-xs"
+                    className="text-muted-foreground h-7 gap-1 text-xs hover:text-emerald-600 dark:hover:text-emerald-400"
                   >
                     <ExternalLink className="size-3" />
                     {t('openWhatsApp')} (Direct)

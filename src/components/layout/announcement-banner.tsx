@@ -14,9 +14,7 @@ export function AnnouncementBanner() {
   if (!visible) return null;
 
   return (
-    <div
-      className="flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-primary px-4 py-2 text-sm text-white"
-    >
+    <div className="to-primary flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 px-4 py-2 text-sm text-white">
       <span>🚀</span>
       <span>
         Agent Demo Mode — Explore freely. No login required.{' '}

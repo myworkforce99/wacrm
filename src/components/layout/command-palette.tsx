@@ -27,11 +27,7 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
 
@@ -231,7 +227,9 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               title: c.name || c.phone || 'Unnamed Contact',
               subtitle: c.phone ? `Contact • ${c.phone}` : 'Contact',
               category: 'contacts',
-              href: convId ? `/inbox?c=${convId}` : `/contacts?q=${encodeURIComponent(c.name || '')}`,
+              href: convId
+                ? `/inbox?c=${convId}`
+                : `/contacts?q=${encodeURIComponent(c.name || '')}`,
               icon: Users,
             });
           }
@@ -335,31 +333,36 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="top-[25%] p-0 max-w-lg overflow-hidden border-border bg-card shadow-2xl rounded-2xl"
+        className="border-border bg-card top-[25%] max-w-lg overflow-hidden rounded-2xl p-0 shadow-2xl"
       >
         <DialogTitle className="sr-only">Command Search</DialogTitle>
-        <div className="flex items-center border-b border-border px-4 py-3">
-          <Search className="size-5 text-muted-foreground mr-3 shrink-0" />
+        <div className="border-border flex items-center border-b px-4 py-3">
+          <Search className="text-muted-foreground mr-3 size-5 shrink-0" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t('searchPlaceholder') || 'Search contacts, properties, navigation...'}
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            placeholder={
+              t('searchPlaceholder') ||
+              'Search contacts, properties, navigation...'
+            }
+            className="text-foreground placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none"
           />
-          {loading && <Loader2 className="size-4 animate-spin text-muted-foreground mr-2 shrink-0" />}
+          {loading && (
+            <Loader2 className="text-muted-foreground mr-2 size-4 shrink-0 animate-spin" />
+          )}
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="text-muted-foreground hover:text-foreground p-1 rounded"
+              className="text-muted-foreground hover:text-foreground rounded p-1"
             >
               <X className="size-4" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-flex h-5 select-none items-center gap-1 rounded border border-border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
+            <kbd className="border-border bg-muted text-muted-foreground hidden h-5 items-center gap-1 rounded border px-1.5 font-mono text-[10px] font-medium select-none sm:inline-flex">
               ESC
             </kbd>
           )}
@@ -367,7 +370,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
         <div className="max-h-[360px] overflow-y-auto p-2">
           {displayedItems.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
+            <div className="text-muted-foreground py-8 text-center text-sm">
               No results found for &ldquo;{query}&rdquo;
             </div>
           ) : (
@@ -382,13 +385,13 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                     onClick={() => handleSelect(item)}
                     onMouseEnter={() => setSelectedIndex(index)}
                     className={cn(
-                      'w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors',
+                      'flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors',
                       isSelected
                         ? 'bg-primary/10 text-primary font-medium'
                         : 'text-foreground hover:bg-muted/60'
                     )}
                   >
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex min-w-0 items-center gap-3">
                       <div
                         className={cn(
                           'flex size-8 shrink-0 items-center justify-center rounded-md border',
@@ -400,16 +403,18 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         <Icon className="size-4" />
                       </div>
                       <div className="min-w-0 flex-1 truncate">
-                        <div className="truncate text-sm font-medium">{item.title}</div>
+                        <div className="truncate text-sm font-medium">
+                          {item.title}
+                        </div>
                         {item.subtitle && (
-                          <div className="truncate text-xs text-muted-foreground">
+                          <div className="text-muted-foreground truncate text-xs">
                             {item.subtitle}
                           </div>
                         )}
                       </div>
                     </div>
                     {isSelected && (
-                      <ArrowRight className="size-4 text-primary shrink-0" />
+                      <ArrowRight className="text-primary size-4 shrink-0" />
                     )}
                   </button>
                 );
@@ -418,7 +423,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           )}
         </div>
 
-        <div className="border-t border-border bg-muted/30 px-4 py-2 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="border-border bg-muted/30 text-muted-foreground flex items-center justify-between border-t px-4 py-2 text-xs">
           <span>Navigate with ↑ and ↓</span>
           <span>Select with ↵</span>
         </div>

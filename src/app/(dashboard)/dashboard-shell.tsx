@@ -1,6 +1,12 @@
 'use client';
 
-import { createContext, useContext, useCallback, useEffect, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { AuthProvider, useAuth } from '@/hooks/use-auth';
@@ -139,7 +145,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <MobileNavContext.Provider value={{ hideMobileBars, setHideMobileBars }}>
-      <div className="bg-background flex flex-1 min-h-0 w-full overflow-hidden print:h-auto print:overflow-visible">
+      <div className="bg-background flex min-h-0 w-full flex-1 overflow-hidden print:h-auto print:overflow-visible">
         {/* Reports this tab's online/away presence once we know a user is
             signed in. Headless — renders nothing. */}
         <PresenceHeartbeat />
@@ -151,7 +157,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           <Sidebar open={sidebarOpen} onClose={closeSidebar} />
         </div>
 
-        <div className="relative flex flex-1 min-h-0 flex-col overflow-hidden print:overflow-visible">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden print:overflow-visible">
           {!effectiveHideBars && (
             <div className="print:hidden">
               <MobileHeader onOpenSidebar={() => setSidebarOpen(true)} />
@@ -165,7 +171,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
               On md+ (desktop/tablet), keep the standard padding and max-w-7xl container to follow the shared design language. */}
           <main
             className={cn(
-              'flex flex-1 min-h-0 flex-col print:overflow-visible print:p-0',
+              'flex min-h-0 flex-1 flex-col print:overflow-visible print:p-0',
               isFullBleed
                 ? 'overflow-hidden p-0 md:px-8 md:py-7'
                 : 'overflow-y-auto px-6 py-6 pb-20 md:px-8 md:py-7'
@@ -173,7 +179,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           >
             <div
               className={cn(
-                'flex flex-1 min-h-0 flex-col',
+                'flex min-h-0 flex-1 flex-col',
                 isFullBleed
                   ? 'w-full max-w-none md:mx-auto md:max-w-7xl'
                   : 'mx-auto w-full max-w-7xl'

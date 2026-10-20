@@ -94,8 +94,12 @@ interface DashboardVisit {
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard.page');
-  const { defaultCurrency, profile, user, canManageMembers: isManager } =
-    useAuth();
+  const {
+    defaultCurrency,
+    profile,
+    user,
+    canManageMembers: isManager,
+  } = useAuth();
 
   const [metrics, setMetrics] = useState<MetricsBundle | null>(null);
   const [metricsLoading, setMetricsLoading] = useState(true);
@@ -241,12 +245,13 @@ export default function DashboardPage() {
       if (error) {
         console.error('[dashboard] today visits failed:', error);
       } else {
-        let visits = (data as unknown as (DashboardVisit & {
-          contacts?: { name?: string; phone?: string; user_id?: string };
-          tasks?:
-            | { id: string; assigned_to?: string }
-            | { id: string; assigned_to?: string }[];
-        })[]) || [];
+        let visits =
+          (data as unknown as (DashboardVisit & {
+            contacts?: { name?: string; phone?: string; user_id?: string };
+            tasks?:
+              | { id: string; assigned_to?: string }
+              | { id: string; assigned_to?: string }[];
+          })[]) || [];
 
         if (!isManager && user?.id) {
           const assignedIds = await getAgentAssignedContactIds(

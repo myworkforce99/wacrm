@@ -10,36 +10,39 @@
 ## 1. Test Environment & Credential Baseline
 
 ### 1.1 Fresh Multi-Agent Account: **Apex Horizon Realty**
+
 - **Account ID (`accounts.id`):** `09e60b2d-7c0f-4242-aa74-c4becda130da`
 - **Default Currency:** `INR` (₹)
 - **All Logins Password:** `Test@1234`
 
-| Role | Member Name | Login Email | User ID (`auth.users.id`) | Profile ID (`profiles.id`) | Availability | Operational Purpose |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Owner** | Arjun Malhotra | `owner@apexrealty.in` | `8acedd39-3e67-4c1c-8a69-4d29fd4d4b4a` | `fc50e090-697b-4240-93d6-be4d3e8f5def` | `true` | Full tenant owner, connects WhatsApp, billing |
-| **Admin** | Neha Sharma | `admin@apexrealty.in` | `b60f77d9-b4b6-4534-a80b-81f0b9fe0894` | `86018075-24f3-46a4-b4ec-77e6d660f4d9` | `true` | Sales manager, routing rules, bulk reassignments |
-| **Agent 1** | Vikram Singh | `agent1@apexrealty.in` | `d202706c-cd48-4647-afc8-ea13c680586d` | `549c9c94-e01a-4a78-bdc2-c5ef751b3a54` | `true` (Active) | Primary sales agent (round-robin target) |
-| **Agent 2** | Ananya Roy | `agent2@apexrealty.in` | `ca26e9b1-f978-4621-8203-7ace9dbeb2af` | `08f26eb7-8adf-437e-9361-886ef1d0288f` | `true` (Active) | Secondary sales agent (round-robin target) |
-| **Agent 3** | Karan Verma | `agent3@apexrealty.in` | `a5de3658-0818-466e-92dd-561a73321769` | `5ffb0727-8c63-4d5a-b657-0163f0f4a1e7` | `false` (On Leave) | Agent on leave (tests availability skipping) |
-| **Viewer** | Pooja Iyer | `viewer@apexrealty.in` | `df9a8428-9528-4f54-8d32-f9e22821c5a1` | `33197f15-a713-4826-801b-0c0ac16e99fb` | `false` | Read-only trainee/auditor (RBAC gating) |
+| Role        | Member Name    | Login Email            | User ID (`auth.users.id`)              | Profile ID (`profiles.id`)             | Availability       | Operational Purpose                              |
+| :---------- | :------------- | :--------------------- | :------------------------------------- | :------------------------------------- | :----------------- | :----------------------------------------------- |
+| **Owner**   | Arjun Malhotra | `owner@apexrealty.in`  | `8acedd39-3e67-4c1c-8a69-4d29fd4d4b4a` | `fc50e090-697b-4240-93d6-be4d3e8f5def` | `true`             | Full tenant owner, connects WhatsApp, billing    |
+| **Admin**   | Neha Sharma    | `admin@apexrealty.in`  | `b60f77d9-b4b6-4534-a80b-81f0b9fe0894` | `86018075-24f3-46a4-b4ec-77e6d660f4d9` | `true`             | Sales manager, routing rules, bulk reassignments |
+| **Agent 1** | Vikram Singh   | `agent1@apexrealty.in` | `d202706c-cd48-4647-afc8-ea13c680586d` | `549c9c94-e01a-4a78-bdc2-c5ef751b3a54` | `true` (Active)    | Primary sales agent (round-robin target)         |
+| **Agent 2** | Ananya Roy     | `agent2@apexrealty.in` | `ca26e9b1-f978-4621-8203-7ace9dbeb2af` | `08f26eb7-8adf-437e-9361-886ef1d0288f` | `true` (Active)    | Secondary sales agent (round-robin target)       |
+| **Agent 3** | Karan Verma    | `agent3@apexrealty.in` | `a5de3658-0818-466e-92dd-561a73321769` | `5ffb0727-8c63-4d5a-b657-0163f0f4a1e7` | `false` (On Leave) | Agent on leave (tests availability skipping)     |
+| **Viewer**  | Pooja Iyer     | `viewer@apexrealty.in` | `df9a8428-9528-4f54-8d32-f9e22821c5a1` | `33197f15-a713-4826-801b-0c0ac16e99fb` | `false`            | Read-only trainee/auditor (RBAC gating)          |
 
 ---
 
 ### 1.2 Official WhatsApp Business Channel (Meta Cloud API)
+
 Credentials populated from `whatsapp_credentials.md` and encrypted in `whatsapp_config`:
 
-| Parameter | Value | Notes |
-| :--- | :--- | :--- |
-| **Phone Number ID** | `939656362572111` | Official WhatsApp Business Phone Number ID |
-| **WABA ID** | `2111247669610431` | WhatsApp Business Account ID |
-| **Test Recipient Phone** | `+1 (555) 171-8060` | Meta developer test recipient number |
-| **Webhook Verify Token** | `wacrm` | Stored encrypted in `whatsapp_config` |
-| **Public Webhook URL** | `https://rebel-tipping-prenatal.ngrok-free.dev/api/whatsapp/webhook` | Verified HTTP 200 via ngrok tunnel |
-| **Local Webhook URL** | `http://localhost:3000/api/whatsapp/webhook` | Verified HTTP 200 locally |
+| Parameter                | Value                                                                | Notes                                      |
+| :----------------------- | :------------------------------------------------------------------- | :----------------------------------------- |
+| **Phone Number ID**      | `939656362572111`                                                    | Official WhatsApp Business Phone Number ID |
+| **WABA ID**              | `2111247669610431`                                                   | WhatsApp Business Account ID               |
+| **Test Recipient Phone** | `+1 (555) 171-8060`                                                  | Meta developer test recipient number       |
+| **Webhook Verify Token** | `wacrm`                                                              | Stored encrypted in `whatsapp_config`      |
+| **Public Webhook URL**   | `https://rebel-tipping-prenatal.ngrok-free.dev/api/whatsapp/webhook` | Verified HTTP 200 via ngrok tunnel         |
+| **Local Webhook URL**    | `http://localhost:3000/api/whatsapp/webhook`                         | Verified HTTP 200 locally                  |
 
 ---
 
 ### 1.3 Seeded Real Estate Inventory & Pipeline Baseline
+
 - **Pipeline:** `Real Estate` (5 stages: `New`, `Contacted`, `Site Visit`, `Negotiation`, `Closed`)
 - **Properties Seeded:**
   1. `Apex Grandeur — 3BHK Lake View` (Powai, ₹1.65 Cr, 3BHK, 1500 sqft, Ready to Move, RERA: `P51800028911`)
@@ -60,6 +63,7 @@ Credentials populated from `whatsapp_credentials.md` and encrypted in `whatsapp_
 ## 2. Phase-Wise Test Matrix
 
 ### Phase 1: Meta WhatsApp Channel Configuration & Health Check
+
 Verify that the business WhatsApp number is connected, credentials are encrypted, and webhooks are verified.
 
 - **TC-MAW-01: WhatsApp Configuration in Settings (`/settings?tab=whatsapp`)**
@@ -72,7 +76,7 @@ Verify that the business WhatsApp number is connected, credentials are encrypted
   - **Expected:** Success toast "Connection verified with Meta API", green status indicator.
   - **DB Check (Supabase MCP):**
     ```sql
-    SELECT id, account_id, phone_number_id, waba_id, status, connected_at, mirror_inbound_media 
+    SELECT id, account_id, phone_number_id, waba_id, status, connected_at, mirror_inbound_media
     FROM whatsapp_config WHERE account_id = '09e60b2d-7c0f-4242-aa74-c4becda130da';
     ```
 
@@ -100,6 +104,7 @@ Verify that the business WhatsApp number is connected, credentials are encrypted
 ---
 
 ### Phase 2: Multi-Role Team Onboarding & RBAC Boundary Testing
+
 Verify role permissions, invitation flows, and access constraints across roles.
 
 - **TC-MAW-04: Team Invitation Flow (`/settings?tab=team` & `/team`)**
@@ -126,6 +131,7 @@ Verify role permissions, invitation flows, and access constraints across roles.
 ---
 
 ### Phase 3: Inbound Lead Arrival, Lead Routing & Assignment Audit
+
 Verify automated routing, agent availability skipping, and audit trail logging.
 
 - **TC-MAW-06: Inbound WhatsApp Message Handshake & Contact Auto-Creation**
@@ -186,6 +192,7 @@ Verify automated routing, agent availability skipping, and audit trail logging.
 ---
 
 ### Phase 4: Shared Inbox (`/inbox`) & Real-Time Multi-Agent Collaboration
+
 Verify agent filtered views, live streaming updates, and desktop alerts.
 
 - **TC-MAW-11: Inbox Filtered Views Audit ("Mine", "Unassigned", "All")**
@@ -222,6 +229,7 @@ Verify agent filtered views, live streaming updates, and desktop alerts.
 ---
 
 ### Phase 5: 24-Hour Meta Service Window & Template Enforcement
+
 Verify Meta anti-spam compliance rules inside WaCRM.
 
 - **TC-MAW-14: Active 24-Hour Window Free-Form Messaging & Media**
@@ -247,13 +255,14 @@ Verify Meta anti-spam compliance rules inside WaCRM.
     - Once customer replies to the template, the 24-hour window re-opens immediately.
   - **DB Check:**
     ```sql
-    SELECT id, message_type, template_name, status, created_at 
+    SELECT id, message_type, template_name, status, created_at
     FROM messages WHERE conversation_id = '...' ORDER BY created_at DESC LIMIT 3;
     ```
 
 ---
 
 ### Phase 6: In-Chat Real Estate Actions & Component Interconnections
+
 Verify right-hand panel workflows without navigating away from the chat.
 
 - **TC-MAW-16: Lead Qualification Panel in Chat (`ContactSidebar`)**
@@ -290,7 +299,7 @@ Verify right-hand panel workflows without navigating away from the chat.
     - Site visit appears on `/site-visits` calendar and dashboard KPI strip.
   - **DB Check (Supabase MCP):**
     ```sql
-    SELECT id, contact_id, property_id, scheduled_at, pickup_required, pickup_location, status 
+    SELECT id, contact_id, property_id, scheduled_at, pickup_required, pickup_location, status
     FROM site_visits WHERE account_id = '09e60b2d-7c0f-4242-aa74-c4becda130da' ORDER BY created_at DESC LIMIT 1;
     ```
 
@@ -307,6 +316,7 @@ Verify right-hand panel workflows without navigating away from the chat.
 ---
 
 ### Phase 7: Manager & Business Owner Command Center (`/team` & `/contacts`)
+
 Verify SLA response tracking, team performance metrics, and 1-click bulk reassignments.
 
 - **TC-MAW-20: First-Response SLA Badging & Alerts**
@@ -346,6 +356,7 @@ Verify SLA response tracking, team performance metrics, and 1-click bulk reassig
 ---
 
 ### Phase 8: Edge Cases, Security & Isolation Verification
+
 Verify resilience under concurrent actions, network dropouts, and multi-tenant isolation.
 
 - **TC-MAW-23: Multi-Tenant RLS Leakage Test**
@@ -365,6 +376,7 @@ Verify resilience under concurrent actions, network dropouts, and multi-tenant i
 ---
 
 ### Phase 9: Deals & Real Estate Pipelines Workflow (`/pipelines`)
+
 Verify Kanban stage movement, anti-poaching deal move permissions, Won/Lost lifecycle, structured lost reasons, brokerage commission calculation, and cross-module quick actions.
 
 - **TC-MAW-26: Deals Pipeline Loading & Situational Awareness KPI Strip (`/pipelines`)**
@@ -437,6 +449,7 @@ Verify Kanban stage movement, anti-poaching deal move permissions, Won/Lost life
 ---
 
 ### Phase 10: Property Inventory & WhatsApp Brochure Sharing (`/properties`)
+
 Verify listings repository, Indian real estate specs, RERA compliance badges, role gating (Migration 130), 1-click WhatsApp brochure sharing, and the interactive EMI calculator.
 
 - **TC-MAW-31: Inventory Management & RERA Compliance Badging**
@@ -501,6 +514,7 @@ Verify listings repository, Indian real estate specs, RERA compliance badges, ro
 ---
 
 ### Phase 11: Site Visits Management & Logistics Workflow (`/site-visits`)
+
 Verify visit scheduling, pickup logistics, agent assignments, automated task synchronization, and calendar day groupings.
 
 - **TC-MAW-36: Field Visit Scheduling & Agent Task Synchronization**
@@ -559,6 +573,7 @@ Verify visit scheduling, pickup logistics, agent assignments, automated task syn
 ---
 
 ### Phase 12: Visual Qualifier Flows, Automations & RE Broadcast Campaigns (`/flows`, `/automations`, `/broadcasts`)
+
 Verify conversational bot qualification, trigger-action automations, and targeted broadcast campaigns.
 
 - **TC-MAW-40: Visual Conversation Flow Builder (`/flows`)**
@@ -619,6 +634,7 @@ Verify conversational bot qualification, trigger-action automations, and targete
 ---
 
 ### Phase 13: Portal Integrations, Bulk Lead Import & Data Export (`/integrations`, `/contacts/import`, `/api/contacts/export`)
+
 Verify portal lead ingestion, universal capture email, CSV/Excel import, and CSV data exports.
 
 - **TC-MAW-44: Universal Capture Email & Portal Integrations Surface (`/integrations`)**
@@ -701,6 +717,7 @@ Verify portal lead ingestion, universal capture email, CSV/Excel import, and CSV
 ---
 
 ### Phase 14: Settings RBAC, Cost Sheet Config & AI Co-Pilot Assistant (`/settings`, `/agents`, `/notifications`)
+
 Verify settings role gates, billing subscription details, Indian real estate cost sheet configuration, AI playground, and real-time notification dispatch.
 
 - **TC-MAW-49: Settings Role Isolation & RBAC Gate**
@@ -758,6 +775,7 @@ Verify settings role gates, billing subscription details, Indian real estate cos
 ---
 
 ### Phase 15: Public REST API v1 & Multi-Tenant RLS Security Verification (`/api/v1`)
+
 Verify external developer APIs, scoped API key authentication, per-key rate limiting, two-tenant RLS isolation, and outbound webhook delivery.
 
 - **TC-MAW-53: Public API Key Authentication & Granular Scopes (`/api/v1`)**
@@ -803,21 +821,21 @@ Verify external developer APIs, scoped API key authentication, per-key rate limi
 
 During codebase and workflow inspection, the following gaps and data wiring issues were audited, resolved, and verified:
 
-| # | Component / File | Expected Feature | Gap Identified | Resolution & Verification |
-| :- | :--- | :--- | :--- | :--- |
-| 1 | `src/components/inbox/conversation-list.tsx` | Quick tabs for **Mine**, **Unassigned**, and **All** | Only filtered by conversation status; agents could not isolate their leads | **Fixed & Verified:** Added segmented tabs ("Mine", "Unassigned", "All") with assigned agent filtering (Commit `a7d0ac7`). |
-| 2 | `src/components/inbox/contact-sidebar.tsx` | Inline Real Estate qualification form | Only displayed basic info, tags, and notes | **Fixed & Verified:** Built comprehensive Real Estate qualification panel (Budget ₹ INR, BHK multiselect, Location, Possession) (Commit `42ad49d`). |
-| 3 | `src/components/inbox/contact-sidebar.tsx` | "Schedule Visit" & "Send Cost Sheet" buttons | Missing in inbox sidebar | **Fixed & Verified:** Added 1-click "Schedule Visit" (opens `ScheduleVisitSheet`) and "Send Cost Sheet" actions directly in sidebar (Commit `42ad49d`). |
-| 4 | `src/components/inbox/message-thread.tsx` | Assignment changes logged to audit trail | Assigned agent update did not enrich audit log | **Fixed & Verified:** Added audit logging to `assignment_history` with reason `'manual_reassign'` or `'claim'` (Commit `06e472e`). |
-| 5 | `src/lib/automations/engine.ts` | Automated round-robin assignment audit logging | Updated conversation directly without reason | **Fixed & Verified:** Enriched audit entry with reason `'auto_round_robin'` in `assignment_history` (Commit `6327c05`). |
-| 6 | `src/app/api/deals/[id]/route.ts` | RBAC protection on deal reassignment | Agents could submit `assigned_to: other_agent` directly via API, bypassing disabled UI select | **Fixed & Verified:** Added server-side role check `canManageMembers(ctx.role)` returning 403 `CANNOT_REASSIGN_DEAL`. Verified via vitest test suite. |
-| 7 | `src/components/pipelines/deal-table.tsx` | Strict 4-locale i18n parity | Hardcoded English `title="Edit Deal"` in JSX | **Fixed & Verified:** Replaced with `title={tForm('editDeal')}` using `Pipelines.form` namespace. Strict parity verified via `messages.test.ts`. |
-| 8 | `src/app/api/contacts/import/route.ts` | Bulk import BHK configuration preference | Stored `bhk_config` in `property_type` only; left `configuration_preference` null | **Fixed & Verified:** Wired `configuration_preference: row.bhk_config ? [row.bhk_config] : null`, enabling BHK filter chips and broadcast segments. Verified via vitest test suite. |
-| 9 | `src/components/properties/property-share-modal.tsx` | In-app CRM Chat deep link | Only opened external `wa.me` links, bypassing CRM shared inbox | **Fixed & Verified:** Added direct "Chat in CRM" action button linking to `/inbox?contactId=...` with translations in `en`, `es`, `ko`, `pt`. |
-| 10 | `src/app/(dashboard)/team/team-client.tsx` | Print-optimized layout (`?print=true`) | Default team dashboard rendered full interactive UI on print | **Fixed & Verified:** Added `@media print` stylesheet, auto-print timeout on `?print=true`, and "Print Report" header button. |
-| 11 | `src/components/inbox/contact-sidebar.tsx` & `template-picker.tsx` | Clean lint standards | Unused eslint-disable comment and unused `err` variable | **Fixed & Verified:** Cleaned up unused directives and variables; `npm run lint` passes with 0 errors and 0 warnings. |
-| 12 | `src/app/(dashboard)/settings/page.tsx` | Strict 4-locale i18n parity | Hardcoded English strings `"Access Restricted"`, `"Contact your admin to manage account settings."`, and `"Go to Profile Settings"` | **Fixed & Verified:** Replaced with `t('accessRestrictedTitle')`, `t('accessRestrictedDesc')`, and `t('goToProfile')` across `en`, `es`, `ko`, `pt` with 100% parity verified. |
-| 13 | `src/components/settings/billing-tab.tsx` | Strict 4-locale i18n parity | Hardcoded English strings in Billing tab heading, card title, buttons, seat usage, and access restriction | **Fixed & Verified:** Extracted to `Settings.billingTab` across all 4 locales (`en`, `es`, `ko`, `pt`) with ICU formatting. 10/10 parity tests passing. |
+| #   | Component / File                                                   | Expected Feature                                     | Gap Identified                                                                                                                      | Resolution & Verification                                                                                                                                                           |
+| :-- | :----------------------------------------------------------------- | :--------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `src/components/inbox/conversation-list.tsx`                       | Quick tabs for **Mine**, **Unassigned**, and **All** | Only filtered by conversation status; agents could not isolate their leads                                                          | **Fixed & Verified:** Added segmented tabs ("Mine", "Unassigned", "All") with assigned agent filtering (Commit `a7d0ac7`).                                                          |
+| 2   | `src/components/inbox/contact-sidebar.tsx`                         | Inline Real Estate qualification form                | Only displayed basic info, tags, and notes                                                                                          | **Fixed & Verified:** Built comprehensive Real Estate qualification panel (Budget ₹ INR, BHK multiselect, Location, Possession) (Commit `42ad49d`).                                 |
+| 3   | `src/components/inbox/contact-sidebar.tsx`                         | "Schedule Visit" & "Send Cost Sheet" buttons         | Missing in inbox sidebar                                                                                                            | **Fixed & Verified:** Added 1-click "Schedule Visit" (opens `ScheduleVisitSheet`) and "Send Cost Sheet" actions directly in sidebar (Commit `42ad49d`).                             |
+| 4   | `src/components/inbox/message-thread.tsx`                          | Assignment changes logged to audit trail             | Assigned agent update did not enrich audit log                                                                                      | **Fixed & Verified:** Added audit logging to `assignment_history` with reason `'manual_reassign'` or `'claim'` (Commit `06e472e`).                                                  |
+| 5   | `src/lib/automations/engine.ts`                                    | Automated round-robin assignment audit logging       | Updated conversation directly without reason                                                                                        | **Fixed & Verified:** Enriched audit entry with reason `'auto_round_robin'` in `assignment_history` (Commit `6327c05`).                                                             |
+| 6   | `src/app/api/deals/[id]/route.ts`                                  | RBAC protection on deal reassignment                 | Agents could submit `assigned_to: other_agent` directly via API, bypassing disabled UI select                                       | **Fixed & Verified:** Added server-side role check `canManageMembers(ctx.role)` returning 403 `CANNOT_REASSIGN_DEAL`. Verified via vitest test suite.                               |
+| 7   | `src/components/pipelines/deal-table.tsx`                          | Strict 4-locale i18n parity                          | Hardcoded English `title="Edit Deal"` in JSX                                                                                        | **Fixed & Verified:** Replaced with `title={tForm('editDeal')}` using `Pipelines.form` namespace. Strict parity verified via `messages.test.ts`.                                    |
+| 8   | `src/app/api/contacts/import/route.ts`                             | Bulk import BHK configuration preference             | Stored `bhk_config` in `property_type` only; left `configuration_preference` null                                                   | **Fixed & Verified:** Wired `configuration_preference: row.bhk_config ? [row.bhk_config] : null`, enabling BHK filter chips and broadcast segments. Verified via vitest test suite. |
+| 9   | `src/components/properties/property-share-modal.tsx`               | In-app CRM Chat deep link                            | Only opened external `wa.me` links, bypassing CRM shared inbox                                                                      | **Fixed & Verified:** Added direct "Chat in CRM" action button linking to `/inbox?contactId=...` with translations in `en`, `es`, `ko`, `pt`.                                       |
+| 10  | `src/app/(dashboard)/team/team-client.tsx`                         | Print-optimized layout (`?print=true`)               | Default team dashboard rendered full interactive UI on print                                                                        | **Fixed & Verified:** Added `@media print` stylesheet, auto-print timeout on `?print=true`, and "Print Report" header button.                                                       |
+| 11  | `src/components/inbox/contact-sidebar.tsx` & `template-picker.tsx` | Clean lint standards                                 | Unused eslint-disable comment and unused `err` variable                                                                             | **Fixed & Verified:** Cleaned up unused directives and variables; `npm run lint` passes with 0 errors and 0 warnings.                                                               |
+| 12  | `src/app/(dashboard)/settings/page.tsx`                            | Strict 4-locale i18n parity                          | Hardcoded English strings `"Access Restricted"`, `"Contact your admin to manage account settings."`, and `"Go to Profile Settings"` | **Fixed & Verified:** Replaced with `t('accessRestrictedTitle')`, `t('accessRestrictedDesc')`, and `t('goToProfile')` across `en`, `es`, `ko`, `pt` with 100% parity verified.      |
+| 13  | `src/components/settings/billing-tab.tsx`                          | Strict 4-locale i18n parity                          | Hardcoded English strings in Billing tab heading, card title, buttons, seat usage, and access restriction                           | **Fixed & Verified:** Extracted to `Settings.billingTab` across all 4 locales (`en`, `es`, `ko`, `pt`) with ICU formatting. 10/10 parity tests passing.                             |
 
 ---
 
@@ -827,7 +845,7 @@ Run these queries through Supabase MCP during test execution:
 
 ```sql
 -- 1. Check WhatsApp Config status for Apex Horizon Realty
-SELECT id, account_id, phone_number_id, waba_id, status, connected_at 
+SELECT id, account_id, phone_number_id, waba_id, status, connected_at
 FROM whatsapp_config WHERE account_id = '09e60b2d-7c0f-4242-aa74-c4becda130da';
 
 -- 2. Verify Agent Availability and Workload
@@ -838,7 +856,7 @@ WHERE p.account_id = '09e60b2d-7c0f-4242-aa74-c4becda130da'
 ORDER BY open_conversations ASC;
 
 -- 3. Check Conversation and Assigned Agent
-SELECT c.id as conv_id, c.contact_id, ct.name as contact_name, ct.phone, 
+SELECT c.id as conv_id, c.contact_id, ct.name as contact_name, ct.phone,
        c.assigned_agent_id, p.full_name as agent_name, c.status, c.unread_count, c.last_message_at
 FROM conversations c
 LEFT JOIN contacts ct ON ct.id = c.contact_id
@@ -917,4 +935,3 @@ SELECT id, name, plan_tier, subscription_status, seat_limit, current_period_end
 FROM accounts
 WHERE id = '09e60b2d-7c0f-4242-aa74-c4becda130da';
 ```
-

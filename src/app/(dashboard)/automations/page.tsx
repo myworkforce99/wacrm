@@ -248,14 +248,14 @@ export default function AutomationsPage() {
         )}
 
         {automations.length === 0 ? (
-          <div className="border-border bg-card/40 flex h-52 flex-col items-center justify-center rounded-xl border border-dashed text-center p-6">
+          <div className="border-border bg-card/40 flex h-52 flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center">
             <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
               <Zap className="text-primary h-6 w-6" />
             </div>
             <p className="text-foreground mt-3 text-sm font-medium">
               {t('emptyTitle')}
             </p>
-            <p className="text-muted-foreground mt-1 text-xs max-w-sm">
+            <p className="text-muted-foreground mt-1 max-w-sm text-xs">
               {t('emptyDesc')}
             </p>
             <GatedButton

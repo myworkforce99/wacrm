@@ -105,14 +105,14 @@ export function Step1ChooseTemplate({
         </p>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4" />
+      <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
+        <div className="relative max-w-sm flex-1">
+          <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search templates..."
-            className="pl-8 border-border bg-muted/50 text-foreground"
+            className="border-border bg-muted/50 text-foreground pl-8"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -149,7 +149,8 @@ export function Step1ChooseTemplate({
             .filter((t: MessageTemplate) => {
               if (filterTag !== 'all') {
                 const tags = (t as MessageTemplate & { tags?: string[] }).tags;
-                if (!Array.isArray(tags) || !tags.includes(filterTag)) return false;
+                if (!Array.isArray(tags) || !tags.includes(filterTag))
+                  return false;
               }
               if (searchQuery.trim()) {
                 const q = searchQuery.toLowerCase();

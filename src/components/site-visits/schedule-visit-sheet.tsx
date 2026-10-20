@@ -93,11 +93,7 @@ interface Props {
 }
 
 type PresetKey =
-  | 'today4pm'
-  | 'tomorrow11am'
-  | 'tomorrow4pm'
-  | 'thisSat11am'
-  | 'thisSun11am';
+  'today4pm' | 'tomorrow11am' | 'tomorrow4pm' | 'thisSat11am' | 'thisSun11am';
 
 function getPresetDatetime(preset: PresetKey): string {
   const d = new Date();
@@ -257,8 +253,8 @@ export function ScheduleVisitSheet({
       }>
     ).map((c) => {
       const ld = Array.isArray(c.lead_details)
-        ? c.lead_details[0] ?? null
-        : c.lead_details ?? null;
+        ? (c.lead_details[0] ?? null)
+        : (c.lead_details ?? null);
       return {
         id: c.id,
         name: c.name,
@@ -451,7 +447,7 @@ export function ScheduleVisitSheet({
         // Guard assignment: only managers can reassign or unassign
         const effectiveAgentId = isManager
           ? assignedAgentId
-          : (assignedAgentId || user?.id || '');
+          : assignedAgentId || user?.id || '';
 
         if (effectiveAgentId) {
           if (currentTask) {
@@ -604,13 +600,11 @@ export function ScheduleVisitSheet({
                                 : ''}
                             </span>
                           )}
-                          {selectedContact.lead_details?.location_preference && (
+                          {selectedContact.lead_details
+                            ?.location_preference && (
                             <span className="truncate">
                               · 📍{' '}
-                              {
-                                selectedContact.lead_details
-                                  .location_preference
-                              }
+                              {selectedContact.lead_details.location_preference}
                             </span>
                           )}
                         </div>
@@ -836,9 +830,7 @@ export function ScheduleVisitSheet({
                     <div className="flex items-center gap-2 truncate">
                       <div className="bg-primary/10 text-primary flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold">
                         {initialsForName(
-                          assignedAgentProfile?.full_name ||
-                            user?.email ||
-                            'U'
+                          assignedAgentProfile?.full_name || user?.email || 'U'
                         )}
                       </div>
                       <span className="truncate font-medium">
@@ -848,7 +840,7 @@ export function ScheduleVisitSheet({
                           t('agentPlaceholder')}
                       </span>
                     </div>
-                    <span className="text-muted-foreground shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium">
+                    <span className="text-muted-foreground bg-muted shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium">
                       {isEditMode ? 'Assigned' : 'You'}
                     </span>
                   </div>
@@ -883,14 +875,16 @@ export function ScheduleVisitSheet({
                               : s === 'pending'
                                 ? 'border-amber-400 bg-amber-400/15 text-amber-600 shadow-xs dark:text-amber-400'
                                 : s === 'completed'
-                                  ? 'border-foreground/30 bg-muted font-bold text-foreground shadow-xs'
+                                  ? 'border-foreground/30 bg-muted text-foreground font-bold shadow-xs'
                                   : s === 'rescheduled'
                                     ? 'border-blue-500 bg-blue-500/15 text-blue-600 shadow-xs dark:text-blue-400'
                                     : 'border-destructive bg-destructive/15 text-destructive shadow-xs'
                             : 'border-border/80 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
                         )}
                       >
-                        {status === s && <Check className="size-3.5 shrink-0" />}
+                        {status === s && (
+                          <Check className="size-3.5 shrink-0" />
+                        )}
                         <span className="truncate">{statusLabels[s] || s}</span>
                       </button>
                     ))}
@@ -911,7 +905,9 @@ export function ScheduleVisitSheet({
                             : 'border-border/80 bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground'
                         )}
                       >
-                        {status === s && <Check className="size-3.5 shrink-0" />}
+                        {status === s && (
+                          <Check className="size-3.5 shrink-0" />
+                        )}
                         <span>
                           {s === 'pending'
                             ? t('statusPending')

@@ -33,11 +33,15 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
     const unassignedLead = createMockConversation('conv-unassigned', null);
 
     it('agents cannot edit properties or reply before claiming', () => {
-      expect(canManageLead('agent', unassignedLead.assigned_agent_id, currentAgentId)).toBe(false);
+      expect(
+        canManageLead('agent', unassignedLead.assigned_agent_id, currentAgentId)
+      ).toBe(false);
     });
 
     it('agents can claim unassigned leads', () => {
-      expect(canClaimLead('agent', unassignedLead.assigned_agent_id)).toBe(true);
+      expect(canClaimLead('agent', unassignedLead.assigned_agent_id)).toBe(
+        true
+      );
     });
 
     it('agents CANNOT reassign unassigned leads to peer agents', () => {
@@ -45,15 +49,23 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
     });
 
     it('managers can manage and reassign unassigned leads directly', () => {
-      expect(canManageLead('admin', unassignedLead.assigned_agent_id, managerId)).toBe(true);
-      expect(canManageLead('owner', unassignedLead.assigned_agent_id, managerId)).toBe(true);
+      expect(
+        canManageLead('admin', unassignedLead.assigned_agent_id, managerId)
+      ).toBe(true);
+      expect(
+        canManageLead('owner', unassignedLead.assigned_agent_id, managerId)
+      ).toBe(true);
       expect(canReassignLead('admin')).toBe(true);
       expect(canReassignLead('owner')).toBe(true);
     });
 
     it('viewers cannot claim or manage unassigned leads', () => {
-      expect(canClaimLead('viewer', unassignedLead.assigned_agent_id)).toBe(false);
-      expect(canManageLead('viewer', unassignedLead.assigned_agent_id, 'viewer-1')).toBe(false);
+      expect(canClaimLead('viewer', unassignedLead.assigned_agent_id)).toBe(
+        false
+      );
+      expect(
+        canManageLead('viewer', unassignedLead.assigned_agent_id, 'viewer-1')
+      ).toBe(false);
       expect(canReassignLead('viewer')).toBe(false);
     });
   });
@@ -62,7 +74,9 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
     const claimedLead = createMockConversation('conv-claimed', currentAgentId);
 
     it('unlocks full management capabilities for the owning agent', () => {
-      expect(canManageLead('agent', claimedLead.assigned_agent_id, currentAgentId)).toBe(true);
+      expect(
+        canManageLead('agent', claimedLead.assigned_agent_id, currentAgentId)
+      ).toBe(true);
     });
 
     it('cannot be claimed again by another agent', () => {
@@ -75,16 +89,22 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
     });
 
     it('owning agent CAN release the lead back to the unassigned pool', () => {
-      expect(canReleaseLead('agent', claimedLead.assigned_agent_id, currentAgentId)).toBe(true);
+      expect(
+        canReleaseLead('agent', claimedLead.assigned_agent_id, currentAgentId)
+      ).toBe(true);
     });
 
     it('peer agents CANNOT release leads they do not own', () => {
-      expect(canReleaseLead('agent', claimedLead.assigned_agent_id, peerAgentId)).toBe(false);
+      expect(
+        canReleaseLead('agent', claimedLead.assigned_agent_id, peerAgentId)
+      ).toBe(false);
     });
 
     it('managers can reassign or release any assigned lead', () => {
       expect(canReassignLead('admin')).toBe(true);
-      expect(canReleaseLead('admin', claimedLead.assigned_agent_id, managerId)).toBe(true);
+      expect(
+        canReleaseLead('admin', claimedLead.assigned_agent_id, managerId)
+      ).toBe(true);
     });
   });
 
@@ -92,16 +112,24 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
     const peerLead = createMockConversation('conv-peer', peerAgentId);
 
     it('is locked for non-owning agents (read-only)', () => {
-      expect(canManageLead('agent', peerLead.assigned_agent_id, currentAgentId)).toBe(false);
+      expect(
+        canManageLead('agent', peerLead.assigned_agent_id, currentAgentId)
+      ).toBe(false);
       expect(canClaimLead('agent', peerLead.assigned_agent_id)).toBe(false);
       expect(canReassignLead('agent')).toBe(false);
-      expect(canReleaseLead('agent', peerLead.assigned_agent_id, currentAgentId)).toBe(false);
+      expect(
+        canReleaseLead('agent', peerLead.assigned_agent_id, currentAgentId)
+      ).toBe(false);
     });
 
     it('managers retain full override on peer leads', () => {
-      expect(canManageLead('admin', peerLead.assigned_agent_id, managerId)).toBe(true);
+      expect(
+        canManageLead('admin', peerLead.assigned_agent_id, managerId)
+      ).toBe(true);
       expect(canReassignLead('admin')).toBe(true);
-      expect(canReleaseLead('admin', peerLead.assigned_agent_id, managerId)).toBe(true);
+      expect(
+        canReleaseLead('admin', peerLead.assigned_agent_id, managerId)
+      ).toBe(true);
     });
   });
 
@@ -153,7 +181,11 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
         const prevAssigned = prevAssignedMap.get(conv.id);
         const currentAssigned = conv.assigned_agent_id ?? null;
 
-        if (hasPrev && prevAssigned === null && currentAssigned === targetUserId) {
+        if (
+          hasPrev &&
+          prevAssigned === null &&
+          currentAssigned === targetUserId
+        ) {
           switchedTab = 'mine';
         }
         prevAssignedMap.set(conv.id, currentAssigned);
@@ -180,7 +212,8 @@ describe('Lead Allocation & Speed-to-Lead Workflows', () => {
       const prevAssigned = currentAgentId;
       const currentAssigned = currentAgentId;
 
-      const isClaimTransition = prevAssigned === null && currentAssigned === currentAgentId;
+      const isClaimTransition =
+        prevAssigned === null && currentAssigned === currentAgentId;
       expect(isClaimTransition).toBe(false); // Tab selection remains unchanged!
     });
   });

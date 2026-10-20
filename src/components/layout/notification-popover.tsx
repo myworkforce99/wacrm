@@ -56,24 +56,21 @@ export function NotificationPopover() {
     }
   }, [open, loadRecent]);
 
-  const markRead = useCallback(
-    async (id: string) => {
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === id && !n.read_at
-            ? { ...n, read_at: new Date().toISOString() }
-            : n
-        )
-      );
-      const supabase = createClient();
-      await supabase
-        .from('notifications')
-        .update({ read_at: new Date().toISOString() })
-        .eq('id', id)
-        .is('read_at', null);
-    },
-    []
-  );
+  const markRead = useCallback(async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === id && !n.read_at
+          ? { ...n, read_at: new Date().toISOString() }
+          : n
+      )
+    );
+    const supabase = createClient();
+    await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('read_at', null);
+  }, []);
 
   const handleNotificationClick = useCallback(
     (n: Notification) => {
@@ -130,21 +127,21 @@ export function NotificationPopover() {
       >
         <Bell className="text-muted-foreground size-4" />
         {unreadCount > 0 && (
-          <span className="bg-primary absolute top-1 right-1 h-2 w-2 rounded-full ring-2 ring-background" />
+          <span className="bg-primary ring-background absolute top-1 right-1 h-2 w-2 rounded-full ring-2" />
         )}
       </PopoverTrigger>
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-80 sm:w-96 max-w-[calc(100vw-2rem)] p-0 shadow-xl border-border bg-card overflow-hidden"
+        className="border-border bg-card w-80 max-w-[calc(100vw-2rem)] overflow-hidden p-0 shadow-xl sm:w-96"
       >
-        <div className="flex items-center justify-between border-b border-border px-4 py-3 bg-muted/40">
+        <div className="border-border bg-muted/40 flex items-center justify-between border-b px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-sm text-foreground">
+            <span className="text-foreground text-sm font-semibold">
               {t('title')}
             </span>
             {unreadCount > 0 && (
-              <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full font-medium">
+              <span className="bg-primary/10 text-primary rounded-full px-2 py-0.5 text-xs font-medium">
                 {unreadCount} new
               </span>
             )}
@@ -154,7 +151,7 @@ export function NotificationPopover() {
               type="button"
               disabled={markingAll}
               onClick={markAllRead}
-              className="text-xs text-primary hover:underline font-medium flex items-center gap-1 disabled:opacity-50"
+              className="text-primary flex items-center gap-1 text-xs font-medium hover:underline disabled:opacity-50"
             >
               {markingAll ? (
                 <Loader2 className="size-3 animate-spin" />
@@ -166,13 +163,13 @@ export function NotificationPopover() {
           )}
         </div>
 
-        <div className="max-h-[320px] overflow-y-auto divide-y divide-border">
+        <div className="divide-border max-h-[320px] divide-y overflow-y-auto">
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
+            <div className="text-muted-foreground flex items-center justify-center py-8">
               <Loader2 className="size-5 animate-spin" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted-foreground px-4">
+            <div className="text-muted-foreground px-4 py-8 text-center text-xs">
               {t('emptyTitle')}
             </div>
           ) : (
@@ -193,13 +190,13 @@ export function NotificationPopover() {
                   type="button"
                   onClick={() => handleNotificationClick(n)}
                   className={cn(
-                    'w-full flex items-start gap-3 p-3 text-left transition-colors hover:bg-muted/50',
+                    'hover:bg-muted/50 flex w-full items-start gap-3 p-3 text-left transition-colors',
                     isUnread ? 'bg-primary/5 font-medium' : 'opacity-80'
                   )}
                 >
                   <div
                     className={cn(
-                      'size-8 rounded-full flex items-center justify-center shrink-0 mt-0.5',
+                      'mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full',
                       isUnread
                         ? 'bg-primary/20 text-primary'
                         : 'bg-muted text-muted-foreground'
@@ -207,23 +204,23 @@ export function NotificationPopover() {
                   >
                     <UserPlus className="size-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-foreground font-medium truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground truncate text-xs font-medium">
                       {n.title}
                     </p>
                     {n.body && (
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
                         {n.body}
                       </p>
                     )}
                     {timeAgo && (
-                      <span className="text-[10px] text-muted-foreground block mt-1">
+                      <span className="text-muted-foreground mt-1 block text-[10px]">
                         {timeAgo}
                       </span>
                     )}
                   </div>
                   {isUnread && (
-                    <span className="size-2 rounded-full bg-primary shrink-0 mt-1" />
+                    <span className="bg-primary mt-1 size-2 shrink-0 rounded-full" />
                   )}
                 </button>
               );
@@ -231,11 +228,11 @@ export function NotificationPopover() {
           )}
         </div>
 
-        <div className="border-t border-border bg-muted/20 p-2 text-center">
+        <div className="border-border bg-muted/20 border-t p-2 text-center">
           <Link
             href="/notifications"
             onClick={() => setOpen(false)}
-            className="text-xs text-primary hover:underline font-medium inline-flex items-center gap-1 py-1"
+            className="text-primary inline-flex items-center gap-1 py-1 text-xs font-medium hover:underline"
           >
             <span>View all notifications</span>
             <ArrowRight className="size-3" />

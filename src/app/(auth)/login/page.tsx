@@ -112,7 +112,7 @@ function LoginPageInner() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary"
+                className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary focus-visible:ring-2"
               />
             </div>
 
@@ -136,13 +136,15 @@ function LoginPageInner() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary pr-10"
+                  className="border-border bg-muted text-foreground placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-primary pr-10 focus-visible:ring-2"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="text-muted-foreground hover:text-foreground absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                  className="text-muted-foreground hover:text-foreground focus-visible:ring-primary absolute right-2.5 flex h-7 w-7 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                  aria-label={
+                    showPassword ? t('hidePassword') : t('showPassword')
+                  }
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />

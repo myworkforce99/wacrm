@@ -168,8 +168,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           error: 'CANNOT_REASSIGN_DEAL',
-          message:
-            'Only managers and admins can reassign deal ownership.',
+          message: 'Only managers and admins can reassign deal ownership.',
         },
         { status: 403 }
       );

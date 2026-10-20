@@ -4,7 +4,14 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 
-import type { Contact, Deal, ContactNote, Tag, LeadDetail, Conversation } from '@/types';
+import type {
+  Contact,
+  Deal,
+  ContactNote,
+  Tag,
+  LeadDetail,
+  Conversation,
+} from '@/types';
 import {
   Phone,
   Mail,
@@ -111,28 +118,29 @@ export function ContactSidebar({
     const supabase = createClient();
 
     // Fetch deals, notes, tags, lead requirements, and all available tags in parallel
-    const [dealsRes, notesRes, tagsRes, leadRes, allTagsRes] = await Promise.all([
-      supabase
-        .from('deals')
-        .select('*, stage:pipeline_stages!deals_stage_id_fkey(*)')
-        .eq('contact_id', contact.id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('contact_notes')
-        .select('*')
-        .eq('contact_id', contact.id)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('contact_tags')
-        .select('id, tag_id, tags(*)')
-        .eq('contact_id', contact.id),
-      supabase
-        .from('lead_details')
-        .select('*')
-        .eq('contact_id', contact.id)
-        .maybeSingle(),
-      supabase.from('tags').select('*').order('name'),
-    ]);
+    const [dealsRes, notesRes, tagsRes, leadRes, allTagsRes] =
+      await Promise.all([
+        supabase
+          .from('deals')
+          .select('*, stage:pipeline_stages!deals_stage_id_fkey(*)')
+          .eq('contact_id', contact.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('contact_notes')
+          .select('*')
+          .eq('contact_id', contact.id)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('contact_tags')
+          .select('id, tag_id, tags(*)')
+          .eq('contact_id', contact.id),
+        supabase
+          .from('lead_details')
+          .select('*')
+          .eq('contact_id', contact.id)
+          .maybeSingle(),
+        supabase.from('tags').select('*').order('name'),
+      ]);
 
     if (dealsRes.data) setDeals(dealsRes.data);
     if (notesRes.data) setNotes(notesRes.data);
@@ -296,7 +304,7 @@ export function ContactSidebar({
 
   if (!contact) {
     return (
-      <div className="border-border bg-card flex min-h-0 flex-1 w-full lg:w-80 items-center justify-center lg:border-l">
+      <div className="border-border bg-card flex min-h-0 w-full flex-1 items-center justify-center lg:w-80 lg:border-l">
         <p className="text-muted-foreground text-sm">
           {tThread('selectConversation')}
         </p>
@@ -306,12 +314,14 @@ export function ContactSidebar({
 
   const displayName = contact.name || contactHandle(contact);
   const initials = displayName.charAt(0).toUpperCase();
-  const availableTags = allTags.filter((at) => !tags.some((t) => t.id === at.id));
+  const availableTags = allTags.filter(
+    (at) => !tags.some((t) => t.id === at.id)
+  );
 
   return (
-    <div className="border-border bg-card flex min-h-0 flex-1 w-full lg:w-80 flex-col lg:border-l">
-      <ScrollArea className="flex-1 min-h-0">
-        <div className="p-4 space-y-4">
+    <div className="border-border bg-card flex min-h-0 w-full flex-1 flex-col lg:w-80 lg:border-l">
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="space-y-4 p-4">
           {/* Contact Info Header */}
           <div className="flex flex-col items-center text-center">
             <div className="bg-muted text-foreground flex h-14 w-14 items-center justify-center rounded-full text-base font-semibold shadow-xs">
@@ -362,10 +372,12 @@ export function ContactSidebar({
           <div className="space-y-2">
             <button
               onClick={handleCopyPhone}
-              className="text-muted-foreground hover:bg-muted flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs transition-colors border border-border/50"
+              className="text-muted-foreground hover:bg-muted border-border/50 flex w-full items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs transition-colors"
             >
               <Phone className="text-muted-foreground h-3.5 w-3.5" />
-              <span className="flex-1 text-left font-mono">{contactHandle(contact)}</span>
+              <span className="flex-1 text-left font-mono">
+                {contactHandle(contact)}
+              </span>
               {copied ? (
                 <Check className="text-primary h-3.5 w-3.5" />
               ) : (
@@ -374,7 +386,7 @@ export function ContactSidebar({
             </button>
 
             {contact.email && (
-              <div className="text-muted-foreground flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs border border-border/50">
+              <div className="text-muted-foreground border-border/50 flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs">
                 <Mail className="text-muted-foreground h-3.5 w-3.5" />
                 <span className="truncate">{contact.email}</span>
               </div>
@@ -388,7 +400,7 @@ export function ContactSidebar({
                 disabled={!canManage}
                 title={!canManage ? tSidebar('claimToSchedule') : undefined}
                 onClick={() => setScheduleVisitOpen(true)}
-                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Calendar className="text-primary h-3.5 w-3.5" />
                 <span>Schedule Visit</span>
@@ -397,9 +409,11 @@ export function ContactSidebar({
                 variant="outline"
                 size="sm"
                 disabled={!canManage}
-                title={!canManage ? tSidebar('claimToSendCostSheet') : undefined}
+                title={
+                  !canManage ? tSidebar('claimToSendCostSheet') : undefined
+                }
                 onClick={() => setCostSheetOpen(true)}
-                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="border-border hover:bg-muted flex h-8 items-center justify-center gap-1.5 px-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Zap className="h-3.5 w-3.5 text-emerald-500" />
                 <span>Cost Sheet</span>
@@ -408,7 +422,7 @@ export function ContactSidebar({
           </div>
 
           {/* Real Estate Requirements / Lead Qualification Card */}
-          <div className="border-border/80 rounded-xl border bg-muted/20 p-3 space-y-2.5 shadow-2xs">
+          <div className="border-border/80 bg-muted/20 space-y-2.5 rounded-xl border p-3 shadow-2xs">
             <div className="flex items-center justify-between">
               <div className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
                 <Home className="text-primary h-3.5 w-3.5" />
@@ -421,7 +435,7 @@ export function ContactSidebar({
                   onClick={() => setEditRequirementsOpen(true)}
                   className="text-muted-foreground hover:text-foreground h-6 px-1.5 text-xs"
                 >
-                  <Pencil className="mr-1 h-3 w-3 text-primary" />
+                  <Pencil className="text-primary mr-1 h-3 w-3" />
                   Edit
                 </Button>
               ) : (
@@ -435,7 +449,7 @@ export function ContactSidebar({
             </div>
 
             {/* Budget Range */}
-            <div className="bg-background flex items-center justify-between rounded-lg border border-border/60 px-2.5 py-1.5 text-xs">
+            <div className="bg-background border-border/60 flex items-center justify-between rounded-lg border px-2.5 py-1.5 text-xs">
               <span className="text-muted-foreground flex items-center gap-1 font-medium">
                 <IndianRupee className="text-primary h-3 w-3" />
                 Budget
@@ -447,7 +461,7 @@ export function ContactSidebar({
 
             {/* Configuration / BHK Preferences */}
             <div className="text-xs">
-              <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wider">
+              <span className="text-muted-foreground text-[10px] font-semibold tracking-wider uppercase">
                 BHK Preference
               </span>
               <div className="mt-1 flex flex-wrap gap-1">
@@ -470,25 +484,26 @@ export function ContactSidebar({
             </div>
 
             {/* Location & Possession Grid */}
-            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-border/50 text-xs">
+            <div className="border-border/50 grid grid-cols-2 gap-2 border-t pt-1 text-xs">
               <div>
                 <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
                   <MapPin className="text-primary h-3 w-3" />
                   Location
                 </span>
-                <p className="text-foreground truncate font-medium text-[11px] mt-0.5">
+                <p className="text-foreground mt-0.5 truncate text-[11px] font-medium">
                   {leadDetail?.location_preference || 'Not specified'}
                 </p>
               </div>
               <div>
                 <span className="text-muted-foreground flex items-center gap-1 text-[10px] font-semibold uppercase">
-                  <Clock className="h-3 w-3 text-primary" />
+                  <Clock className="text-primary h-3 w-3" />
                   Possession
                 </span>
-                <p className="text-foreground truncate font-medium text-[11px] mt-0.5">
+                <p className="text-foreground mt-0.5 truncate text-[11px] font-medium">
                   {leadDetail?.possession_preference === 'ready_to_move_only'
                     ? 'Ready to move'
-                    : leadDetail?.possession_preference === 'under_construction_ok'
+                    : leadDetail?.possession_preference ===
+                        'under_construction_ok'
                       ? 'Under constr.'
                       : 'Any'}
                 </p>
@@ -497,7 +512,7 @@ export function ContactSidebar({
 
             {/* Source */}
             {leadDetail?.source && (
-              <div className="flex items-center justify-between border-t border-border/50 pt-1.5 text-xs">
+              <div className="border-border/50 flex items-center justify-between border-t pt-1.5 text-xs">
                 <span className="text-muted-foreground text-[10px] font-semibold uppercase">
                   Source
                 </span>
@@ -515,7 +530,7 @@ export function ContactSidebar({
               </div>
               {canManage && availableTags.length > 0 && (
                 <DropdownMenu>
-                  <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground inline-flex items-center justify-center rounded-md h-6 px-1.5 text-xs transition-colors hover:bg-muted">
+                  <DropdownMenuTrigger className="text-muted-foreground hover:text-foreground hover:bg-muted inline-flex h-6 items-center justify-center rounded-md px-1.5 text-xs transition-colors">
                     <Plus className="mr-0.5 h-3 w-3" />
                     Add
                   </DropdownMenuTrigger>
@@ -524,7 +539,7 @@ export function ContactSidebar({
                       <DropdownMenuItem
                         key={at.id}
                         onClick={() => handleAddTag(at.id)}
-                        className="text-xs flex items-center gap-1.5"
+                        className="flex items-center gap-1.5 text-xs"
                       >
                         <span
                           className="h-2 w-2 rounded-full"
@@ -581,7 +596,10 @@ export function ContactSidebar({
                 </p>
               ) : (
                 deals.map((deal) => (
-                  <div key={deal.id} className="bg-muted/50 border border-border/50 rounded-lg px-3 py-2">
+                  <div
+                    key={deal.id}
+                    className="bg-muted/50 border-border/50 rounded-lg border px-3 py-2"
+                  >
                     <p className="text-foreground text-xs font-medium">
                       {deal.title}
                     </p>
@@ -626,7 +644,7 @@ export function ContactSidebar({
                   }
                   disabled={!canManage}
                   rows={2}
-                  className="border-border bg-muted/50 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="border-border bg-muted/50 text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-lg border px-2.5 py-1.5 text-xs outline-none disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <Button
                   size="sm"
@@ -640,7 +658,10 @@ export function ContactSidebar({
 
               <div className="space-y-2">
                 {notes.map((note) => (
-                  <div key={note.id} className="bg-muted/40 border border-border/40 rounded-lg p-2.5">
+                  <div
+                    key={note.id}
+                    className="bg-muted/40 border-border/40 rounded-lg border p-2.5"
+                  >
                     <p className="text-muted-foreground text-xs whitespace-pre-wrap">
                       {note.note_text}
                     </p>
@@ -671,7 +692,10 @@ export function ContactSidebar({
       />
 
       {/* Edit Real Estate Requirements Dialog */}
-      <Dialog open={editRequirementsOpen} onOpenChange={setEditRequirementsOpen}>
+      <Dialog
+        open={editRequirementsOpen}
+        onOpenChange={setEditRequirementsOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Real Estate Requirements</DialogTitle>
@@ -752,8 +776,12 @@ export function ContactSidebar({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="any">Any Timeline</SelectItem>
-                    <SelectItem value="ready_to_move_only">Ready to Move</SelectItem>
-                    <SelectItem value="under_construction_ok">Under Construction OK</SelectItem>
+                    <SelectItem value="ready_to_move_only">
+                      Ready to Move
+                    </SelectItem>
+                    <SelectItem value="under_construction_ok">
+                      Under Construction OK
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -812,7 +840,9 @@ export function ContactSidebar({
               onClick={handleSaveRequirements}
               disabled={savingRequirements}
             >
-              {savingRequirements && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+              {savingRequirements && (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              )}
               Save Requirements
             </Button>
           </DialogFooter>

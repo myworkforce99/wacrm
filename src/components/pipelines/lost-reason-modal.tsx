@@ -110,7 +110,7 @@ export function LostReasonModal({
         }
       }}
     >
-      <DialogContent className="bg-popover border-border max-h-[90vh] flex flex-col p-0 sm:max-w-md">
+      <DialogContent className="bg-popover border-border flex max-h-[90vh] flex-col p-0 sm:max-w-md">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle className="text-popover-foreground">
             {t('title')}
@@ -118,7 +118,7 @@ export function LostReasonModal({
           <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-2">
           {/* Reason options — required with touch-friendly targets */}
           <div className="grid gap-2">
             <Label className="text-muted-foreground">
@@ -130,7 +130,7 @@ export function LostReasonModal({
                 {t('loadingReasons')}
               </div>
             ) : (
-              <div className="grid gap-1.5 max-h-52 overflow-y-auto pr-1">
+              <div className="grid max-h-52 gap-1.5 overflow-y-auto pr-1">
                 {reasons.map((r) => {
                   const isSelected = selectedReasonId === r.id;
                   return (
@@ -138,7 +138,7 @@ export function LostReasonModal({
                       key={r.id}
                       type="button"
                       onClick={() => setSelectedReasonId(r.id)}
-                      className={`flex w-full items-center justify-between rounded-lg border p-2.5 text-left text-xs transition-colors cursor-pointer min-h-[40px] ${
+                      className={`flex min-h-[40px] w-full cursor-pointer items-center justify-between rounded-lg border p-2.5 text-left text-xs transition-colors ${
                         isSelected
                           ? 'border-primary/50 bg-primary/10 text-primary font-semibold shadow-2xs'
                           : 'border-border/70 bg-card hover:bg-muted text-foreground'
@@ -146,9 +146,9 @@ export function LostReasonModal({
                     >
                       <span className="truncate">{r.label}</span>
                       {isSelected ? (
-                        <CheckCircle2 className="size-4 shrink-0 text-primary ml-2" />
+                        <CheckCircle2 className="text-primary ml-2 size-4 shrink-0" />
                       ) : (
-                        <Circle className="size-4 shrink-0 text-muted-foreground/40 ml-2" />
+                        <Circle className="text-muted-foreground/40 ml-2 size-4 shrink-0" />
                       )}
                     </button>
                   );
@@ -180,11 +180,13 @@ export function LostReasonModal({
               min={new Date().toISOString().split('T')[0]}
               className="border-border bg-muted text-foreground h-9 text-xs"
             />
-            <p className="text-muted-foreground text-[11px]">{t('reEngageHint')}</p>
+            <p className="text-muted-foreground text-[11px]">
+              {t('reEngageHint')}
+            </p>
           </div>
         </div>
 
-        <DialogFooter className="p-6 pt-3 border-t border-border/50 gap-2 sm:gap-0">
+        <DialogFooter className="border-border/50 gap-2 border-t p-6 pt-3 sm:gap-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

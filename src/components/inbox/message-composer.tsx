@@ -579,7 +579,7 @@ export function MessageComposer({
   // ---- Render --------------------------------------------------------
 
   return (
-    <div className="border-border bg-card shrink-0 border-t p-2.5 sm:p-3 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:pb-3">
+    <div className="border-border bg-card shrink-0 border-t p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] sm:p-3 sm:pb-3">
       {replyTo && (
         <div className="mb-2">
           <ReplyQuote
@@ -590,7 +590,7 @@ export function MessageComposer({
         </div>
       )}
       {claimRequired ? (
-        <div className="mb-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50/90 p-2.5 text-xs text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
+        <div className="mb-2 flex flex-col justify-between gap-2 rounded-lg border border-amber-300 bg-amber-50/90 p-2.5 text-xs text-amber-900 sm:flex-row sm:items-center dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-200">
           <div className="flex items-center gap-2">
             <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
             <span>{t('unassignedLockedHint')}</span>
@@ -608,7 +608,7 @@ export function MessageComposer({
           )}
         </div>
       ) : lockedReason ? (
-        <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-muted/60 p-2.5 text-xs text-muted-foreground">
+        <div className="border-border bg-muted/60 text-muted-foreground mb-2 flex items-center gap-2 rounded-lg border p-2.5 text-xs">
           <Lock className="h-4 w-4 shrink-0" />
           <span>{lockedReason}</span>
         </div>
@@ -794,7 +794,7 @@ export function MessageComposer({
             canAct={!readOnly && !isLocked}
             gateReason="send messages"
             title={readOnly ? undefined : t('sendTemplate')}
-            className="text-muted-foreground hover:text-foreground hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
+            className="text-muted-foreground hover:text-foreground hidden h-9 w-9 shrink-0 p-0 sm:inline-flex"
             onClick={onOpenTemplates}
           >
             <LayoutTemplate className="h-4 w-4" />
@@ -807,7 +807,7 @@ export function MessageComposer({
             gateReason="send messages"
             disabled={drafting || isLocked}
             title={readOnly ? undefined : t('draftWithAI')}
-            className="text-muted-foreground hover:text-primary hidden sm:inline-flex h-9 w-9 shrink-0 p-0"
+            className="text-muted-foreground hover:text-primary hidden h-9 w-9 shrink-0 p-0 sm:inline-flex"
             onClick={handleDraft}
           >
             {drafting ? (
@@ -840,8 +840,9 @@ export function MessageComposer({
             // The placeholder text also surfaces the read-only state.
             title={readOnly ? t('readOnlyTitle') : undefined}
             className={cn(
-              'border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3 sm:px-4 py-2 sm:py-2.5 text-sm transition-colors outline-none',
-              (sessionExpired || readOnly || isLocked) && 'cursor-not-allowed opacity-50'
+              'border-border bg-muted text-foreground placeholder-muted-foreground focus:border-primary/50 flex-1 resize-none rounded-xl border px-3 py-2 text-sm transition-colors outline-none sm:px-4 sm:py-2.5',
+              (sessionExpired || readOnly || isLocked) &&
+                'cursor-not-allowed opacity-50'
             )}
           />
 
@@ -862,7 +863,7 @@ export function MessageComposer({
           `items-end` buttons below the textarea. Indented to line up
           under the textarea left edge. Hidden on mobile. */}
       {!draft && !recording && (
-        <p className="text-muted-foreground mt-1 hidden sm:block pl-[5.5rem] text-[10px]">
+        <p className="text-muted-foreground mt-1 hidden pl-[5.5rem] text-[10px] sm:block">
           {t('draftHint')}
         </p>
       )}

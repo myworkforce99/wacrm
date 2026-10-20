@@ -100,7 +100,7 @@ export function DealCard({
 
       <div className="flex items-stretch justify-between gap-3">
         {/* Main Details (Left) */}
-        <div className="flex-1 min-w-0 flex flex-col justify-between">
+        <div className="flex min-w-0 flex-1 flex-col justify-between">
           {/* Header: Title and Status Chips */}
           <div className="flex items-start justify-between gap-2">
             <h4 className="text-foreground flex-1 text-sm leading-snug font-semibold break-words">
@@ -167,12 +167,17 @@ export function DealCard({
                   ? formatINR(deal.value)
                   : formatCurrency(deal.value, deal.currency)}
               </span>
-              <BrokerageBadge dealValue={deal.value} brokeragePct={brokeragePct} />
+              <BrokerageBadge
+                dealValue={deal.value}
+                brokeragePct={brokeragePct}
+              />
             </div>
             {deal.expected_close_date && (
               <span
                 className={`flex items-center gap-1 text-[11px] ${
-                  isOverdue ? 'font-semibold text-red-500' : 'text-muted-foreground'
+                  isOverdue
+                    ? 'font-semibold text-red-500'
+                    : 'text-muted-foreground'
                 }`}
               >
                 {isOverdue ? (
@@ -220,7 +225,7 @@ export function DealCard({
                   <Link
                     href={`/inbox?contactId=${deal.contact.id}`}
                     title={t('chatWhatsAppTooltip')}
-                    className="size-8.5 rounded-lg flex items-center justify-center text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all shadow-2xs"
+                    className="flex size-8.5 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shadow-2xs transition-all hover:bg-emerald-500/20 active:scale-95 dark:text-emerald-400"
                   >
                     <MessageCircle className="h-4 w-4" />
                   </Link>
@@ -230,7 +235,7 @@ export function DealCard({
                   <a
                     href={`tel:${deal.contact.phone}`}
                     title={t('callTooltip')}
-                    className="size-8.5 rounded-lg flex items-center justify-center text-blue-600 dark:text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 active:scale-95 transition-all shadow-2xs"
+                    className="flex size-8.5 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shadow-2xs transition-all hover:bg-blue-500/20 active:scale-95 dark:text-blue-400"
                   >
                     <Phone className="h-4 w-4" />
                   </a>
@@ -244,7 +249,7 @@ export function DealCard({
                       onScheduleVisit(deal);
                     }}
                     title={t('scheduleVisitTooltip')}
-                    className="size-8.5 rounded-lg flex items-center justify-center text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                    className="flex size-8.5 cursor-pointer items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shadow-2xs transition-all hover:bg-amber-500/20 active:scale-95 dark:text-amber-400"
                   >
                     <CalendarPlus className="h-4 w-4" />
                   </button>
@@ -258,7 +263,7 @@ export function DealCard({
                       onMove(deal);
                     }}
                     title={t('moveStageTooltip')}
-                    className="size-8.5 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 active:scale-95 transition-all shadow-2xs cursor-pointer"
+                    className="text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 flex size-8.5 cursor-pointer items-center justify-center rounded-lg shadow-2xs transition-all active:scale-95"
                   >
                     <ArrowRightLeft className="h-4 w-4" />
                   </button>

@@ -58,7 +58,7 @@ export default function AgentsPage() {
           onValueChange={(v) => setTab(v as Tab)}
           className="mt-2"
         >
-          <TabsList className="flex flex-wrap h-auto gap-1">
+          <TabsList className="flex h-auto flex-wrap gap-1">
             <TabsTrigger value="playground">
               <Sparkles className="mr-1.5 h-4 w-4" /> {t('tabPlayground')}
             </TabsTrigger>

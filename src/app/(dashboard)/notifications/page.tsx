@@ -25,13 +25,25 @@ import { useTranslations } from 'next-intl';
 function getNotificationIcon(n: Notification) {
   const type = (n.type as string) || '';
   const text = `${n.title} ${n.body || ''}`.toLowerCase();
-  if (type === 'conversation_assigned' || text.includes('assigned') || text.includes('lead')) {
+  if (
+    type === 'conversation_assigned' ||
+    text.includes('assigned') ||
+    text.includes('lead')
+  ) {
     return UserPlus;
   }
-  if (type === 'new_message' || text.includes('message') || text.includes('chat')) {
+  if (
+    type === 'new_message' ||
+    text.includes('message') ||
+    text.includes('chat')
+  ) {
     return MessageSquare;
   }
-  if (type === 'site_visit_reminder' || text.includes('visit') || text.includes('schedule')) {
+  if (
+    type === 'site_visit_reminder' ||
+    text.includes('visit') ||
+    text.includes('schedule')
+  ) {
     return Calendar;
   }
   if (
@@ -277,7 +289,7 @@ export default function NotificationsPage() {
         <div className="border-border bg-muted/30 flex h-52 flex-col items-center justify-center rounded-xl border border-dashed px-4 text-center">
           <div className="bg-primary/10 flex h-12 w-12 items-center justify-center rounded-xl">
             {filterTab === 'unread' ? (
-              <CheckCheck className="text-emerald-500 h-6 w-6" />
+              <CheckCheck className="h-6 w-6 text-emerald-500" />
             ) : (
               <Bell className="text-primary h-6 w-6" />
             )}
