@@ -926,3 +926,54 @@ export interface Task {
   updated_at: string;
   contacts?: { name: string } | null;
 }
+
+// ============================================================
+// Social Media
+// ============================================================
+
+/**
+ * A connected social media account (Instagram or Facebook Page).
+ * Access tokens are never returned in this shape — they are
+ * decrypted server-side only when an API call needs them.
+ */
+export interface SocialAccount {
+  id: string;
+  account_id: string;
+  platform: 'instagram' | 'facebook';
+  display_name: string;
+  platform_user_id: string;
+  /** Token expiry as ISO-8601 string. Null means non-expiring. */
+  token_expires_at: string | null;
+  avatar_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type SocialPostStatus =
+  'draft' | 'scheduled' | 'publishing' | 'published' | 'failed';
+
+/**
+ * A social media post record. `media_url` holds the Supabase
+ * Storage public URL. `platform_post_id` is populated after
+ * a successful Meta Graph API publish call.
+ */
+export interface SocialPost {
+  id: string;
+  account_id: string;
+  social_account_id: string;
+  caption: string | null;
+  media_url: string | null;
+  media_storage_path: string | null;
+  status: SocialPostStatus;
+  scheduled_at: string | null;
+  platform_post_id: string | null;
+  failure_reason: string | null;
+  retry_count: number;
+  last_attempt_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  /** Joined from social_accounts */
+  social_account?: SocialAccount;
+}

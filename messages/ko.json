@@ -46,7 +46,8 @@
     "menuSettings": "설정",
     "menuSignOut": "로그아웃",
     "properties": "Properties",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "socialMedia": "소셜 미디어"
   },
   "Header": {
     "dashboard": "대시보드",
@@ -70,6 +71,7 @@
     "properties": "Properties",
     "integrations": "연동",
     "team": "팀",
+    "socialMedia": "소셜 미디어",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2805,5 +2807,61 @@
     "title": "오프라인 상태입니다",
     "desc": "인터넷 연결을 확인하고 다시 시도해 주세요.",
     "tryReconnecting": "다시 연결 시도"
+  },
+  "SocialMedia": {
+    "page": {
+      "title": "소셜 미디어",
+      "subtitle": "Instagram 및 Facebook 게시물 관리",
+      "newPost": "새 게시물",
+      "connectAccount": "계정 연결",
+      "noAccountsTitle": "연결된 소셜 계정이 없습니다",
+      "noAccountsSubtitle": "Instagram 또는 Facebook 페이지를 연결하여 게시를 시작하세요",
+      "noPostsYet": "게시물이 아직 없습니다",
+      "createFirstPost": "첫 게시물을 작성하여 시작하세요",
+      "errorLoad": "게시물을 불러오지 못했습니다",
+      "retry": "다시 시도"
+    },
+    "composer": {
+      "title": "새 게시물",
+      "selectAccount": "계정 선택",
+      "caption": "캡션",
+      "captionPlaceholder": "캡션을 작성하세요...",
+      "charactersLeft": "{count}자 남음",
+      "uploadImage": "이미지 업로드",
+      "changeImage": "이미지 변경",
+      "publishNow": "지금 게시",
+      "saveDraft": "임시 저장",
+      "submitForReview": "검토 요청 제출",
+      "agentNotice": "에이전트가 작성한 게시물은 관리자 승인 전까지 임시 저장됩니다.",
+      "publishing": "게시 중..."
+    },
+    "status": {
+      "draft": "임시 저장",
+      "scheduled": "예약됨",
+      "publishing": "게시 중",
+      "published": "게시됨",
+      "failed": "실패"
+    },
+    "table": {
+      "account": "계정",
+      "caption": "캡션",
+      "status": "상태",
+      "date": "날짜",
+      "actions": "작업",
+      "publish": "게시",
+      "publishDraft": "승인 및 게시"
+    },
+    "accounts": {
+      "connected": "연결됨",
+      "disconnect": "연결 해제",
+      "connectInstagram": "Instagram 연결",
+      "connectFacebook": "Facebook 페이지 연결",
+      "tokenExpiresSoon": "토큰이 {days}일 후에 만료됩니다 — 곧 다시 연결하세요"
+    },
+    "errors": {
+      "publishFailed": "게시 실패: {message}",
+      "uploadFailed": "이미지 업로드 실패",
+      "missingMedia": "게시하기 전에 이미지를 업로드해 주세요"
+    }
   }
 }

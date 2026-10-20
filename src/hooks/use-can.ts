@@ -9,6 +9,9 @@ import {
   canTransferOwnership,
   canViewOnly,
   canCreateBroadcast,
+  canManageSocialPosts,
+  canPublishSocialPost,
+  canConnectSocialAccount,
 } from '@/lib/auth/roles';
 
 /**
@@ -24,7 +27,10 @@ export type CanAction =
   | 'view-only'
   | 'delete-account'
   | 'transfer-ownership'
-  | 'create-broadcast';
+  | 'create-broadcast'
+  | 'manage-social-posts'
+  | 'publish-social-post'
+  | 'connect-social-account';
 
 /**
  * Inline alternative to `<RequireRole>` for places that need a
@@ -58,6 +64,12 @@ export function useCan(action: CanAction): boolean {
       return canTransferOwnership(accountRole);
     case 'create-broadcast':
       return canCreateBroadcast(accountRole);
+    case 'manage-social-posts':
+      return canManageSocialPosts(accountRole);
+    case 'publish-social-post':
+      return canPublishSocialPost(accountRole);
+    case 'connect-social-account':
+      return canConnectSocialAccount(accountRole);
     default: {
       // Exhaustiveness check — adding a new `CanAction` without a
       // case here fails the typecheck because TS narrows `action`

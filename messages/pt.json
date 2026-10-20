@@ -46,7 +46,8 @@
     "menuSettings": "Configurações",
     "menuSignOut": "Sair",
     "properties": "Properties",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "socialMedia": "Mídias sociais"
   },
   "Header": {
     "dashboard": "Painel",
@@ -70,6 +71,7 @@
     "properties": "Properties",
     "integrations": "Integrações",
     "team": "Equipe",
+    "socialMedia": "Mídias sociais",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2805,5 +2807,61 @@
     "title": "Você está offline",
     "desc": "Verifique sua conexão com a internet e tente novamente.",
     "tryReconnecting": "Tentar reconectar"
+  },
+  "SocialMedia": {
+    "page": {
+      "title": "Mídias sociais",
+      "subtitle": "Gerencie suas publicações do Instagram e Facebook",
+      "newPost": "Nova publicação",
+      "connectAccount": "Conectar conta",
+      "noAccountsTitle": "Nenhuma conta de mídia social conectada",
+      "noAccountsSubtitle": "Conecte sua conta do Instagram ou Página do Facebook para começar a postar",
+      "noPostsYet": "Nenhuma publicação ainda",
+      "createFirstPost": "Crie sua primeira publicação para começar",
+      "errorLoad": "Falha ao carregar publicações",
+      "retry": "Tentar novamente"
+    },
+    "composer": {
+      "title": "Nova publicação",
+      "selectAccount": "Selecionar conta",
+      "caption": "Legenda",
+      "captionPlaceholder": "Escreva uma legenda...",
+      "charactersLeft": "{count} caracteres restantes",
+      "uploadImage": "Enviar imagem",
+      "changeImage": "Alterar imagem",
+      "publishNow": "Publicar agora",
+      "saveDraft": "Salvar rascunho",
+      "submitForReview": "Enviar para revisão",
+      "agentNotice": "As publicações criadas por agentes são salvas como rascunhos para aprovação do administrador.",
+      "publishing": "Publicando..."
+    },
+    "status": {
+      "draft": "Rascunho",
+      "scheduled": "Agendado",
+      "publishing": "Publicando",
+      "published": "Publicado",
+      "failed": "Falhou"
+    },
+    "table": {
+      "account": "Conta",
+      "caption": "Legenda",
+      "status": "Status",
+      "date": "Data",
+      "actions": "Ações",
+      "publish": "Publicar",
+      "publishDraft": "Aprovar e publicar"
+    },
+    "accounts": {
+      "connected": "Conectado",
+      "disconnect": "Desconectar",
+      "connectInstagram": "Conectar Instagram",
+      "connectFacebook": "Conectar Página do Facebook",
+      "tokenExpiresSoon": "O token expira em {days} dias — reconecte em breve"
+    },
+    "errors": {
+      "publishFailed": "Falha ao publicar: {message}",
+      "uploadFailed": "Falha ao carregar imagem",
+      "missingMedia": "Por favor, carregue uma imagem antes de publicar"
+    }
   }
 }

@@ -114,9 +114,10 @@ export default async function IntegrationsPage() {
     {
       name: 'Instagram',
       slug: 'Instagram',
-      icon: 'MessageCircle',
+      icon: 'Instagram',
       status: 'coming_soon' as 'connected' | 'not_connected' | 'coming_soon',
       test_lead: false,
+      link: '/social-media',
     },
   ];
 

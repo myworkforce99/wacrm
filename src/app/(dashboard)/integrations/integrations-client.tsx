@@ -14,6 +14,7 @@ import {
   Layers,
   ShieldAlert,
 } from 'lucide-react';
+import { Instagram } from '@/components/social/icons';
 import {
   PortalConnectModal,
   type PortalItem,
@@ -25,6 +26,7 @@ export interface PortalConfig extends PortalItem {
   icon: string;
   test_lead: boolean;
   isNative?: boolean;
+  link?: string;
 }
 
 interface IntegrationsClientProps {
@@ -71,6 +73,8 @@ export function IntegrationsClient({
         return <Webhook className="size-6" />;
       case 'Layers':
         return <Layers className="size-6" />;
+      case 'Instagram':
+        return <Instagram className="size-6" />;
       default:
         return <Home className="size-6" />;
     }
@@ -191,7 +195,13 @@ export function IntegrationsClient({
               </div>
 
               <div className="pt-2">
-                {isComingSoon ? (
+                {portal.link ? (
+                  <Link href={portal.link} className="block w-full">
+                    <Button variant="outline" className="w-full text-xs">
+                      Set up <ExternalLink className="ml-2 size-3.5" />
+                    </Button>
+                  </Link>
+                ) : isComingSoon ? (
                   <Button variant="outline" className="w-full text-xs" disabled>
                     Coming Soon
                   </Button>

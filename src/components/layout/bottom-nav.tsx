@@ -19,6 +19,7 @@ import {
   Settings as SettingsIcon,
   Plug,
   Building,
+  Share2,
 } from 'lucide-react';
 import { useState } from 'react';
 import {
@@ -49,6 +50,11 @@ const moreNavItems = [
     labelKey: 'integrations',
     icon: Plug,
     adminOnly: true,
+  },
+  {
+    href: '/social-media',
+    labelKey: 'socialMedia',
+    icon: Share2,
   },
   {
     href: '/settings',

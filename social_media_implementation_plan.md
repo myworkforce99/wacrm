@@ -13,14 +13,14 @@
 - [ ] Read `src/app/(dashboard)/integrations/page.tsx` — the Instagram tile is already stubbed as `coming_soon`. This is your Phase 1 connection point.
 - [ ] Read `src/app/(dashboard)/broadcasts/page.tsx` — this is the gold-standard pattern for a new dashboard list page (data fetch, loading state, empty state, table, `useCan`, `useTranslations`, `PullToRefresh`).
 - [ ] Read `src/components/layout/sidebar.tsx` and `src/components/layout/bottom-nav.tsx` — you will add one item to each.
-- [ ] Read `src/lib/auth/roles.ts` — you will add two new capability predicates here.
+- [ ] Read `src/lib/auth/roles.ts` — you will add three capability predicates here (`canManageSocialPosts`, `canPublishSocialPost`, `canConnectSocialAccount`).
 - [ ] Read one recent migration (e.g., `supabase/migrations/129_deal_lifecycle_fields.sql`) to match RLS and trigger style.
 
 ---
 
 ## Phase 1 — Connect & Compose (MVP)
 
-**Goal:** Business owner can connect their Instagram Business or Facebook Page account via OAuth, write a caption, attach a single image, and publish immediately.
+**Goal:** Business owner can connect their Instagram Business or Facebook Page account via OAuth. Sales agents can draft posts and submit them for review, while Admins/Owners can publish immediately or approve agent drafts (Workflow Option 3: "Agent Drafts, Admin Publishes").
 
 ---
 
@@ -28,17 +28,26 @@
 
 **File:** `src/lib/auth/roles.ts`
 
-Add two new predicates **at the end** of the file, following the existing doc-comment style:
+Add three new predicates **at the end** of the file, following the existing doc-comment style:
 
 ```ts
 /**
- * Social media management: connect/disconnect accounts and publish posts.
+ * Social media post creation/drafting.
  * - Owner / Admin: full control over social accounts and posts.
- * - Agent: can create and publish posts but CANNOT connect or disconnect accounts.
+ * - Agent: can create and save draft posts, but CANNOT publish live or connect accounts.
  * - Viewer: read-only — can view the post history but not create or publish.
  */
 export function canManageSocialPosts(role: AccountRole): boolean {
   return hasMinRole(role, 'agent');
+}
+
+/**
+ * Social media live publishing & approval.
+ * Restricted to Admin / Owner accounts to ensure brand safety.
+ * Agents can draft posts, but an Admin or Owner must approve & publish.
+ */
+export function canPublishSocialPost(role: AccountRole): boolean {
+  return hasMinRole(role, 'admin');
 }
 
 /**
@@ -51,7 +60,8 @@ export function canConnectSocialAccount(role: AccountRole): boolean {
 }
 ```
 
-> **Why two predicates?** Agents should be able to post but not accidentally disconnect the business's Instagram account. This mirrors how agents can send messages but cannot change WhatsApp config.
+> **Why three predicates? (Workflow Option 3)**
+> Posting to the business's public social media is a high-visibility, sensitive action. Sales agents are empowered to draft marketing content and submit it for review, but only Admin and Owner accounts can publish live to Instagram/Facebook or connect/disconnect social accounts. Viewers have read-only access.
 
 ---
 
@@ -86,13 +96,10 @@ CREATE TABLE social_accounts (
   -- Soft-disconnect without destroying the row (allows reconnect)
   is_active         BOOLEAN NOT NULL DEFAULT TRUE,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  -- Required for PostgREST .upsert(..., { onConflict: 'account_id,platform' })
+  CONSTRAINT social_accounts_account_platform_key UNIQUE (account_id, platform)
 );
-
--- One active connection per platform per account (prevents duplicates).
-CREATE UNIQUE INDEX social_accounts_unique_active
-  ON social_accounts (account_id, platform)
-  WHERE is_active = TRUE;
 
 -- RLS: same pattern as api_keys, ai_configs, whatsapp_config.
 ALTER TABLE social_accounts ENABLE ROW LEVEL SECURITY;
@@ -160,8 +167,8 @@ CREATE TABLE social_posts (
   -- Retry counter for the scheduler (Phase 2)
   retry_count         INT NOT NULL DEFAULT 0,
   last_attempt_at     TIMESTAMPTZ,
-  -- Author who created the post
-  created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  -- Author who created the post (defaults to auth.uid())
+  created_by          UUID REFERENCES auth.users(id) ON DELETE SET NULL DEFAULT auth.uid(),
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -181,6 +188,8 @@ CREATE TRIGGER set_social_posts_updated_at
   BEFORE UPDATE ON social_posts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
+
+> **Storage Setup:** Phase 1 also provisions a public Supabase Storage bucket named `social-media` (max 16MB file limit, PNG/JPG/WebP mime types) with INSERT, SELECT, and UPDATE storage policies.
 
 > After applying both migrations, update `docs/agent/SCHEMA_REFERENCE.md` to add `social_accounts` and `social_posts` to the table inventory and bump the highest migration number to `132`.
 
@@ -468,7 +477,12 @@ export async function GET(request: NextRequest) {
   }
 
   const { platform } = JSON.parse(Buffer.from(rawState, 'base64').toString());
-  const { accountId } = await getCurrentAccount();
+  const { accountId, role } = await getCurrentAccount();
+  if (!canConnectSocialAccount(role)) {
+    return NextResponse.redirect(
+      `${process.env.NEXT_PUBLIC_SITE_URL}/social-media?error=forbidden`
+    );
+  }
 
   // Exchange short-lived code for long-lived access token
   const tokenRes = await fetch(
@@ -569,7 +583,7 @@ Accepts a `social_post` ID, decrypts the token, calls Meta Graph API, and update
 ```ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAccount } from '@/lib/auth/account';
-import { canManageSocialPosts } from '@/lib/auth/roles';
+import { canPublishSocialPost } from '@/lib/auth/roles';
 import { createClient } from '@/lib/supabase/server';
 import { decryptToken } from '@/lib/social/encryption';
 import {
@@ -579,7 +593,8 @@ import {
 
 export async function POST(request: NextRequest) {
   const { role, accountId } = await getCurrentAccount();
-  if (!canManageSocialPosts(role)) {
+  // Option 3: Only Admin and Owner accounts can publish live to Meta
+  if (!canPublishSocialPost(role)) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
@@ -685,25 +700,32 @@ export default async function SocialMediaPage() {
 
 #### `src/app/(dashboard)/social-media/social-media-client.tsx` (Client Component)
 
-This is the main client component. Structure it with these sections:
+This is the main client component. Structure it with these sections (implementing Workflow Option 3: "Agent Drafts, Admin Publishes"):
 
-1. **Header row** — `<h1>Social Media</h1>` + subtitle + `<GatedButton canAct={canManagePosts}>New Post</GatedButton>` (same pattern as `broadcasts/page.tsx` header).
-2. **Connected Accounts strip** — horizontal scroll row of connected account tiles. Each tile shows avatar, platform icon, display name, and a "Disconnect" button (gated to `canConnectSocial`). If no accounts: prominent "Connect Account" CTA.
-3. **Post composer sheet** — triggered by "New Post". Uses a `Sheet` component (bottom-sheet on mobile, side panel on desktop). Fields:
-   - Platform selector (dropdown, only shows connected accounts)
-   - Image uploader (Supabase Storage upload → sets `media_url`)
-   - Caption textarea (character counter: 2,200 for IG, 63,206 for FB)
-   - "Publish Now" button
-4. **Post history table** — desktop: table with columns `Platform | Caption (truncated) | Status | Date`. Mobile: stacked cards with status badge.
+1. **Header row & KPI strip**:
+   - `<h1>Social Media</h1>` + subtitle + `<GatedButton canAct={canManagePosts}>New Post</GatedButton>` (enabled for agent, admin, owner).
+   - Situational Awareness KPI strip with 4 metrics: Total Posts, Drafts / Review, Published, Failed.
+2. **Connected Accounts strip**:
+   - Horizontal scroll row of connected account tiles. Each tile shows avatar, platform icon, display name, and a "Disconnect" button (gated strictly to `canConnectSocialAccount`).
+   - Prominent "Connect Account" CTA visible only to admins/owners (`canConnectSocialAccount`).
+3. **Post composer sheet (`post-composer-sheet.tsx`)**:
+   - Triggered by "New Post". Takes `canPublish` (`useCan('publish-social-post')`).
+   - Fields: platform selector, image uploader (Supabase Storage bucket `social-media`), caption textarea with counter.
+   - **Agent Draft Workflow:** If user is a sales agent (`!canPublish`), displays an informational alert banner (`composer.agentNotice`) explaining that the post will be submitted for admin review, and the primary CTA is "Submit for Review" (saves as `draft`).
+   - **Admin Workflow:** If user is an admin or owner (`canPublish`), displays two actions: "Save Draft" and "Publish Now".
+4. **Post history table (`post-history-table.tsx`)**:
+   - Desktop: table with columns `Account | Media | Caption | Status | Date | Actions`.
+   - Mobile: stacked cards with status badge and actions.
+   - **Admin Approval Action:** For posts in `draft` status, Admins/Owners see an inline "Approve & Publish" action button (as well as "Retry" for `failed` posts). Sales agents see draft posts in read-only state.
 
 **Component conventions to match:**
 
-- Use `useCan('manage-social-posts')` hook (add this capability string to `use-can.ts` in Step 1.8)
+- Use `useCan('manage-social-posts')` and `useCan('publish-social-post')` hooks
 - Use `useTranslations('SocialMedia')` for all strings
 - Loading state: `<Loader2 className="text-primary h-6 w-6 animate-spin" />`
 - Empty state: centered icon + heading + CTA (match broadcasts empty state)
 - Wrap outer div in `<PullToRefresh onRefresh={fetchPosts}>`
-- Status badges: `draft` → muted, `publishing` → amber + pulse dot, `published` → green, `failed` → red
+- Status badges: `draft` → muted/amber badge, `publishing` → amber + pulse dot, `published` → green, `failed` → red
 
 ---
 
@@ -711,10 +733,11 @@ This is the main client component. Structure it with these sections:
 
 **File:** `src/hooks/use-can.ts`
 
-Add two new capability strings to the existing switch/map in `useCan`:
+Add three capability strings to the switch/map in `useCan`:
 
 ```ts
 case 'manage-social-posts': return canManageSocialPosts(role);
+case 'publish-social-post': return canPublishSocialPost(role);
 case 'connect-social-account': return canConnectSocialAccount(role);
 ```
 
@@ -724,7 +747,7 @@ case 'connect-social-account': return canConnectSocialAccount(role);
 
 **File:** `src/components/layout/sidebar.tsx`
 
-In the `navItems` array, add after the `integrations` entry:
+In the `navItems` array, add after the `integrations` entry (accessible to all authenticated roles so agents can draft posts; viewers have read-only view):
 
 ```ts
 import { Share2 } from 'lucide-react'; // add to icon imports at top
@@ -735,7 +758,6 @@ import { Share2 } from 'lucide-react'; // add to icon imports at top
   labelKey: 'socialMedia',
   icon: Share2,
   emoji: '📱',
-  adminOnly: true,   // only admin/owner can manage social accounts
 },
 ```
 
@@ -747,7 +769,7 @@ Add to `moreNavItems`:
 import { Share2 } from 'lucide-react'; // add to imports
 
 // In moreNavItems:
-{ href: '/social-media', labelKey: 'socialMedia', icon: Share2, adminOnly: true },
+{ href: '/social-media', labelKey: 'socialMedia', icon: Share2 },
 ```
 
 **File:** `src/app/(dashboard)/dashboard-shell.tsx`
@@ -790,6 +812,8 @@ In `messages/en.json`, add at the top level:
     "changeImage": "Change Image",
     "publishNow": "Publish Now",
     "saveDraft": "Save Draft",
+    "submitForReview": "Submit for Review",
+    "agentNotice": "Posts created by agents are saved as drafts for admin approval before publishing.",
     "publishing": "Publishing..."
   },
   "status": {
@@ -804,7 +828,9 @@ In `messages/en.json`, add at the top level:
     "caption": "Caption",
     "status": "Status",
     "date": "Date",
-    "actions": "Actions"
+    "actions": "Actions",
+    "publish": "Publish",
+    "publishDraft": "Approve & Publish"
   },
   "accounts": {
     "connected": "Connected",
@@ -849,10 +875,10 @@ Also add to `Header` namespace in all 4 files:
 
 Create these component files (structure only — implement following the broadcasts/flows component style):
 
-- `social-account-tile.tsx` — shows avatar, platform badge, display name, "Disconnect" button
-- `post-composer-sheet.tsx` — Sheet-based compose form (image upload + caption + publish)
+- `social-account-tile.tsx` — shows avatar, platform badge, display name, "Disconnect" button (gated strictly to `canConnectSocialAccount`)
+- `post-composer-sheet.tsx` — Sheet-based compose form (image upload + caption + draft submission / publish depending on `canPublish`)
 - `post-status-badge.tsx` — status badge (matches broadcast status badge pattern)
-- `post-history-table.tsx` — desktop table + mobile stacked card (matches contacts table pattern)
+- `post-history-table.tsx` — desktop table + mobile stacked card (with inline "Approve & Publish" action for admins/owners on draft posts)
 
 ---
 
@@ -908,26 +934,29 @@ npm run typecheck   # 0 errors
 npm run lint        # 0 errors
 npm run format:check
 npx vitest run src/i18n/messages.test.ts  # all 4 locales in parity
-npm run test        # all 1,076+ tests pass
+npm run test        # all tests pass
 ```
 
 Manual verification:
 
-- [ ] Admin can navigate to `/social-media` via sidebar
-- [ ] Agent and viewer cannot see the "Connect Account" button (RBAC gated)
-- [ ] Viewer sees post history as read-only (no "New Post" button)
+- [ ] Admin & agent can navigate to `/social-media` via sidebar (visible to agent for drafting; viewers see read-only history)
+- [ ] Agent and viewer cannot see the "Connect Account" or "Disconnect" buttons (`canConnectSocialAccount` gated)
+- [ ] Viewer sees post history as read-only (no "New Post" button, `canManageSocialPosts` gated)
+- [ ] Agent can open Post Composer, upload image, write caption, see the approval notice, and click "Submit for Review" (saves post as `draft`)
+- [ ] Agent CANNOT see "Publish Now" button in composer, and direct call to `/api/social/publish` returns 403 Forbidden
+- [ ] Admin/Owner sees draft posts in history table with "Approve & Publish" action button
+- [ ] Admin/Owner can publish immediately from composer ("Publish Now") or approve existing drafts from table ("Approve & Publish")
 - [ ] OAuth flow completes and creates a row in `social_accounts` with encrypted token
-- [ ] Post composer opens as a Sheet, image uploads to Supabase Storage, caption saves
-- [ ] "Publish Now" calls `/api/social/publish`, marks post as `published`, shows success toast
-- [ ] Failed publish shows error toast with `failure_reason`
+- [ ] Image uploads to `social-media` Supabase Storage bucket
+- [ ] Publishing calls `/api/social/publish`, marks post as `published`, shows success toast
+- [ ] Failed publish shows error toast with `failure_reason` and an inline "Retry" button for admins
 - [ ] Post history table renders on desktop; stacked cards on mobile (`< 768px`)
-- [ ] Sidebar item appears for admin/owner but not agent/viewer
 
 ---
 
 ## Phase 2 — Post Scheduling & Calendar View
 
-**Goal:** Business owner can pick a future date/time and have the post published automatically by a background job.
+**Goal:** Business owners/admins can schedule approved posts for future auto-publishing via a background job. Sales agents can propose target schedule dates on drafts submitted for admin approval (Option 3 workflow).
 
 ---
 
@@ -1014,6 +1043,8 @@ Deno.serve(async () => {
 });
 ```
 
+> **Brand Safety Invariant (Option 3):** The scheduler only queries posts where `status = 'scheduled'`. Under Option 3, only Admins/Owners can transition a post to `status = 'scheduled'`. If an agent proposes a schedule date, the post remains in `status = 'draft'` until an admin clicks "Approve & Schedule". This guarantees that no unreviewed agent content can ever be published automatically by pg_cron.
+>
 > **Note:** Add `INTERNAL_API_SECRET` to `.env.local.example`. The `/api/social/publish` route must accept this header as an alternative to the user session when processing scheduled posts.
 
 ---
@@ -1053,7 +1084,7 @@ Extend the Phase 1 composer to add a scheduling section below the caption:
 ```tsx
 // Add after the caption textarea:
 <div className="space-y-2">
-  <label className="text-sm font-medium text-foreground">
+  <label className="text-foreground text-sm font-medium">
     {t('composer.schedulePost')}
   </label>
   <div className="flex items-center gap-3">
@@ -1068,23 +1099,49 @@ Extend the Phase 1 composer to add a scheduling section below the caption:
       <button
         type="button"
         onClick={() => setScheduledAt('')}
-        className="text-muted-foreground text-xs hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground text-xs"
       >
         {t('composer.publishNow')}
       </button>
     )}
   </div>
-</div>
+</div>;
 
-// Footer buttons:
-<div className="flex gap-2">
-  <Button variant="outline" onClick={handleSaveDraft}>{t('composer.saveDraft')}</Button>
-  <Button onClick={scheduledAt ? handleSchedule : handlePublishNow} disabled={publishing}>
-    {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-    {scheduledAt ? t('composer.scheduleFor', { time: formatTime(scheduledAt) }) : t('composer.publishNow')}
-  </Button>
-</div>
+// Footer buttons (differentiated by role privilege):
+{
+  canPublish ? (
+    <div className="flex gap-2">
+      <Button variant="outline" onClick={handleSaveDraft}>
+        {t('composer.saveDraft')}
+      </Button>
+      <Button
+        onClick={scheduledAt ? handleSchedule : handlePublishNow}
+        disabled={publishing}
+      >
+        {publishing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {scheduledAt
+          ? t('composer.scheduleFor', { time: formatTime(scheduledAt) })
+          : t('composer.publishNow')}
+      </Button>
+    </div>
+  ) : (
+    <div className="flex flex-col gap-2">
+      <div className="rounded bg-amber-500/10 p-2 text-xs text-amber-600 dark:text-amber-400">
+        {scheduledAt
+          ? t('composer.scheduledDraftNotice')
+          : t('composer.agentNotice')}
+      </div>
+      <Button onClick={handleSubmitForReview} disabled={submitting}>
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+        {t('composer.submitForReview')}
+      </Button>
+    </div>
+  );
+}
 ```
+
+> **Review Workflow for Scheduled Posts:**
+> When an agent picks a target schedule time and submits, the post is saved with `status = 'draft'` and `scheduled_at = <selected-time>`. In `post-history-table.tsx` and `post-calendar.tsx`, Admins/Owners see an inline **"Approve & Schedule"** button that verifies the content and transitions the status to `'scheduled'`, queuing it for the cron scheduler.
 
 ---
 
@@ -1097,6 +1154,7 @@ Build a monthly calendar view showing scheduled posts as colored dots/pills on t
 - Desktop: Full monthly grid. Each day cell shows post count or truncated caption.
 - Mobile: Scrollable list grouped by date (week-by-week), matching the site-visits mobile list view.
 - Tab switcher on the `/social-media` page: `[Posts] [Calendar]` using the existing `Tabs` component.
+- Visual distinction: Active scheduled posts show in green/blue badge; agent-proposed drafts show in amber with "Pending Approval" pill.
 
 ---
 
@@ -1108,7 +1166,9 @@ Add to `SocialMedia.composer` in all 4 locale files:
 "schedulePost": "Schedule for later",
 "scheduleFor": "Schedule for {time}",
 "scheduledSuccessfully": "Post scheduled for {time}",
-"cancelSchedule": "Cancel Schedule"
+"cancelSchedule": "Cancel Schedule",
+"scheduledDraftNotice": "This post and its target schedule time will be submitted as a draft for admin approval.",
+"approveAndSchedule": "Approve & Schedule"
 ```
 
 Add to `SocialMedia.page`:
@@ -1126,8 +1186,10 @@ Add to `SocialMedia.page`:
 
 - [ ] All Phase 1 checks still pass
 - [ ] Date/time picker appears in composer below caption
-- [ ] Scheduling a post sets `status = 'scheduled'` and `scheduled_at` in DB
-- [ ] Scheduled posts appear on calendar view on their scheduled date
+- [ ] Admin scheduling a post sets `status = 'scheduled'` and `scheduled_at` in DB
+- [ ] Agent scheduling a post saves it as `draft` with `scheduled_at` set (never directly `scheduled`), awaiting admin approval
+- [ ] Admin sees "Approve & Schedule" action on agent drafts with proposed schedule time
+- [ ] Scheduled posts appear on calendar view on their scheduled date (with status distinction for pending drafts)
 - [ ] Edge Function deploys without error (`supabase functions deploy social-post-scheduler`)
 - [ ] pg_cron job fires every minute (verify in Supabase Dashboard → pg_cron logs)
 - [ ] A test post scheduled 2 minutes in the future auto-publishes
@@ -1138,7 +1200,7 @@ Add to `SocialMedia.page`:
 
 ## Phase 3 — AI Caption Assist & Post Templates
 
-**Goal:** Team can generate real-estate-specific captions for their posts using the existing AI infrastructure, and pick from a library of post templates.
+**Goal:** Team (both sales agents drafting posts and admins reviewing/publishing) can generate real-estate-specific captions using the existing AI infrastructure, and pick from a library of post templates.
 
 ---
 
@@ -1370,18 +1432,19 @@ Add `SocialMedia.templates` namespace:
 
 ## Cross-Phase Guardrails (Apply Throughout)
 
-| Rule                                             | Reference                                                                    |
-| ------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Never import from `@radix-ui/*`                  | Use `@base-ui/react` via existing `src/components/ui/` wrappers              |
-| Never hardcode hex colors                        | Use `globals.css` CSS variables only                                         |
-| Never compare role strings inline                | Always call predicates from `src/lib/auth/roles.ts`                          |
-| Never call Meta Graph API from client components | API routes only                                                              |
-| Never store plaintext access tokens              | Always use `encryptToken`/`decryptToken` from `src/lib/social/encryption.ts` |
-| Never skip i18n for new strings                  | All 4 locale files must have identical key hierarchy                         |
-| Always add RLS to new account-scoped tables      | `is_account_member(account_id)` pattern                                      |
-| Run verification gates before declaring done     | `typecheck`, `lint`, `format:check`, `test`                                  |
-| Add tests for new `lib/` logic                   | Co-locate `<file>.test.ts` per existing convention                           |
-| Update `docs/agent/SCHEMA_REFERENCE.md`          | Any new migration = update the table inventory                               |
+| Rule                                                         | Reference                                                                                  |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Never import from `@radix-ui/*`                              | Use `@base-ui/react` via existing `src/components/ui/` wrappers                            |
+| Never hardcode hex colors                                    | Use `globals.css` CSS variables only                                                       |
+| Never compare role strings inline                            | Always call predicates from `src/lib/auth/roles.ts`                                        |
+| Never call Meta Graph API from client components             | API routes only                                                                            |
+| Never store plaintext access tokens                          | Always use `encryptToken`/`decryptToken` from `src/lib/social/encryption.ts`               |
+| Never skip i18n for new strings                              | All 4 locale files must have identical key hierarchy                                       |
+| Always add RLS to new account-scoped tables                  | `is_account_member(account_id)` pattern                                                    |
+| Run verification gates before declaring done                 | `typecheck`, `lint`, `format:check`, `test`                                                |
+| Add tests for new `lib/` logic                               | Co-locate `<file>.test.ts` per existing convention                                         |
+| Update `docs/agent/SCHEMA_REFERENCE.md`                      | Any new migration = update the table inventory                                             |
+| Only Admins/Owners can publish or set `status = 'scheduled'` | Enforce Option 3 brand safety via `canPublishSocialPost(role)` server-side and client-side |
 
 ---
 
@@ -1412,18 +1475,18 @@ Add `SocialMedia.templates` namespace:
 
 ## Summary of Modified Files Across All Phases
 
-| File                                        | What Changes                                                         |
-| ------------------------------------------- | -------------------------------------------------------------------- |
-| `src/lib/auth/roles.ts`                     | +2 predicates (`canManageSocialPosts`, `canConnectSocialAccount`)    |
-| `src/hooks/use-can.ts`                      | +2 capability strings                                                |
-| `src/types/index.ts`                        | +`SocialAccount`, `SocialPost`, `SocialPostStatus` types             |
-| `src/components/layout/sidebar.tsx`         | +1 nav item (`socialMedia`)                                          |
-| `src/components/layout/bottom-nav.tsx`      | +1 nav item in `moreNavItems`                                        |
-| `src/app/(dashboard)/dashboard-shell.tsx`   | +1 entry in `pageTitles`                                             |
-| `src/app/(dashboard)/integrations/page.tsx` | Instagram tile: add `link` prop                                      |
-| `messages/en.json`                          | +`SocialMedia` namespace, +`socialMedia` key in `Sidebar` & `Header` |
-| `messages/es.json`                          | Same (mirrored keys)                                                 |
-| `messages/pt.json`                          | Same (mirrored keys)                                                 |
-| `messages/ko.json`                          | Same (mirrored keys)                                                 |
-| `.env.local.example`                        | +`META_APP_ID` comment                                               |
-| `docs/agent/SCHEMA_REFERENCE.md`            | +2 new table rows, updated migration number                          |
+| File                                        | What Changes                                                                                   |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `src/lib/auth/roles.ts`                     | +3 predicates (`canManageSocialPosts`, `canPublishSocialPost`, `canConnectSocialAccount`)      |
+| `src/hooks/use-can.ts`                      | +3 capability strings (`manage-social-posts`, `publish-social-post`, `connect-social-account`) |
+| `src/types/index.ts`                        | +`SocialAccount`, `SocialPost`, `SocialPostStatus` types                                       |
+| `src/components/layout/sidebar.tsx`         | +1 nav item (`socialMedia`, accessible to agent/admin/owner)                                   |
+| `src/components/layout/bottom-nav.tsx`      | +1 nav item in `moreNavItems`                                                                  |
+| `src/app/(dashboard)/dashboard-shell.tsx`   | +1 entry in `pageTitles`                                                                       |
+| `src/app/(dashboard)/integrations/page.tsx` | Instagram tile: add `link` prop                                                                |
+| `messages/en.json`                          | +`SocialMedia` namespace, +`socialMedia` key in `Sidebar` & `Header`                           |
+| `messages/es.json`                          | Same (mirrored keys)                                                                           |
+| `messages/pt.json`                          | Same (mirrored keys)                                                                           |
+| `messages/ko.json`                          | Same (mirrored keys)                                                                           |
+| `.env.local.example`                        | +`META_APP_ID` comment                                                                         |
+| `docs/agent/SCHEMA_REFERENCE.md`            | +2 new table rows, updated migration number                                                    |

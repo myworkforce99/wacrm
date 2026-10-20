@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `130_properties_admin_manage_only.sql`.**
-- **Every new migration in the implementation plan starts at `131` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `132_social_posts.sql`.**
+- **Every new migration in the implementation plan starts at `133` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
@@ -61,6 +61,8 @@ running fork where migrations may have been added since this was written.
 | `lead_routing_rules`            | 113                           | account-scoped condition→action routing rules for incoming leads                                                                                                                                                   |
 | `assignment_history`            | 102                           | immutable audit log of conversation re-assignments                                                                                                                                                                 |
 | `tasks`                         | 121                           | account-scoped to-do items linked to contacts and/or site visits                                                                                                                                                   |
+| `social_accounts`               | 131                           | account-scoped social connections (Instagram/Facebook); access tokens encrypted at rest                                                                                                                            |
+| `social_posts`                  | 132                           | account-scoped social posts (draft, scheduled, publishing, published, failed)                                                                                                                                      |
 
 Not yet present — these are the additions still planned: **`deals_history`** (deal-stage audit trail, Section F of the implementation plan).
 

@@ -27,6 +27,7 @@ import {
   Zap,
   Building,
   Plug,
+  Share2,
 } from 'lucide-react';
 import type { AccountRole } from '@/lib/auth/roles';
 
@@ -113,6 +114,12 @@ const navItems: NavItem[] = [
     icon: Plug,
     emoji: '🔌',
     adminOnly: true,
+  },
+  {
+    href: '/social-media',
+    labelKey: 'socialMedia',
+    icon: Share2,
+    emoji: '📱',
   },
   { href: '/automations', labelKey: 'automations', icon: Zap, emoji: '⚡' },
   {

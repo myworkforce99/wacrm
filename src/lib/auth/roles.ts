@@ -185,3 +185,31 @@ export function canReleaseLead(
     assignedAgentId && currentUserId && assignedAgentId === currentUserId
   );
 }
+
+/**
+ * Social media drafting/management: create and save draft posts.
+ * - Owner / Admin / Agent: can create and save draft posts.
+ * - Viewer: read-only — can view the post history.
+ */
+export function canManageSocialPosts(role: AccountRole): boolean {
+  return hasMinRole(role, 'agent');
+}
+
+/**
+ * Social post publishing: pushing a post live to Instagram or Facebook Page.
+ * - Owner / Admin: can publish live posts and approve drafts.
+ * - Agent: can create and edit DRAFTS, but CANNOT publish live.
+ * - Viewer: read-only — can view post history.
+ */
+export function canPublishSocialPost(role: AccountRole): boolean {
+  return hasMinRole(role, 'admin');
+}
+
+/**
+ * Social account connection: linking/unlinking an Instagram Business
+ * or Facebook Page. This is an account-wide credential change —
+ * same privilege level as WhatsApp config (admin/owner only).
+ */
+export function canConnectSocialAccount(role: AccountRole): boolean {
+  return hasMinRole(role, 'admin');
+}

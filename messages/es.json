@@ -46,7 +46,8 @@
     "menuSettings": "Configuración",
     "menuSignOut": "Cerrar sesión",
     "properties": "Properties",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "socialMedia": "Redes sociales"
   },
   "Header": {
     "dashboard": "Panel",
@@ -70,6 +71,7 @@
     "properties": "Properties",
     "integrations": "Integraciones",
     "team": "Equipo",
+    "socialMedia": "Redes sociales",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2805,5 +2807,61 @@
     "title": "Estás desconectado",
     "desc": "Comprueba tu conexión a internet e inténtalo de nuevo.",
     "tryReconnecting": "Reintentar conexión"
+  },
+  "SocialMedia": {
+    "page": {
+      "title": "Redes sociales",
+      "subtitle": "Gestiona tus publicaciones de Instagram y Facebook",
+      "newPost": "Nueva publicación",
+      "connectAccount": "Conectar cuenta",
+      "noAccountsTitle": "No hay cuentas de redes sociales conectadas",
+      "noAccountsSubtitle": "Conecta tu cuenta de Instagram o Página de Facebook para comenzar a publicar",
+      "noPostsYet": "Aún no hay publicaciones",
+      "createFirstPost": "Crea tu primera publicación para comenzar",
+      "errorLoad": "Error al cargar publicaciones",
+      "retry": "Reintentar"
+    },
+    "composer": {
+      "title": "Nueva publicación",
+      "selectAccount": "Seleccionar cuenta",
+      "caption": "Texto / Leyenda",
+      "captionPlaceholder": "Escribe una leyenda...",
+      "charactersLeft": "{count} caracteres restantes",
+      "uploadImage": "Subir imagen",
+      "changeImage": "Cambiar imagen",
+      "publishNow": "Publicar ahora",
+      "saveDraft": "Guardar borrador",
+      "submitForReview": "Enviar para revisión",
+      "agentNotice": "Las publicaciones creadas por agentes se guardan como borradores para la aprobación del administrador.",
+      "publishing": "Publicando..."
+    },
+    "status": {
+      "draft": "Borrador",
+      "scheduled": "Programado",
+      "publishing": "Publicando",
+      "published": "Publicado",
+      "failed": "Fallido"
+    },
+    "table": {
+      "account": "Cuenta",
+      "caption": "Leyenda",
+      "status": "Estado",
+      "date": "Fecha",
+      "actions": "Acciones",
+      "publish": "Publicar",
+      "publishDraft": "Aprobar y publicar"
+    },
+    "accounts": {
+      "connected": "Conectado",
+      "disconnect": "Desconectar",
+      "connectInstagram": "Conectar Instagram",
+      "connectFacebook": "Conectar Página de Facebook",
+      "tokenExpiresSoon": "El token expira en {days} días — reconecta pronto"
+    },
+    "errors": {
+      "publishFailed": "Error al publicar: {message}",
+      "uploadFailed": "Error al subir la imagen",
+      "missingMedia": "Por favor sube una imagen antes de publicar"
+    }
   }
 }

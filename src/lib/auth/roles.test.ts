@@ -12,6 +12,9 @@ import {
   canReleaseLead,
   canTransferOwnership,
   canViewOnly,
+  canManageSocialPosts,
+  canPublishSocialPost,
+  canConnectSocialAccount,
   hasMinRole,
   isAccountRole,
   roleRank,
@@ -205,6 +208,33 @@ describe('capability predicates', () => {
 
     it('viewer can never release leads', () => {
       expect(canReleaseLead('viewer', 'user-1', 'user-1')).toBe(false);
+    });
+  });
+
+  describe('canManageSocialPosts', () => {
+    it('agent+ only', () => {
+      expect(canManageSocialPosts('owner')).toBe(true);
+      expect(canManageSocialPosts('admin')).toBe(true);
+      expect(canManageSocialPosts('agent')).toBe(true);
+      expect(canManageSocialPosts('viewer')).toBe(false);
+    });
+  });
+
+  describe('canPublishSocialPost', () => {
+    it('admin+ only', () => {
+      expect(canPublishSocialPost('owner')).toBe(true);
+      expect(canPublishSocialPost('admin')).toBe(true);
+      expect(canPublishSocialPost('agent')).toBe(false);
+      expect(canPublishSocialPost('viewer')).toBe(false);
+    });
+  });
+
+  describe('canConnectSocialAccount', () => {
+    it('admin+ only', () => {
+      expect(canConnectSocialAccount('owner')).toBe(true);
+      expect(canConnectSocialAccount('admin')).toBe(true);
+      expect(canConnectSocialAccount('agent')).toBe(false);
+      expect(canConnectSocialAccount('viewer')).toBe(false);
     });
   });
 });

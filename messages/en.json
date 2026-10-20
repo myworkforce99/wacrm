@@ -46,7 +46,8 @@
     "menuSettings": "Settings",
     "menuSignOut": "Sign out",
     "properties": "Properties",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "socialMedia": "Social Media"
   },
   "Header": {
     "dashboard": "Dashboard",
@@ -70,6 +71,7 @@
     "properties": "Properties",
     "integrations": "Integrations",
     "team": "Team",
+    "socialMedia": "Social Media",
     "searchPlaceholder": "Search leads, properties..."
   },
   "ModeToggle": {
@@ -2806,5 +2808,61 @@
     "title": "You are offline",
     "desc": "Please check your internet connection and try again.",
     "tryReconnecting": "Try Reconnecting"
+  },
+  "SocialMedia": {
+    "page": {
+      "title": "Social Media",
+      "subtitle": "Manage your Instagram and Facebook posts",
+      "newPost": "New Post",
+      "connectAccount": "Connect Account",
+      "noAccountsTitle": "No social accounts connected",
+      "noAccountsSubtitle": "Connect your Instagram or Facebook Page to start posting",
+      "noPostsYet": "No posts yet",
+      "createFirstPost": "Create your first post to get started",
+      "errorLoad": "Failed to load posts",
+      "retry": "Retry"
+    },
+    "composer": {
+      "title": "New Post",
+      "selectAccount": "Select account",
+      "caption": "Caption",
+      "captionPlaceholder": "Write a caption...",
+      "charactersLeft": "{count} characters remaining",
+      "uploadImage": "Upload Image",
+      "changeImage": "Change Image",
+      "publishNow": "Publish Now",
+      "saveDraft": "Save Draft",
+      "submitForReview": "Submit for Review",
+      "agentNotice": "Posts created by agents are saved as drafts for admin approval before publishing.",
+      "publishing": "Publishing..."
+    },
+    "status": {
+      "draft": "Draft",
+      "scheduled": "Scheduled",
+      "publishing": "Publishing",
+      "published": "Published",
+      "failed": "Failed"
+    },
+    "table": {
+      "account": "Account",
+      "caption": "Caption",
+      "status": "Status",
+      "date": "Date",
+      "actions": "Actions",
+      "publish": "Publish",
+      "publishDraft": "Approve & Publish"
+    },
+    "accounts": {
+      "connected": "Connected",
+      "disconnect": "Disconnect",
+      "connectInstagram": "Connect Instagram",
+      "connectFacebook": "Connect Facebook Page",
+      "tokenExpiresSoon": "Token expires in {days} days — reconnect soon"
+    },
+    "errors": {
+      "publishFailed": "Failed to publish post: {message}",
+      "uploadFailed": "Image upload failed",
+      "missingMedia": "Please upload an image before publishing"
+    }
   }
 }

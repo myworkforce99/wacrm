@@ -53,6 +53,7 @@ const pageTitles: Record<string, string> = {
   '/properties': 'properties',
   '/team': 'team',
   '/integrations': 'integrations',
+  '/social-media': 'socialMedia',
 };
 
 function getPageTitleKey(pathname: string): string {
