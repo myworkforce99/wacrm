@@ -20,8 +20,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Loader2, X, Upload, Info, FileCheck } from 'lucide-react';
+import {
+  Loader2,
+  X,
+  Upload,
+  Info,
+  FileCheck,
+  Sparkles,
+  LayoutTemplate,
+} from 'lucide-react';
 import { Instagram, Facebook } from '@/components/social/icons';
+import { TemplatePicker } from '@/components/social/template-picker';
+import { SocialPostTemplate } from '@/lib/social/templates';
 import { toast } from 'sonner';
 
 interface PostComposerSheetProps {
@@ -55,6 +65,15 @@ export function PostComposerSheet({
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, startSubmitting] = useTransition();
 
+  // Phase 3: AI Caption Assist & Templates State
+  const [showAiAssist, setShowAiAssist] = useState(false);
+  const [propertyDetails, setPropertyDetails] = useState('');
+  const [tone, setTone] = useState<'professional' | 'friendly' | 'urgent'>(
+    'professional'
+  );
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+
   const selectedAccount =
     accounts.find((a) => a.id === selectedAccountId) ?? accounts[0];
   const isInstagram = selectedAccount?.platform === 'instagram';
@@ -81,6 +100,60 @@ export function PostComposerSheet({
     setMediaStoragePath(null);
     setScheduledAt('');
     setUploading(false);
+    setPropertyDetails('');
+    setShowAiAssist(false);
+    setIsGenerating(false);
+  };
+
+  const handleGenerateCaption = async (
+    overrideDetails?: string,
+    suggestedHashtags?: string[]
+  ) => {
+    const details = (overrideDetails ?? propertyDetails).trim();
+    if (!details) {
+      toast.error('Please enter property details to generate a caption');
+      setShowAiAssist(true);
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/social/generate-caption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: selectedAccount?.platform ?? 'instagram',
+          property_details: details,
+          tone,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error ?? 'Failed to generate caption');
+      }
+
+      let generated = (data.caption as string) || '';
+      if (suggestedHashtags && suggestedHashtags.length > 0) {
+        const tagsString = suggestedHashtags.join(' ');
+        if (!generated.includes(suggestedHashtags[0])) {
+          generated = `${generated.trim()}\n\n${tagsString}`;
+        }
+      }
+
+      setCaption(generated);
+      toast.success('Caption generated');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'AI generation failed');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSelectTemplate = (template: SocialPostTemplate) => {
+    setPropertyDetails(template.promptSeed);
+    setShowAiAssist(true);
+    void handleGenerateCaption(template.promptSeed, template.suggestedHashtags);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -256,213 +329,336 @@ export function PostComposerSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full flex-col justify-between overflow-y-auto p-6 sm:max-w-lg"
-      >
-        <div className="space-y-6">
-          <SheetHeader className="p-0">
-            <SheetTitle className="text-xl font-bold">
-              {t('composer.title')}
-            </SheetTitle>
-          </SheetHeader>
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col justify-between overflow-y-auto p-6 sm:max-w-lg"
+        >
+          <div className="space-y-6">
+            <SheetHeader className="p-0">
+              <SheetTitle className="text-xl font-bold">
+                {t('composer.title')}
+              </SheetTitle>
+            </SheetHeader>
 
-          {!canPublish && (
-            <div className="border-primary/20 bg-primary/5 text-foreground/90 flex items-start gap-2.5 rounded-lg border p-3 text-xs">
-              <Info className="text-primary mt-0.5 size-4 shrink-0" />
-              <span>
-                {scheduledAt
-                  ? t('composer.scheduledDraftNotice')
-                  : t('composer.agentNotice')}
-              </span>
-            </div>
-          )}
-
-          {/* Account Selector */}
-          <div className="space-y-2">
-            <label className="text-foreground text-sm font-medium">
-              {t('composer.selectAccount')}
-            </label>
-            <Select
-              value={selectedAccountId}
-              onValueChange={(val) => {
-                if (val) setSelectedAccountId(val as string);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={t('composer.selectAccount')} />
-              </SelectTrigger>
-              <SelectContent>
-                {accounts.map((acc) => (
-                  <SelectItem key={acc.id} value={acc.id}>
-                    <div className="flex items-center gap-2">
-                      {acc.platform === 'instagram' ? (
-                        <Instagram className="size-3.5 text-pink-600 dark:text-pink-400" />
-                      ) : (
-                        <Facebook className="size-3.5 text-blue-600 dark:text-blue-400" />
-                      )}
-                      <span>{acc.display_name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Media Uploader */}
-          <div className="space-y-2">
-            <label className="text-foreground text-sm font-medium">
-              {t('composer.uploadImage')}
-            </label>
-
-            <input
-              id={fileInputId}
-              ref={fileInputRef}
-              type="file"
-              accept="image/png, image/jpeg, image/webp"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-
-            {mediaUrl ? (
-              <div className="border-border bg-muted relative aspect-video w-full overflow-hidden rounded-xl border">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={mediaUrl}
-                  alt="Post preview"
-                  className="h-full w-full object-cover"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon-sm"
-                  onClick={() => {
-                    setMediaUrl(null);
-                    setMediaStoragePath(null);
-                  }}
-                  className="bg-background/80 hover:bg-background absolute top-2 right-2 rounded-full shadow-xs"
-                >
-                  <X className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-background/80 hover:bg-background absolute right-2 bottom-2 text-xs"
-                >
-                  {t('composer.changeImage')}
-                </Button>
+            {!canPublish && (
+              <div className="border-primary/20 bg-primary/5 text-foreground/90 flex items-start gap-2.5 rounded-lg border p-3 text-xs">
+                <Info className="text-primary mt-0.5 size-4 shrink-0" />
+                <span>
+                  {scheduledAt
+                    ? t('composer.scheduledDraftNotice')
+                    : t('composer.agentNotice')}
+                </span>
               </div>
-            ) : (
-              <button
-                type="button"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-                className="border-border hover:border-primary/50 hover:bg-muted/50 bg-muted/20 flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors"
-              >
-                {uploading ? (
-                  <Loader2 className="text-primary size-8 animate-spin" />
-                ) : (
-                  <>
-                    <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full">
-                      <Upload className="size-5" />
-                    </div>
-                    <span className="text-foreground text-xs font-medium">
-                      {t('composer.uploadImage')}
-                    </span>
-                    <span className="text-muted-foreground text-[11px]">
-                      PNG, JPG or WebP (max 16MB)
-                    </span>
-                  </>
-                )}
-              </button>
             )}
-          </div>
 
-          {/* Caption Textarea */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            {/* Account Selector */}
+            <div className="space-y-2">
               <label className="text-foreground text-sm font-medium">
-                {t('composer.caption')}
+                {t('composer.selectAccount')}
               </label>
-              <span
-                className={`text-xs ${
-                  charsRemaining < 0
-                    ? 'text-destructive font-semibold'
-                    : 'text-muted-foreground'
-                }`}
+              <Select
+                value={selectedAccountId}
+                onValueChange={(val) => {
+                  if (val) setSelectedAccountId(val as string);
+                }}
               >
-                {t('composer.charactersLeft', { count: charsRemaining })}
-              </span>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('composer.selectAccount')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      <div className="flex items-center gap-2">
+                        {acc.platform === 'instagram' ? (
+                          <Instagram className="size-3.5 text-pink-600 dark:text-pink-400" />
+                        ) : (
+                          <Facebook className="size-3.5 text-blue-600 dark:text-blue-400" />
+                        )}
+                        <span>{acc.display_name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <Textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder={t('composer.captionPlaceholder')}
-              rows={5}
-              className="resize-none"
-            />
-          </div>
-
-          {/* Schedule Post for Later */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="schedule-datetime"
-                className="text-foreground text-sm font-medium"
-              >
-                {t('composer.schedulePost')}
+            {/* Media Uploader */}
+            <div className="space-y-2">
+              <label className="text-foreground text-sm font-medium">
+                {t('composer.uploadImage')}
               </label>
-              {scheduledAt && (
+
+              <input
+                id={fileInputId}
+                ref={fileInputRef}
+                type="file"
+                accept="image/png, image/jpeg, image/webp"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              {mediaUrl ? (
+                <div className="border-border bg-muted relative aspect-video w-full overflow-hidden rounded-xl border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={mediaUrl}
+                    alt="Post preview"
+                    className="h-full w-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="icon-sm"
+                    onClick={() => {
+                      setMediaUrl(null);
+                      setMediaStoragePath(null);
+                    }}
+                    className="bg-background/80 hover:bg-background absolute top-2 right-2 rounded-full shadow-xs"
+                  >
+                    <X className="size-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-background/80 hover:bg-background absolute right-2 bottom-2 text-xs"
+                  >
+                    {t('composer.changeImage')}
+                  </Button>
+                </div>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => setScheduledAt('')}
-                  className="text-muted-foreground hover:text-foreground text-xs"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-border hover:border-primary/50 hover:bg-muted/50 bg-muted/20 flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed transition-colors"
                 >
-                  {t('composer.cancelSchedule')}
+                  {uploading ? (
+                    <Loader2 className="text-primary size-8 animate-spin" />
+                  ) : (
+                    <>
+                      <div className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full">
+                        <Upload className="size-5" />
+                      </div>
+                      <span className="text-foreground text-xs font-medium">
+                        {t('composer.uploadImage')}
+                      </span>
+                      <span className="text-muted-foreground text-[11px]">
+                        PNG, JPG or WebP (max 16MB)
+                      </span>
+                    </>
+                  )}
                 </button>
               )}
             </div>
-            <div className="flex items-center gap-3">
-              <input
-                id="schedule-datetime"
-                type="datetime-local"
-                min={new Date().toISOString().slice(0, 16)}
-                value={scheduledAt}
-                onChange={(e) => setScheduledAt(e.target.value)}
-                className="border-border bg-background text-foreground focus:ring-ring focus:border-ring w-full rounded-md border px-3 py-2 text-sm shadow-xs focus:ring-1 focus:outline-hidden"
+
+            {/* Caption Textarea & AI Assist Section */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-foreground text-sm font-medium">
+                  {t('composer.caption')}
+                </label>
+
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setTemplatePickerOpen(true)}
+                    className="h-7 px-2 text-xs"
+                  >
+                    <LayoutTemplate className="text-muted-foreground mr-1 size-3" />
+                    {t('composer.useTemplate')}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant={showAiAssist ? 'secondary' : 'outline'}
+                    size="sm"
+                    onClick={() => setShowAiAssist(!showAiAssist)}
+                    className="border-primary/20 hover:bg-primary/10 text-primary h-7 px-2 text-xs"
+                  >
+                    <Sparkles className="mr-1 size-3" />
+                    {t('composer.aiAssistLabel')}
+                  </Button>
+                </div>
+              </div>
+
+              {/* AI Assist Drawer Box */}
+              {showAiAssist && (
+                <div className="border-primary/20 bg-primary/5 space-y-2.5 rounded-xl border p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-foreground flex items-center gap-1.5 text-xs font-semibold">
+                      <Sparkles className="text-primary size-3" />
+                      {t('composer.generateCaption')}
+                    </span>
+                    <div className="flex items-center gap-1 text-[11px]">
+                      {(['professional', 'friendly', 'urgent'] as const).map(
+                        (tVal) => (
+                          <button
+                            key={tVal}
+                            type="button"
+                            onClick={() => setTone(tVal)}
+                            className={`cursor-pointer rounded-full px-2 py-0.5 capitalize transition-colors ${
+                              tone === tVal
+                                ? 'bg-primary text-primary-foreground font-medium'
+                                : 'bg-background/80 text-muted-foreground hover:text-foreground'
+                            }`}
+                          >
+                            {t(
+                              `composer.tone${
+                                (tVal.charAt(0).toUpperCase() +
+                                  tVal.slice(1)) as
+                                  'Professional' | 'Friendly' | 'Urgent'
+                              }`
+                            )}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={propertyDetails}
+                      onChange={(e) => setPropertyDetails(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !isGenerating) {
+                          e.preventDefault();
+                          void handleGenerateCaption();
+                        }
+                      }}
+                      placeholder={t('composer.propertyDetailsPlaceholder')}
+                      className="border-border bg-background text-foreground focus:ring-primary w-full flex-1 rounded-md border px-3 py-1.5 text-xs shadow-xs focus:ring-1 focus:outline-hidden"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      disabled={isGenerating || !propertyDetails.trim()}
+                      onClick={() => void handleGenerateCaption()}
+                      className="bg-primary text-primary-foreground h-8 shrink-0 px-3 text-xs"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="mr-1.5 size-3 animate-spin" />
+                          {t('composer.generating')}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-1.5 size-3" />
+                          {t('composer.generateCaption')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="text-muted-foreground flex items-center justify-between text-xs">
+                <span className="text-[11px]">
+                  {caption ? `${caption.length} characters` : ''}
+                </span>
+                <span
+                  className={
+                    charsRemaining < 0
+                      ? 'text-destructive font-semibold'
+                      : 'text-muted-foreground'
+                  }
+                >
+                  {t('composer.charactersLeft', { count: charsRemaining })}
+                </span>
+              </div>
+
+              <Textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder={t('composer.captionPlaceholder')}
+                rows={5}
+                className="resize-none"
               />
             </div>
+
+            {/* Schedule Post for Later */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="schedule-datetime"
+                  className="text-foreground text-sm font-medium"
+                >
+                  {t('composer.schedulePost')}
+                </label>
+                {scheduledAt && (
+                  <button
+                    type="button"
+                    onClick={() => setScheduledAt('')}
+                    className="text-muted-foreground hover:text-foreground text-xs"
+                  >
+                    {t('composer.cancelSchedule')}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  id="schedule-datetime"
+                  type="datetime-local"
+                  min={new Date().toISOString().slice(0, 16)}
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  className="border-border bg-background text-foreground focus:ring-ring focus:border-ring w-full rounded-md border px-3 py-2 text-sm shadow-xs focus:ring-1 focus:outline-hidden"
+                />
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* Footer actions */}
-        <div className="border-border mt-6 flex items-center justify-end gap-3 border-t pt-4">
-          {canPublish ? (
-            <>
+          {/* Footer actions */}
+          <div className="border-border mt-6 flex items-center justify-end gap-3 border-t pt-4">
+            {canPublish ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting || uploading}
+                  onClick={handleSaveDraft}
+                >
+                  {t('composer.saveDraft')}
+                </Button>
+
+                <Button
+                  type="button"
+                  disabled={
+                    isSubmitting ||
+                    uploading ||
+                    !mediaUrl ||
+                    charsRemaining < 0 ||
+                    (Boolean(scheduledAt) &&
+                      isNaN(new Date(scheduledAt).getTime()))
+                  }
+                  onClick={scheduledAt ? handleSchedule : handlePublishNow}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      {t('composer.publishing')}
+                    </>
+                  ) : scheduledAt ? (
+                    t('composer.scheduleFor', {
+                      time: formatScheduleTime(scheduledAt),
+                    })
+                  ) : (
+                    t('composer.publishNow')
+                  )}
+                </Button>
+              </>
+            ) : (
               <Button
                 type="button"
-                variant="outline"
-                disabled={isSubmitting || uploading}
+                disabled={isSubmitting || uploading || charsRemaining < 0}
                 onClick={handleSaveDraft}
-              >
-                {t('composer.saveDraft')}
-              </Button>
-
-              <Button
-                type="button"
-                disabled={
-                  isSubmitting ||
-                  uploading ||
-                  !mediaUrl ||
-                  charsRemaining < 0 ||
-                  (Boolean(scheduledAt) &&
-                    isNaN(new Date(scheduledAt).getTime()))
-                }
-                onClick={scheduledAt ? handleSchedule : handlePublishNow}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isSubmitting ? (
@@ -470,37 +666,24 @@ export function PostComposerSheet({
                     <Loader2 className="mr-2 size-4 animate-spin" />
                     {t('composer.publishing')}
                   </>
-                ) : scheduledAt ? (
-                  t('composer.scheduleFor', {
-                    time: formatScheduleTime(scheduledAt),
-                  })
                 ) : (
-                  t('composer.publishNow')
+                  <>
+                    <FileCheck className="mr-2 size-4" />
+                    {t('composer.submitForReview')}
+                  </>
                 )}
               </Button>
-            </>
-          ) : (
-            <Button
-              type="button"
-              disabled={isSubmitting || uploading || charsRemaining < 0}
-              onClick={handleSaveDraft}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  {t('composer.publishing')}
-                </>
-              ) : (
-                <>
-                  <FileCheck className="mr-2 size-4" />
-                  {t('composer.submitForReview')}
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </SheetContent>
-    </Sheet>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Template Picker Dialog */}
+      <TemplatePicker
+        open={templatePickerOpen}
+        onOpenChange={setTemplatePickerOpen}
+        onSelectTemplate={handleSelectTemplate}
+      />
+    </>
   );
 }

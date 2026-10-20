@@ -2843,7 +2843,29 @@
       "scheduledSuccessfully": "Publicación programada para {time}",
       "cancelSchedule": "Cancelar programación",
       "scheduledDraftNotice": "Esta publicación y su fecha propuesta se enviarán como borrador para la aprobación del administrador.",
-      "approveAndSchedule": "Aprobar y programar"
+      "approveAndSchedule": "Aprobar y programar",
+      "generateCaption": "Generar leyenda",
+      "generating": "Generando...",
+      "propertyDetailsPlaceholder": "ej. 3BHK en Noida, ₹1.2 Cr, listo para mudarse",
+      "useTemplate": "Usar plantilla",
+      "aiAssistLabel": "Asistente IA",
+      "tone": "Tono",
+      "toneProfessional": "Profesional",
+      "toneFriendly": "Amigable",
+      "toneUrgent": "Urgente"
+    },
+    "templates": {
+      "title": "Plantillas de publicación",
+      "subtitle": "Comienza con una plantilla de bienes raíces",
+      "all": "Todas",
+      "useTemplate": "Usar plantilla",
+      "categories": {
+        "property_launch": "Lanzamiento de propiedad",
+        "site_visit": "Visita al sitio",
+        "testimonial": "Testimonio",
+        "offer": "Oferta",
+        "general": "General"
+      }
     },
     "status": {
       "draft": "Borrador",

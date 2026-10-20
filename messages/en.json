@@ -2844,7 +2844,29 @@
       "scheduledSuccessfully": "Post scheduled for {time}",
       "cancelSchedule": "Cancel Schedule",
       "scheduledDraftNotice": "This post and its target schedule time will be submitted as a draft for admin approval.",
-      "approveAndSchedule": "Approve & Schedule"
+      "approveAndSchedule": "Approve & Schedule",
+      "generateCaption": "Generate Caption",
+      "generating": "Generating...",
+      "propertyDetailsPlaceholder": "e.g. 3BHK in Noida, ₹1.2 Cr, ready to move",
+      "useTemplate": "Use Template",
+      "aiAssistLabel": "AI Assist",
+      "tone": "Tone",
+      "toneProfessional": "Professional",
+      "toneFriendly": "Friendly",
+      "toneUrgent": "Urgent"
+    },
+    "templates": {
+      "title": "Post Templates",
+      "subtitle": "Start with a real estate template",
+      "all": "All",
+      "useTemplate": "Use Template",
+      "categories": {
+        "property_launch": "Property Launch",
+        "site_visit": "Site Visit",
+        "testimonial": "Testimonial",
+        "offer": "Offer",
+        "general": "General"
+      }
     },
     "status": {
       "draft": "Draft",
