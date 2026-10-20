@@ -2820,7 +2820,11 @@
       "noPostsYet": "No posts yet",
       "createFirstPost": "Create your first post to get started",
       "errorLoad": "Failed to load posts",
-      "retry": "Retry"
+      "retry": "Retry",
+      "calendarTab": "Calendar",
+      "postsTab": "Posts",
+      "noScheduledPosts": "No scheduled posts",
+      "scheduleYourFirst": "Schedule a post to see it here"
     },
     "composer": {
       "title": "New Post",
@@ -2834,7 +2838,13 @@
       "saveDraft": "Save Draft",
       "submitForReview": "Submit for Review",
       "agentNotice": "Posts created by agents are saved as drafts for admin approval before publishing.",
-      "publishing": "Publishing..."
+      "publishing": "Publishing...",
+      "schedulePost": "Schedule for later",
+      "scheduleFor": "Schedule for {time}",
+      "scheduledSuccessfully": "Post scheduled for {time}",
+      "cancelSchedule": "Cancel Schedule",
+      "scheduledDraftNotice": "This post and its target schedule time will be submitted as a draft for admin approval.",
+      "approveAndSchedule": "Approve & Schedule"
     },
     "status": {
       "draft": "Draft",
@@ -2850,7 +2860,18 @@
       "date": "Date",
       "actions": "Actions",
       "publish": "Publish",
-      "publishDraft": "Approve & Publish"
+      "publishDraft": "Approve & Publish",
+      "cancelSchedule": "Cancel Schedule",
+      "approveAndSchedule": "Approve & Schedule",
+      "scheduledFor": "Scheduled for {time}"
+    },
+    "calendar": {
+      "month": "Month",
+      "today": "Today",
+      "scheduledPosts": "Scheduled Posts",
+      "pendingApproval": "Pending Approval",
+      "noPostsOnDay": "No posts scheduled for this day",
+      "postsCount": "{count} {count, plural, =1 {post} other {posts}}"
     },
     "accounts": {
       "connected": "Connected",

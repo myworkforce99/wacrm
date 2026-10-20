@@ -51,6 +51,7 @@ export function PostComposerSheet({
   const [caption, setCaption] = useState('');
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [mediaStoragePath, setMediaStoragePath] = useState<string | null>(null);
+  const [scheduledAt, setScheduledAt] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isSubmitting, startSubmitting] = useTransition();
 
@@ -60,10 +61,25 @@ export function PostComposerSheet({
   const charLimit = isInstagram ? 2200 : 63206;
   const charsRemaining = charLimit - caption.length;
 
+  const formatScheduleTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
+
   const resetForm = () => {
     setCaption('');
     setMediaUrl(null);
     setMediaStoragePath(null);
+    setScheduledAt('');
     setUploading(false);
   };
 
@@ -114,6 +130,9 @@ export function PostComposerSheet({
           media_url: mediaUrl,
           media_storage_path: mediaStoragePath,
           status: 'draft',
+          scheduled_at: scheduledAt
+            ? new Date(scheduledAt).toISOString()
+            : null,
         });
 
         if (error) throw error;
@@ -124,6 +143,53 @@ export function PostComposerSheet({
       } catch (err) {
         toast.error(
           err instanceof Error ? err.message : 'Failed to save draft'
+        );
+      }
+    });
+  };
+
+  const handleSchedule = () => {
+    if (!selectedAccount) {
+      toast.error('Please select an account');
+      return;
+    }
+
+    if (!mediaUrl) {
+      toast.error(t('errors.missingMedia'));
+      return;
+    }
+
+    if (!scheduledAt) {
+      toast.error('Please select a date and time');
+      return;
+    }
+
+    startSubmitting(async () => {
+      try {
+        const supabase = createClient();
+        const scheduledIso = new Date(scheduledAt).toISOString();
+        const { error } = await supabase.from('social_posts').insert({
+          account_id: accountId,
+          social_account_id: selectedAccount.id,
+          caption: caption.trim() || null,
+          media_url: mediaUrl,
+          media_storage_path: mediaStoragePath,
+          status: 'scheduled',
+          scheduled_at: scheduledIso,
+        });
+
+        if (error) throw error;
+        toast.success(
+          t('composer.scheduledSuccessfully', {
+            time: formatScheduleTime(scheduledAt),
+          })
+        );
+        resetForm();
+        onOpenChange(false);
+        onPostCreated?.();
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : 'Failed to schedule post'
         );
       }
     });
@@ -205,7 +271,11 @@ export function PostComposerSheet({
           {!canPublish && (
             <div className="border-primary/20 bg-primary/5 text-foreground/90 flex items-start gap-2.5 rounded-lg border p-3 text-xs">
               <Info className="text-primary mt-0.5 size-4 shrink-0" />
-              <span>{t('composer.agentNotice')}</span>
+              <span>
+                {scheduledAt
+                  ? t('composer.scheduledDraftNotice')
+                  : t('composer.agentNotice')}
+              </span>
             </div>
           )}
 
@@ -336,6 +406,37 @@ export function PostComposerSheet({
               className="resize-none"
             />
           </div>
+
+          {/* Schedule Post for Later */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="schedule-datetime"
+                className="text-foreground text-sm font-medium"
+              >
+                {t('composer.schedulePost')}
+              </label>
+              {scheduledAt && (
+                <button
+                  type="button"
+                  onClick={() => setScheduledAt('')}
+                  className="text-muted-foreground hover:text-foreground text-xs"
+                >
+                  {t('composer.cancelSchedule')}
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                id="schedule-datetime"
+                type="datetime-local"
+                min={new Date().toISOString().slice(0, 16)}
+                value={scheduledAt}
+                onChange={(e) => setScheduledAt(e.target.value)}
+                className="border-border bg-background text-foreground focus:ring-ring focus:border-ring w-full rounded-md border px-3 py-2 text-sm shadow-xs focus:ring-1 focus:outline-hidden"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Footer actions */}
@@ -354,9 +455,14 @@ export function PostComposerSheet({
               <Button
                 type="button"
                 disabled={
-                  isSubmitting || uploading || !mediaUrl || charsRemaining < 0
+                  isSubmitting ||
+                  uploading ||
+                  !mediaUrl ||
+                  charsRemaining < 0 ||
+                  (Boolean(scheduledAt) &&
+                    isNaN(new Date(scheduledAt).getTime()))
                 }
-                onClick={handlePublishNow}
+                onClick={scheduledAt ? handleSchedule : handlePublishNow}
                 className="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {isSubmitting ? (
@@ -364,6 +470,10 @@ export function PostComposerSheet({
                     <Loader2 className="mr-2 size-4 animate-spin" />
                     {t('composer.publishing')}
                   </>
+                ) : scheduledAt ? (
+                  t('composer.scheduleFor', {
+                    time: formatScheduleTime(scheduledAt),
+                  })
                 ) : (
                   t('composer.publishNow')
                 )}

@@ -2819,7 +2819,11 @@
       "noPostsYet": "Aún no hay publicaciones",
       "createFirstPost": "Crea tu primera publicación para comenzar",
       "errorLoad": "Error al cargar publicaciones",
-      "retry": "Reintentar"
+      "retry": "Reintentar",
+      "calendarTab": "Calendario",
+      "postsTab": "Publicaciones",
+      "noScheduledPosts": "No hay publicaciones programadas",
+      "scheduleYourFirst": "Programa una publicación para verla aquí"
     },
     "composer": {
       "title": "Nueva publicación",
@@ -2833,7 +2837,13 @@
       "saveDraft": "Guardar borrador",
       "submitForReview": "Enviar para revisión",
       "agentNotice": "Las publicaciones creadas por agentes se guardan como borradores para la aprobación del administrador.",
-      "publishing": "Publicando..."
+      "publishing": "Publicando...",
+      "schedulePost": "Programar para más tarde",
+      "scheduleFor": "Programar para {time}",
+      "scheduledSuccessfully": "Publicación programada para {time}",
+      "cancelSchedule": "Cancelar programación",
+      "scheduledDraftNotice": "Esta publicación y su fecha propuesta se enviarán como borrador para la aprobación del administrador.",
+      "approveAndSchedule": "Aprobar y programar"
     },
     "status": {
       "draft": "Borrador",
@@ -2849,7 +2859,18 @@
       "date": "Fecha",
       "actions": "Acciones",
       "publish": "Publicar",
-      "publishDraft": "Aprobar y publicar"
+      "publishDraft": "Aprobar y publicar",
+      "cancelSchedule": "Cancelar programación",
+      "approveAndSchedule": "Aprobar y programar",
+      "scheduledFor": "Programado para {time}"
+    },
+    "calendar": {
+      "month": "Mes",
+      "today": "Hoy",
+      "scheduledPosts": "Publicaciones programadas",
+      "pendingApproval": "Aprobación pendiente",
+      "noPostsOnDay": "No hay publicaciones programadas para este día",
+      "postsCount": "{count} {count, plural, =1 {publicación} other {publicaciones}}"
     },
     "accounts": {
       "connected": "Conectado",

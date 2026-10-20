@@ -2819,7 +2819,11 @@
       "noPostsYet": "게시물이 아직 없습니다",
       "createFirstPost": "첫 게시물을 작성하여 시작하세요",
       "errorLoad": "게시물을 불러오지 못했습니다",
-      "retry": "다시 시도"
+      "retry": "다시 시도",
+      "calendarTab": "캘린더",
+      "postsTab": "게시물",
+      "noScheduledPosts": "예약된 게시물이 없습니다",
+      "scheduleYourFirst": "게시물을 예약하여 여기에 표시하세요"
     },
     "composer": {
       "title": "새 게시물",
@@ -2833,7 +2837,13 @@
       "saveDraft": "임시 저장",
       "submitForReview": "검토 요청 제출",
       "agentNotice": "에이전트가 작성한 게시물은 관리자 승인 전까지 임시 저장됩니다.",
-      "publishing": "게시 중..."
+      "publishing": "게시 중...",
+      "schedulePost": "나중에 게시 예약",
+      "scheduleFor": "{time}에 예약",
+      "scheduledSuccessfully": "{time}에 게시물이 예약되었습니다",
+      "cancelSchedule": "예약 취소",
+      "scheduledDraftNotice": "이 게시물과 예약 시간은 관리자 승인을 위한 초안으로 제출됩니다.",
+      "approveAndSchedule": "승인 및 예약"
     },
     "status": {
       "draft": "임시 저장",
@@ -2849,7 +2859,18 @@
       "date": "날짜",
       "actions": "작업",
       "publish": "게시",
-      "publishDraft": "승인 및 게시"
+      "publishDraft": "승인 및 게시",
+      "cancelSchedule": "예약 취소",
+      "approveAndSchedule": "승인 및 예약",
+      "scheduledFor": "{time}에 예약됨"
+    },
+    "calendar": {
+      "month": "월",
+      "today": "오늘",
+      "scheduledPosts": "예약된 게시물",
+      "pendingApproval": "승인 대기 중",
+      "noPostsOnDay": "이 날짜에 예약된 게시물이 없습니다",
+      "postsCount": "{count}개의 게시물"
     },
     "accounts": {
       "connected": "연결됨",

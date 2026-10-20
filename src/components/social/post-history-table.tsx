@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SocialPost } from '@/types';
+import { createClient } from '@/lib/supabase/client';
 import { PostStatusBadge } from './post-status-badge';
 import {
   Table,
@@ -13,25 +14,47 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Loader2, Image as ImageIcon, Send } from 'lucide-react';
+import {
+  RefreshCw,
+  Loader2,
+  Image as ImageIcon,
+  Send,
+  Clock,
+  CalendarCheck,
+  Ban,
+} from 'lucide-react';
 import { Instagram, Facebook } from '@/components/social/icons';
 import { toast } from 'sonner';
 
 interface PostHistoryTableProps {
   posts: SocialPost[];
-  canManage: boolean;
+  canManage?: boolean;
   canPublish?: boolean;
   onPostUpdated?: () => void;
 }
 
 export function PostHistoryTable({
   posts,
-  canManage,
   canPublish = false,
   onPostUpdated,
 }: PostHistoryTableProps) {
   const t = useTranslations('SocialMedia');
   const [publishingId, setPublishingId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+
+  const formatDateTime = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateStr;
+    }
+  };
 
   const handlePublish = async (postId: string) => {
     setPublishingId(postId);
@@ -56,6 +79,48 @@ export function PostHistoryTable({
       onPostUpdated?.();
     } finally {
       setPublishingId(null);
+    }
+  };
+
+  const handleApproveAndSchedule = async (postId: string) => {
+    setActionLoadingId(postId);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('social_posts')
+        .update({ status: 'scheduled' })
+        .eq('id', postId);
+
+      if (error) throw error;
+      toast.success(t('status.scheduled'));
+      onPostUpdated?.();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to approve schedule'
+      );
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCancelSchedule = async (postId: string) => {
+    setActionLoadingId(postId);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('social_posts')
+        .update({ status: 'draft' })
+        .eq('id', postId);
+
+      if (error) throw error;
+      toast.success(t('table.cancelSchedule'));
+      onPostUpdated?.();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to cancel schedule'
+      );
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -117,6 +182,17 @@ export function PostHistoryTable({
                 </p>
               )}
 
+              {post.scheduled_at && (
+                <div className="bg-primary/5 text-primary flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-medium">
+                  <Clock className="size-3 shrink-0" />
+                  <span>
+                    {t('table.scheduledFor', {
+                      time: formatDateTime(post.scheduled_at),
+                    })}
+                  </span>
+                </div>
+              )}
+
               {post.failure_reason && post.status === 'failed' && (
                 <p className="text-destructive bg-destructive/10 rounded-md p-2 text-[11px]">
                   {post.failure_reason}
@@ -126,22 +202,61 @@ export function PostHistoryTable({
               <div className="border-border text-muted-foreground flex items-center justify-between border-t pt-2 text-[11px]">
                 <span>{new Date(post.created_at).toLocaleDateString()}</span>
                 <div className="flex items-center gap-1.5">
-                  {canPublish && post.status === 'draft' && (
+                  {canPublish &&
+                    post.status === 'draft' &&
+                    post.scheduled_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={actionLoadingId === post.id}
+                        onClick={() => handleApproveAndSchedule(post.id)}
+                        className="border-primary/30 text-primary hover:bg-primary/10 h-7 text-xs font-medium"
+                      >
+                        {actionLoadingId === post.id ? (
+                          <Loader2 className="mr-1 size-3 animate-spin" />
+                        ) : (
+                          <CalendarCheck className="mr-1 size-3" />
+                        )}
+                        {t('table.approveAndSchedule')}
+                      </Button>
+                    )}
+
+                  {canPublish &&
+                    post.status === 'draft' &&
+                    !post.scheduled_at && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={publishingId === post.id}
+                        onClick={() => handlePublish(post.id)}
+                        className="border-primary/30 text-primary hover:bg-primary/10 h-7 text-xs font-medium"
+                      >
+                        {publishingId === post.id ? (
+                          <Loader2 className="mr-1 size-3 animate-spin" />
+                        ) : (
+                          <Send className="mr-1 size-3" />
+                        )}
+                        {t('table.publishDraft')}
+                      </Button>
+                    )}
+
+                  {canPublish && post.status === 'scheduled' && (
                     <Button
                       variant="outline"
                       size="sm"
-                      disabled={publishingId === post.id}
-                      onClick={() => handlePublish(post.id)}
-                      className="border-primary/30 text-primary hover:bg-primary/10 h-7 text-xs font-medium"
+                      disabled={actionLoadingId === post.id}
+                      onClick={() => handleCancelSchedule(post.id)}
+                      className="text-muted-foreground hover:text-destructive h-7 text-xs"
                     >
-                      {publishingId === post.id ? (
+                      {actionLoadingId === post.id ? (
                         <Loader2 className="mr-1 size-3 animate-spin" />
                       ) : (
-                        <Send className="mr-1 size-3" />
+                        <Ban className="mr-1 size-3" />
                       )}
-                      {t('table.publishDraft')}
+                      {t('table.cancelSchedule')}
                     </Button>
                   )}
+
                   {canPublish && post.status === 'failed' && (
                     <Button
                       variant="outline"
@@ -239,26 +354,83 @@ export function PostHistoryTable({
                   <TableCell>
                     <PostStatusBadge status={post.status} />
                   </TableCell>
-                  <TableCell className="text-muted-foreground text-xs">
-                    {new Date(post.created_at).toLocaleDateString()}
+                  <TableCell className="text-xs">
+                    {post.scheduled_at ? (
+                      <div>
+                        <div className="text-foreground flex items-center gap-1 font-medium">
+                          <Clock className="text-primary size-3 shrink-0" />
+                          <span>
+                            {t('table.scheduledFor', {
+                              time: formatDateTime(post.scheduled_at),
+                            })}
+                          </span>
+                        </div>
+                        <span className="text-muted-foreground text-[11px]">
+                          {new Date(post.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {new Date(post.created_at).toLocaleDateString()}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
-                    {canPublish && post.status === 'draft' && (
+                    {canPublish &&
+                      post.status === 'draft' &&
+                      post.scheduled_at && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={actionLoadingId === post.id}
+                          onClick={() => handleApproveAndSchedule(post.id)}
+                          className="text-primary hover:bg-primary/10 hover:text-primary h-7 px-2 text-xs font-medium"
+                        >
+                          {actionLoadingId === post.id ? (
+                            <Loader2 className="mr-1 size-3 animate-spin" />
+                          ) : (
+                            <CalendarCheck className="mr-1 size-3" />
+                          )}
+                          {t('table.approveAndSchedule')}
+                        </Button>
+                      )}
+
+                    {canPublish &&
+                      post.status === 'draft' &&
+                      !post.scheduled_at && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={publishingId === post.id}
+                          onClick={() => handlePublish(post.id)}
+                          className="text-primary hover:bg-primary/10 hover:text-primary h-7 px-2 text-xs font-medium"
+                        >
+                          {publishingId === post.id ? (
+                            <Loader2 className="mr-1 size-3 animate-spin" />
+                          ) : (
+                            <Send className="mr-1 size-3" />
+                          )}
+                          {t('table.publishDraft')}
+                        </Button>
+                      )}
+
+                    {canPublish && post.status === 'scheduled' && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={publishingId === post.id}
-                        onClick={() => handlePublish(post.id)}
-                        className="text-primary hover:bg-primary/10 hover:text-primary h-7 px-2 text-xs font-medium"
+                        disabled={actionLoadingId === post.id}
+                        onClick={() => handleCancelSchedule(post.id)}
+                        className="text-muted-foreground hover:text-destructive h-7 px-2 text-xs"
                       >
-                        {publishingId === post.id ? (
+                        {actionLoadingId === post.id ? (
                           <Loader2 className="mr-1 size-3 animate-spin" />
                         ) : (
-                          <Send className="mr-1 size-3" />
+                          <Ban className="mr-1 size-3" />
                         )}
-                        {t('table.publishDraft')}
+                        {t('table.cancelSchedule')}
                       </Button>
                     )}
+
                     {canPublish && post.status === 'failed' && (
                       <Button
                         variant="ghost"

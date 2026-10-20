@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAccount } from '@/lib/auth/account';
 import { canPublishSocialPost } from '@/lib/auth/roles';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { decryptToken } from '@/lib/social/encryption';
 import {
@@ -37,7 +38,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'MISSING_POST_ID' }, { status: 400 });
   }
 
-  const db = await createClient();
+  const db = isInternal
+    ? createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+    : await createClient();
 
   // Fetch post + social account
   let query = db

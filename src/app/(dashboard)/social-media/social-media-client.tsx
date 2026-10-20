@@ -12,7 +12,9 @@ import { GatedButton } from '@/components/ui/gated-button';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { SocialAccountTile } from '@/components/social/social-account-tile';
 import { PostHistoryTable } from '@/components/social/post-history-table';
+import { PostCalendar } from '@/components/social/post-calendar';
 import { PostComposerSheet } from '@/components/social/post-composer-sheet';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,7 @@ import {
   Clock,
   Layers,
   FileText,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
 import { Instagram, Facebook } from '@/components/social/icons';
 import { toast } from 'sonner';
@@ -55,6 +58,7 @@ export function SocialMediaClient({
   const [accounts, setAccounts] = useState<SocialAccount[]>(initialAccounts);
   const [posts, setPosts] = useState<SocialPost[]>(initialPosts);
   const [composerOpen, setComposerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'posts' | 'calendar'>('posts');
 
   // Check URL query parameters for OAuth results
   useEffect(() => {
@@ -262,7 +266,7 @@ export function SocialMediaClient({
         </div>
 
         {/* Situational Awareness KPI Strip */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
           <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
             <div className="text-muted-foreground flex items-center justify-between text-xs">
               <span>Total Posts</span>
@@ -285,6 +289,16 @@ export function SocialMediaClient({
 
           <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
             <div className="text-muted-foreground flex items-center justify-between text-xs">
+              <span>Scheduled</span>
+              <Clock className="text-primary size-4" />
+            </div>
+            <p className="text-foreground mt-2 text-2xl font-bold">
+              {stats.scheduled}
+            </p>
+          </div>
+
+          <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
+            <div className="text-muted-foreground flex items-center justify-between text-xs">
               <span>Drafts / Review</span>
               <FileText className="size-4 text-amber-500" />
             </div>
@@ -293,7 +307,7 @@ export function SocialMediaClient({
             </p>
           </div>
 
-          <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
+          <div className="border-border bg-card col-span-2 rounded-xl border p-4 shadow-xs sm:col-span-1">
             <div className="text-muted-foreground flex items-center justify-between text-xs">
               <span>Failed</span>
               <AlertCircle className="text-destructive size-4" />
@@ -304,21 +318,42 @@ export function SocialMediaClient({
           </div>
         </div>
 
-        {/* Posts History Section */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-foreground text-base font-semibold">
-              Posts History
-            </h2>
+        {/* View Switcher: Posts History vs Calendar */}
+        <Tabs
+          value={activeTab}
+          onValueChange={(val) => setActiveTab(val as 'posts' | 'calendar')}
+          className="w-full space-y-4"
+        >
+          <div className="border-border flex items-center justify-between border-b pb-3">
+            <TabsList>
+              <TabsTrigger value="posts" className="cursor-pointer">
+                <Layers className="mr-1.5 size-4" />
+                {t('page.postsTab')}
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="cursor-pointer">
+                <CalendarIcon className="mr-1.5 size-4" />
+                {t('page.calendarTab')}
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          <PostHistoryTable
-            posts={posts}
-            canManage={canManagePosts}
-            canPublish={canPublish}
-            onPostUpdated={fetchPosts}
-          />
-        </div>
+          <TabsContent value="posts" className="space-y-3 outline-none">
+            <PostHistoryTable
+              posts={posts}
+              canManage={canManagePosts}
+              canPublish={canPublish}
+              onPostUpdated={fetchPosts}
+            />
+          </TabsContent>
+
+          <TabsContent value="calendar" className="space-y-3 outline-none">
+            <PostCalendar
+              posts={posts}
+              canPublish={canPublish}
+              onPostUpdated={fetchPosts}
+            />
+          </TabsContent>
+        </Tabs>
 
         {/* Post Composer Sheet */}
         {accounts.length > 0 && (

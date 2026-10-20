@@ -8,8 +8,8 @@ running fork where migrations may have been added since this was written.
 
 ## Current migration state
 
-- **Highest existing migration: `132_social_posts.sql`.**
-- **Every new migration in the implementation plan starts at `133` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
+- **Highest existing migration: `133_social_scheduler_cron.sql`.**
+- **Every new migration in the implementation plan starts at `134` and increments strictly.** Never renumber or edit an existing migration file — see `AGENT_GUARDRAILS.md`.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
