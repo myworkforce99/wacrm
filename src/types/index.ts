@@ -976,4 +976,11 @@ export interface SocialPost {
   updated_at: string;
   /** Joined from social_accounts */
   social_account?: SocialAccount;
+  /** Creator profile information */
+  creator?: {
+    user_id: string;
+    full_name: string;
+    email: string;
+    avatar_url: string | null;
+  };
 }

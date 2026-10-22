@@ -696,7 +696,7 @@ export function TemplateManager() {
           }
         }}
       >
-        <DialogContent className="bg-popover border-border max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="bg-popover border-border max-h-[90vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-popover-foreground">
               {editingId ? t('dialogEditTitle') : t('dialogNewTitle')}
@@ -1160,7 +1160,7 @@ export function TemplateManager() {
           if (!open) setTemplateToDelete(null);
         }}
       >
-        <DialogContent className="bg-popover border-border sm:max-w-sm">
+        <DialogContent className="bg-popover border-border w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-popover-foreground">
               {t('deleteDialogTitle')}

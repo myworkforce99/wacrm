@@ -110,8 +110,8 @@ export function LostReasonModal({
         }
       }}
     >
-      <DialogContent className="bg-popover border-border flex max-h-[90vh] flex-col p-0 sm:max-w-md">
-        <DialogHeader className="p-6 pb-2">
+      <DialogContent className="bg-popover border-border flex max-h-[90vh] w-full max-w-[95vw] flex-col overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
           <DialogTitle className="text-popover-foreground">
             {t('title')}
           </DialogTitle>

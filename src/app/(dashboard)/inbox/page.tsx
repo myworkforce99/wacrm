@@ -794,7 +794,7 @@ function InboxPageInner() {
       <Sheet open={mobileContactOpen} onOpenChange={setMobileContactOpen}>
         <SheetContent
           side="right"
-          className="flex w-[90vw] flex-col overflow-hidden p-0 sm:max-w-md"
+          className="flex w-full flex-col overflow-hidden p-0 sm:max-w-md"
         >
           <SheetHeader className="border-border shrink-0 border-b p-4">
             <SheetTitle className="text-left text-base">

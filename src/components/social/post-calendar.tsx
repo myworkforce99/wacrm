@@ -15,6 +15,8 @@ import {
   Ban,
   Loader2,
   Image as ImageIcon,
+  Plus,
+  Eye,
 } from 'lucide-react';
 import { Instagram, Facebook } from '@/components/social/icons';
 import { toast } from 'sonner';
@@ -22,12 +24,16 @@ import { toast } from 'sonner';
 interface PostCalendarProps {
   posts: SocialPost[];
   canPublish?: boolean;
+  onPreviewPost?: (post: SocialPost) => void;
+  onScheduleOnDate?: (dateStr: string) => void;
   onPostUpdated?: () => void;
 }
 
 export function PostCalendar({
   posts,
   canPublish = false,
+  onPreviewPost,
+  onScheduleOnDate,
   onPostUpdated,
 }: PostCalendarProps) {
   const t = useTranslations('SocialMedia');
@@ -358,6 +364,18 @@ export function PostCalendar({
                   })}
                 </p>
               </div>
+
+              {onScheduleOnDate && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onScheduleOnDate(selectedDate)}
+                  className="h-8 text-xs font-medium"
+                >
+                  <Plus className="mr-1.5 size-3.5" />
+                  {t('page.scheduleOnDate')}
+                </Button>
+              )}
             </div>
 
             {selectedDayPosts.length > 0 ? (
@@ -371,7 +389,8 @@ export function PostCalendar({
                   return (
                     <div
                       key={post.id}
-                      className="border-border bg-muted/20 hover:border-primary/40 flex flex-col justify-between gap-3 rounded-xl border p-4 transition-colors"
+                      onClick={() => onPreviewPost?.(post)}
+                      className="border-border bg-muted/20 hover:border-primary/40 flex cursor-pointer flex-col justify-between gap-3 rounded-xl border p-4 transition-colors"
                     >
                       <div className="space-y-2.5">
                         <div className="flex items-center justify-between gap-2">
@@ -428,9 +447,22 @@ export function PostCalendar({
                         )}
                       </div>
 
-                      {canPublish && (
-                        <div className="border-border flex items-center justify-end gap-2 border-t pt-3">
-                          {isPendingDraft && (
+                      <div
+                        className="border-border flex items-center justify-between gap-2 border-t pt-3"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onPreviewPost?.(post)}
+                          className="text-muted-foreground hover:text-foreground h-7 px-2 text-xs"
+                        >
+                          <Eye className="mr-1 size-3.5" />
+                          {t('table.preview')}
+                        </Button>
+
+                        <div className="flex items-center gap-1.5">
+                          {canPublish && isPendingDraft && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -464,7 +496,7 @@ export function PostCalendar({
                             </Button>
                           )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}

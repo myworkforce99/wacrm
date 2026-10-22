@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useTransition, useId } from 'react';
+import { useState, useEffect, useRef, useTransition, useId } from 'react';
 import { useTranslations } from 'next-intl';
 import { SocialAccount } from '@/types';
 import { createClient } from '@/lib/supabase/client';
@@ -28,10 +28,13 @@ import {
   FileCheck,
   Sparkles,
   LayoutTemplate,
+  Building2,
 } from 'lucide-react';
 import { Instagram, Facebook } from '@/components/social/icons';
 import { TemplatePicker } from '@/components/social/template-picker';
+import { PropertyAttachPicker } from '@/components/social/property-attach-picker';
 import { SocialPostTemplate } from '@/lib/social/templates';
+import { SocialPost } from '@/types';
 import { toast } from 'sonner';
 
 interface PostComposerSheetProps {
@@ -40,6 +43,8 @@ interface PostComposerSheetProps {
   accounts: SocialAccount[];
   accountId: string;
   canPublish?: boolean;
+  postToEdit?: SocialPost | null;
+  initialDate?: string | null;
   onPostCreated?: () => void;
 }
 
@@ -49,6 +54,8 @@ export function PostComposerSheet({
   accounts,
   accountId,
   canPublish = true,
+  postToEdit = null,
+  initialDate = null,
   onPostCreated,
 }: PostComposerSheetProps) {
   const t = useTranslations('SocialMedia');
@@ -73,6 +80,7 @@ export function PostComposerSheet({
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+  const [propertyPickerOpen, setPropertyPickerOpen] = useState(false);
 
   const selectedAccount =
     accounts.find((a) => a.id === selectedAccountId) ?? accounts[0];
@@ -103,6 +111,68 @@ export function PostComposerSheet({
     setPropertyDetails('');
     setShowAiAssist(false);
     setIsGenerating(false);
+  };
+
+  // Sync state on open or postToEdit change
+  useEffect(() => {
+    if (!open) return;
+    if (postToEdit) {
+      setSelectedAccountId(postToEdit.social_account_id);
+      setCaption(postToEdit.caption ?? '');
+      setMediaUrl(postToEdit.media_url ?? null);
+      setMediaStoragePath(postToEdit.media_storage_path ?? null);
+      setScheduledAt(
+        postToEdit.scheduled_at ? postToEdit.scheduled_at.slice(0, 16) : ''
+      );
+    } else {
+      resetForm();
+      if (initialDate) {
+        setScheduledAt(`${initialDate}T10:00`);
+      }
+    }
+  }, [open, postToEdit, initialDate]);
+
+  const handleUpdatePost = () => {
+    if (!postToEdit) return;
+    startSubmitting(async () => {
+      try {
+        const supabase = createClient();
+        const { error } = await supabase
+          .from('social_posts')
+          .update({
+            social_account_id: selectedAccountId,
+            caption: caption.trim() || null,
+            media_url: mediaUrl,
+            media_storage_path: mediaStoragePath,
+            scheduled_at: scheduledAt
+              ? new Date(scheduledAt).toISOString()
+              : null,
+            status: scheduledAt
+              ? canPublish
+                ? 'scheduled'
+                : 'draft'
+              : postToEdit.status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', postToEdit.id);
+
+        if (error) throw error;
+        toast.success(t('composer.postUpdated'));
+        onOpenChange(false);
+        onPostCreated?.();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Update failed');
+      }
+    });
+  };
+
+  const handleSelectProperty = (
+    propertyText: string,
+    suggestedHashtags: string[]
+  ) => {
+    setPropertyDetails(propertyText);
+    setShowAiAssist(true);
+    void handleGenerateCaption(propertyText, suggestedHashtags);
   };
 
   const handleGenerateCaption = async (
@@ -333,12 +403,12 @@ export function PostComposerSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="right"
-          className="flex w-full flex-col justify-between overflow-y-auto p-6 sm:max-w-lg"
+          className="flex w-full flex-col justify-between overflow-x-hidden overflow-y-auto p-4 data-[side=right]:w-full data-[side=right]:max-w-full sm:p-6 data-[side=right]:sm:max-w-xl"
         >
           <div className="space-y-6">
             <SheetHeader className="p-0">
               <SheetTitle className="text-xl font-bold">
-                {t('composer.title')}
+                {postToEdit ? t('composer.editTitle') : t('composer.title')}
               </SheetTitle>
             </SheetHeader>
 
@@ -457,45 +527,72 @@ export function PostComposerSheet({
 
             {/* Caption Textarea & AI Assist Section */}
             <div className="space-y-2.5">
+              {/* Header: Label + Character Counter */}
               <div className="flex items-center justify-between">
                 <label className="text-foreground text-sm font-medium">
                   {t('composer.caption')}
                 </label>
-
-                <div className="flex items-center gap-1.5">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setTemplatePickerOpen(true)}
-                    className="h-7 px-2 text-xs"
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground text-[11px]">
+                    {caption ? `${caption.length} chars` : ''}
+                  </span>
+                  <span
+                    className={
+                      charsRemaining < 0
+                        ? 'text-destructive text-[11px] font-semibold'
+                        : 'text-muted-foreground text-[11px]'
+                    }
                   >
-                    <LayoutTemplate className="text-muted-foreground mr-1 size-3" />
-                    {t('composer.useTemplate')}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant={showAiAssist ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={() => setShowAiAssist(!showAiAssist)}
-                    className="border-primary/20 hover:bg-primary/10 text-primary h-7 px-2 text-xs"
-                  >
-                    <Sparkles className="mr-1 size-3" />
-                    {t('composer.aiAssistLabel')}
-                  </Button>
+                    {t('composer.charactersLeft', { count: charsRemaining })}
+                  </span>
                 </div>
+              </div>
+
+              {/* Action Toolbar Pills */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPropertyPickerOpen(true)}
+                  className="hover:bg-muted h-7 rounded-full px-2.5 text-xs"
+                >
+                  <Building2 className="text-muted-foreground mr-1.5 size-3.5" />
+                  {t('composer.attachProperty')}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTemplatePickerOpen(true)}
+                  className="hover:bg-muted h-7 rounded-full px-2.5 text-xs"
+                >
+                  <LayoutTemplate className="text-muted-foreground mr-1.5 size-3.5" />
+                  {t('composer.useTemplate')}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={showAiAssist ? 'secondary' : 'outline'}
+                  size="sm"
+                  onClick={() => setShowAiAssist(!showAiAssist)}
+                  className="border-primary/20 hover:bg-primary/10 text-primary h-7 rounded-full px-2.5 text-xs"
+                >
+                  <Sparkles className="mr-1.5 size-3.5" />
+                  {t('composer.aiAssistLabel')}
+                </Button>
               </div>
 
               {/* AI Assist Drawer Box */}
               {showAiAssist && (
                 <div className="border-primary/20 bg-primary/5 space-y-2.5 rounded-xl border p-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-foreground flex items-center gap-1.5 text-xs font-semibold">
                       <Sparkles className="text-primary size-3" />
                       {t('composer.generateCaption')}
                     </span>
-                    <div className="flex items-center gap-1 text-[11px]">
+                    <div className="flex flex-wrap items-center gap-1 text-[11px]">
                       {(['professional', 'friendly', 'urgent'] as const).map(
                         (tVal) => (
                           <button
@@ -521,7 +618,7 @@ export function PostComposerSheet({
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <input
                       type="text"
                       value={propertyDetails}
@@ -533,14 +630,14 @@ export function PostComposerSheet({
                         }
                       }}
                       placeholder={t('composer.propertyDetailsPlaceholder')}
-                      className="border-border bg-background text-foreground focus:ring-primary w-full flex-1 rounded-md border px-3 py-1.5 text-xs shadow-xs focus:ring-1 focus:outline-hidden"
+                      className="border-border bg-background text-foreground focus:ring-primary w-full min-w-0 flex-1 rounded-md border px-3 py-1.5 text-xs shadow-xs focus:ring-1 focus:outline-hidden"
                     />
                     <Button
                       type="button"
                       size="sm"
                       disabled={isGenerating || !propertyDetails.trim()}
                       onClick={() => void handleGenerateCaption()}
-                      className="bg-primary text-primary-foreground h-8 shrink-0 px-3 text-xs"
+                      className="bg-primary text-primary-foreground h-8 w-full shrink-0 px-3 text-xs sm:w-auto"
                     >
                       {isGenerating ? (
                         <>
@@ -557,21 +654,6 @@ export function PostComposerSheet({
                   </div>
                 </div>
               )}
-
-              <div className="text-muted-foreground flex items-center justify-between text-xs">
-                <span className="text-[11px]">
-                  {caption ? `${caption.length} characters` : ''}
-                </span>
-                <span
-                  className={
-                    charsRemaining < 0
-                      ? 'text-destructive font-semibold'
-                      : 'text-muted-foreground'
-                  }
-                >
-                  {t('composer.charactersLeft', { count: charsRemaining })}
-                </span>
-              </div>
 
               <Textarea
                 value={caption}
@@ -615,8 +697,36 @@ export function PostComposerSheet({
           </div>
 
           {/* Footer actions */}
-          <div className="border-border mt-6 flex items-center justify-end gap-3 border-t pt-4">
-            {canPublish ? (
+          <div className="border-border mt-6 flex flex-wrap items-center justify-end gap-2.5 border-t pt-4">
+            {postToEdit ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isSubmitting || uploading}
+                  onClick={() => onOpenChange(false)}
+                >
+                  {t('delete.cancel')}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={
+                    isSubmitting || uploading || !mediaUrl || charsRemaining < 0
+                  }
+                  onClick={handleUpdatePost}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      {t('composer.updating')}
+                    </>
+                  ) : (
+                    t('composer.updatePost')
+                  )}
+                </Button>
+              </>
+            ) : canPublish ? (
               <>
                 <Button
                   type="button"
@@ -683,6 +793,14 @@ export function PostComposerSheet({
         open={templatePickerOpen}
         onOpenChange={setTemplatePickerOpen}
         onSelectTemplate={handleSelectTemplate}
+      />
+
+      {/* Property Attach Picker Dialog */}
+      <PropertyAttachPicker
+        open={propertyPickerOpen}
+        onOpenChange={setPropertyPickerOpen}
+        accountId={accountId}
+        onSelectProperty={handleSelectProperty}
       />
     </>
   );

@@ -405,7 +405,7 @@ export function Step4ScheduleSend({
                 </>
               )}
             </DialogTrigger>
-            <DialogContent className="border-border bg-popover sm:max-w-md">
+            <DialogContent className="border-border bg-popover w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
               <DialogHeader>
                 <DialogTitle className="text-popover-foreground">
                   {sendLater

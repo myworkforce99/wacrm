@@ -208,7 +208,7 @@ export function TemplatePicker({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="border-border bg-popover sm:max-w-lg">
+      <DialogContent className="border-border bg-popover w-full max-w-[95vw] p-4 sm:max-w-lg sm:p-6">
         <DialogHeader>
           <div className="flex items-center justify-between pr-6">
             <DialogTitle className="text-popover-foreground flex items-center gap-2">

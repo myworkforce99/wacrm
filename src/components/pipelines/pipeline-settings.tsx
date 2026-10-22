@@ -198,7 +198,7 @@ export function PipelineSettings({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border max-h-[85vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="bg-popover border-border max-h-[85vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-popover-foreground">
             {t('managePipeline')}

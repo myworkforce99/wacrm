@@ -2822,11 +2822,22 @@
       "retry": "다시 시도",
       "calendarTab": "캘린더",
       "postsTab": "게시물",
+      "gridTab": "피드 그리드",
       "noScheduledPosts": "예약된 게시물이 없습니다",
-      "scheduleYourFirst": "게시물을 예약하여 여기에 표시하세요"
+      "scheduleYourFirst": "게시물을 예약하여 여기에 표시하세요",
+      "searchPlaceholder": "캡션, 계정별 게시물 검색...",
+      "allStatuses": "모든 상태",
+      "statusNeedsReview": "검토 필요",
+      "allPlatforms": "모든 플랫폼",
+      "clearFilters": "필터 초기화",
+      "noFilteredResults": "필터와 일치하는 게시물이 없습니다",
+      "needsReviewBanner": "{count, plural, =1 {초안 1개} other {초안 {count}개}}가 관리자 검토 및 승인을 대기 중입니다",
+      "viewAllDrafts": "초안 검토",
+      "scheduleOnDate": "이 날짜에 예약"
     },
     "composer": {
       "title": "새 게시물",
+      "editTitle": "게시물 수정",
       "selectAccount": "계정 선택",
       "caption": "캡션",
       "captionPlaceholder": "캡션을 작성하세요...",
@@ -2834,6 +2845,9 @@
       "uploadImage": "이미지 업로드",
       "changeImage": "이미지 변경",
       "publishNow": "지금 게시",
+      "updatePost": "게시물 업데이트",
+      "updating": "업데이트 중...",
+      "postUpdated": "게시물이 성공적으로 업데이트되었습니다",
       "saveDraft": "임시 저장",
       "submitForReview": "검토 요청 제출",
       "agentNotice": "에이전트가 작성한 게시물은 관리자 승인 전까지 임시 저장됩니다.",
@@ -2848,11 +2862,42 @@
       "generating": "생성 중...",
       "propertyDetailsPlaceholder": "예: 노이다 3BHK, ₹1.2 Cr, 즉시 입주 가능",
       "useTemplate": "템플릿 사용",
+      "attachProperty": "매물 첨부",
       "aiAssistLabel": "AI 어시스트",
       "tone": "어조",
       "toneProfessional": "전문적인",
       "toneFriendly": "친근한",
       "toneUrgent": "긴급한"
+    },
+    "preview": {
+      "title": "게시물 미리보기",
+      "previewInstagram": "Instagram 미리보기",
+      "previewFacebook": "Facebook 미리보기",
+      "draftedBy": "{name} 작성 초안",
+      "viewLive": "실제 게시물 보기",
+      "reviewPending": "관리자 승인 대기 중",
+      "reviewPendingDesc": "이 초안은 에이전트가 제출했으며 관리자 또는 소유자의 승인 및 게시를 대기하고 있습니다.",
+      "failedNotice": "게시 실패",
+      "editPost": "게시물 수정",
+      "deletePost": "게시물 삭제",
+      "scheduleFor": "{time}에 예약됨",
+      "publishedOn": "{time}에 게시됨"
+    },
+    "delete": {
+      "title": "게시물 삭제",
+      "description": "이 게시물({name})을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.",
+      "cancel": "취소",
+      "confirm": "게시물 삭제",
+      "deleting": "삭제 중...",
+      "success": "게시물이 성공적으로 삭제되었습니다",
+      "error": "게시물 삭제 실패"
+    },
+    "properties": {
+      "title": "인벤토리에서 매물 첨부",
+      "search": "이름 또는 위치로 매물 검색...",
+      "select": "게시물에 첨부",
+      "noProperties": "인벤토리에 매물이 없습니다",
+      "useHeroImage": "매물 대표 이미지 사용"
     },
     "templates": {
       "title": "게시물 템플릿",
@@ -2884,7 +2929,11 @@
       "publishDraft": "승인 및 게시",
       "cancelSchedule": "예약 취소",
       "approveAndSchedule": "승인 및 예약",
-      "scheduledFor": "{time}에 예약됨"
+      "scheduledFor": "{time}에 예약됨",
+      "preview": "미리보기",
+      "edit": "수정",
+      "delete": "삭제",
+      "author": "작성자"
     },
     "calendar": {
       "month": "월",

@@ -203,7 +203,7 @@ export function QuickRepliesManager() {
       )}
 
       <Dialog open={!!draft} onOpenChange={(o) => !o && setDraft(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-2xl sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {draft?.id ? 'Edit quick reply' : 'New quick reply'}

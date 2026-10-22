@@ -71,7 +71,7 @@ export function BulkReassignModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
           <DialogDescription>

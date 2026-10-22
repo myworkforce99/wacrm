@@ -696,7 +696,7 @@ export function ContactSidebar({
         open={editRequirementsOpen}
         onOpenChange={setEditRequirementsOpen}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
           <DialogHeader>
             <DialogTitle>Edit Real Estate Requirements</DialogTitle>
           </DialogHeader>

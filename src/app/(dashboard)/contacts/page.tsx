@@ -1899,7 +1899,7 @@ export default function ContactsPage() {
 
         {/* Delete Confirmation Dialog */}
         <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-          <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
+          <DialogContent className="bg-popover border-border text-popover-foreground w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-popover-foreground">
                 {t('deleteContactTitle')}
@@ -1932,7 +1932,7 @@ export default function ContactsPage() {
 
         {/* Bulk Delete Confirmation Dialog */}
         <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
-          <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-sm">
+          <DialogContent className="bg-popover border-border text-popover-foreground w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-popover-foreground">
                 {t('deleteBulkTitle')}

@@ -75,6 +75,19 @@
     - High-performance REST API secured by scoped API keys (`wacrm_live_*`).
     - Dedicated Model Context Protocol server (`wacrm-mcp` in `mcp-server/`) enabling AI assistants (Claude, Cursor, etc.) to query and drive CRM operations in natural language.
 
+12. **Social Media Marketing & Multi-Channel Publishing (`/social-media`):**
+    - Multi-platform marketing suite connecting Instagram Business and Facebook Pages via Meta Graph API v22.0.
+    - **3-Tier Approval Workflow:** Sales agents draft marketing content (`draft`); Admins and Owners review, edit, approve, schedule, or publish live (`canManageSocialPosts`, `canPublishSocialPost`).
+    - **1-Click Property Inventory Sync:** Connect properties directly to social posts via `PropertyAttachPicker`, auto-injecting BHK, location, RERA verification ID, and formatted ₹ INR pricing (`formatINR()`).
+    - **AI Caption Assistant (`/api/ai/social-caption`):** Real-time generation of engaging captions with emojis, hashtags, and tone presets (`professional`, `persuasive`, `luxury`, `urgent`).
+    - **Pre-Built Real Estate Templates:** 6 high-conversion templates (New Launch, Price Drop, Open House, Just Sold, Luxury Showcase, Rental Investment) from `templates.ts`.
+    - **Automated Scheduling Engine:** Cron-backed scheduling via Supabase Edge Function (`social-post-scheduler`) invoked every minute via `pg_cron` and `pg_net` (Migration 133).
+    - **High-Aesthetic Multi-View UI:**
+      - **History Table:** High-density desktop table & stacked mobile cards with status badges (`draft`, `scheduled`, `publishing`, `published`, `failed`), retry controls, and inline delete modals.
+      - **Interactive Content Calendar:** Monthly view with visual date navigation, post status pills, and 1-tap post preview/edit dialogs.
+      - **Instagram Visual Grid:** 3x3 profile feed simulation with platform switching, hover metrics/status overlay, and responsive touch controls.
+      - **Platform Preview Modal:** Pixel-perfect simulated Instagram/Facebook feed viewer with full caption expander, user handles, avatars, and timestamps.
+
 ---
 
 ## 2. HARDWARE, STACK & VERSION INVARIANTS
@@ -95,7 +108,7 @@ Do NOT guess dependencies or framework versions. The repository relies on specif
 | **Drag & Drop** | `@dnd-kit/core` & `@dnd-kit/sortable`               | Used in Pipeline Kanban boards. Touch sensors configured for mobile.                                                                                                                                                        |
 | **Visual Flow** | `@xyflow/react` + `@dagrejs/dagre`                  | Visual flow canvas for qualifier and automation trees.                                                                                                                                                                      |
 | **Charts**      | `recharts` + `components/tremor/*`                  | Local chart wrappers for analytics and metric tiles.                                                                                                                                                                        |
-| **Testing**     | Vitest (`vitest run`)                               | **96 test suites with 1,076+ tests** must all pass without failures.                                                                                                                                                        |
+| **Testing**     | Vitest (`vitest run`)                               | **105 test suites with 1,126+ tests** must all pass without failures.                                                                                                                                                       |
 
 ---
 
@@ -105,7 +118,8 @@ Do NOT guess dependencies or framework versions. The repository relies on specif
 wacrm/
 ├── messages/                  # next-intl translations (en.json, es.json, ko.json, pt.json) - STRICT PARITY
 ├── supabase/
-│   ├── migrations/            # SQL migrations (001_*.sql to 130_*.sql - IMMUTABLE)
+│   ├── migrations/            # SQL migrations (001_*.sql to 133_*.sql - IMMUTABLE)
+│   ├── functions/             # Supabase Edge Functions (social-post-scheduler)
 │   └── ci/                    # verify-schema.sql, verify-rls-isolation.sql
 ├── mcp-server/                # Model Context Protocol server (published as wacrm-mcp)
 ├── src/
@@ -117,11 +131,12 @@ wacrm/
 │   │   │   ├── pipelines/     # Sales pipelines & deals Kanban + table view
 │   │   │   ├── properties/    # Inventory listings, RERA compliance, specs, brochure share
 │   │   │   ├── site-visits/   # Scheduled visits, pickup logistics, confirmation statuses
+│   │   │   ├── social-media/  # Multi-channel marketing (table, monthly calendar, 3x3 grid, composer)
 │   │   │   ├── team/          # Manager Command Center, targets, agent availability, unassigned pool
 │   │   │   ├── automations/   # Trigger-action rules
 │   │   │   ├── flows/         # Visual qualifier flow builder (@xyflow/react)
 │   │   │   ├── broadcasts/    # WhatsApp broadcast campaign wizard
-│   │   │   ├── integrations/  # Portal lead connections (99acres, MagicBricks, Housing, NoBroker)
+│   │   │   ├── integrations/  # Portal & social lead connections (99acres, MagicBricks, Housing, NoBroker, Instagram, Facebook)
 │   │   │   ├── agents/        # AI playground, knowledge base dropzone, prompt editor
 │   │   │   ├── notifications/ # User and manager notification center
 │   │   │   └── settings/      # Account settings (WhatsApp, Team, API keys, Billing, Appearance)
@@ -130,9 +145,10 @@ wacrm/
 │   │   └── api/
 │   │       ├── v1/            # PUBLIC REST API (scoped strictly by account_id via API key)
 │   │       ├── whatsapp/      # Meta webhook, outbound send, media, templates, test connection
+│   │       ├── social/        # Meta OAuth connect, callback, account disconnect, post publish, draft management
 │   │       ├── portal/        # Inbound portal webhooks (email forwarding parser, webhook leads)
 │   │       ├── account/       # Account members, availability, invitations, routing rules
-│   │       ├── ai/            # AI autoreply, draft generation, knowledge base upload
+│   │       ├── ai/            # AI autoreply, draft generation, knowledge base upload, social caption
 │   │       └── [internal]/    # Tasks, contacts, deals, quick-replies, flows
 │   ├── components/
 │   │   ├── ui/                # Base primitives (@base-ui/react wrapped: button, dialog, select, etc.)
@@ -141,6 +157,7 @@ wacrm/
 │   │   ├── contacts/          # contact-form, contact-detail-view, bulk-reassign-modal, import-modal
 │   │   ├── properties/        # property-form-modal, property-share-modal, property-delete-dialog, emi-calculator
 │   │   ├── site-visits/       # schedule-visit-sheet, visit cards, calendar view
+│   │   ├── social/            # post-composer-sheet, post-calendar, post-grid-view, post-history-table, post-preview-dialog, property-attach-picker, template-picker, post-delete-dialog
 │   │   ├── pipelines/         # deal-form, lost-reason-modal, pipeline-board, deal-table
 │   │   ├── team/              # agent-card, agent-table, unassigned-pool, pipeline-funnel, set-target-modal
 │   │   ├── flows/             # flow-builder, flow-canvas, node-config-form
@@ -151,6 +168,7 @@ wacrm/
 │   │   ├── currency.ts        # formatINR(), formatINRRange(), formatCurrency()
 │   │   ├── contacts/          # parse-budget.ts, dedupe.ts, tag-write.ts
 │   │   ├── whatsapp/          # send-message.ts, meta-api.ts, webhook handlers, phone-utils.ts, encryption.ts
+│   │   ├── social/            # meta-api.ts (Graph API v22.0), scheduler.ts, accounts.ts, templates.ts, encryption.ts
 │   │   ├── supabase/          # client.ts (browser), server.ts (SSR)
 │   │   ├── api/v1/            # pagination.ts, respond.ts, shared resource helpers
 │   │   └── rate-limit.ts      # deliberate in-memory rate limiter for single-instance VPS
@@ -184,6 +202,9 @@ wacrm/
   - `canDeleteAccount(role)` / `canTransferOwnership(role)`: Owner only.
   - `canMoveDeal(role, dealAssignedTo, contactAssignedAgentId, currentUserId)`: Agents can only move their own deals; Admins/Owners can move any deal.
   - `canCreateBroadcast(role)`: Admin/Owner only.
+  - `canManageSocialPosts(role)`: Agent, Admin, Owner (create draft posts, edit saved drafts; Viewers cannot).
+  - `canPublishSocialPost(role)`: Admin, Owner only (live publish, approve agent drafts, schedule future posts).
+  - `canConnectSocialAccount(role)`: Admin, Owner only (connect/disconnect Instagram and Facebook accounts).
   - `canManageLead(role, assignedAgentId, currentUserId)`: Agents can only manage/reply to leads assigned to themselves; Admins/Owners can manage all leads.
   - `canClaimLead(role, assignedAgentId)`: Agents and Admins can claim unassigned leads (`assignedAgentId === null`).
   - `canReassignLead(role)`: Admin/Owner only.
@@ -195,12 +216,12 @@ wacrm/
 
 - Every account-scoped table enforces tenant isolation via the Postgres helper function:
   `is_account_member(account_id, min_role?)`
-- **Rule:** Never loosen, bypass, or delete an existing RLS policy. When creating new tables, always copy the policy pattern from recent migrations (e.g., `129_deal_lifecycle_fields.sql`, `130_properties_admin_manage_only.sql`).
+- **Rule:** Never loosen, bypass, or delete an existing RLS policy. When creating new tables, always copy the policy pattern from recent migrations (e.g., `129_deal_lifecycle_fields.sql`, `130_properties_admin_manage_only.sql`, `131_social_accounts.sql`, `132_social_posts.sql`).
 
 ### D. Migration Rules
 
-- Existing migrations `001_*.sql` through `130_*.sql` are **IMMUTABLE**. Never edit, renumber, or delete them.
-- Any future schema change requires a strictly incremented migration file (`131_*.sql` onwards) and must update `docs/agent/SCHEMA_REFERENCE.md`.
+- Existing migrations `001_*.sql` through `133_*.sql` are **IMMUTABLE**. Never edit, renumber, or delete them.
+- Any future schema change requires a strictly incremented migration file (`134_*.sql` onwards) and must update `docs/agent/SCHEMA_REFERENCE.md`.
 
 ---
 
@@ -303,6 +324,8 @@ Incoming leads are routed through an automated hierarchy:
 - `lost_reasons`: Account-scoped lookup table of loss reasons (seeded with 8 real estate defaults per account).
 - `assignment_history`: Immutable audit trail documenting `from_agent_id`, `to_agent_id`, `actor_id`, and `reason` (`'claim'`, `'release_pool'`, `'manual_reassign'`, `'round_robin'`, `'routing_rule'`).
 - `agent_targets`: Monthly site-visit targets per agent (`target_visits`, `month`).
+- `social_accounts`: Multi-platform OAuth connections (`platform` enum `'instagram' | 'facebook'`, `display_name`, `platform_user_id`, `access_token_enc`, `token_expires_at`, `avatar_url`, `is_active`). Protected by RLS: read=all members, write=admin+. (Migration 131)
+- `social_posts`: Multi-channel marketing posts (`social_account_id`, `caption`, `media_url`, `media_storage_path`, `status` enum `'draft' | 'scheduled' | 'publishing' | 'published' | 'failed'`, `scheduled_at`, `platform_post_id`, `failure_reason`, `retry_count`, `last_attempt_at`, `created_by`). Storage bucket: `social-media` (16MB limit, images only). Protected by RLS: read=all members, write=agent+. (Migration 132)
 
 ---
 
@@ -383,7 +406,7 @@ The `mcp-server/` directory contains the official MCP server package (`wacrm-mcp
 
 ## 11. PROTECTED FILES (NEVER MODIFY WITHOUT FLAGGING)
 
-1. **`supabase/migrations/001_*.sql` through `130_*.sql`** — strictly immutable. Any new migration starts at `131_*.sql`.
+1. **`supabase/migrations/001_*.sql` through `133_*.sql`** — strictly immutable. Any new migration starts at `134_*.sql`.
 2. **Existing RLS Policies** — tenant isolation via `is_account_member(account_id, min_role)` is paramount.
 3. **`src/middleware.ts`** — contains critical session-refresh logic (`withRefreshedCookies`) fixing production bug #288 (session wedging after idle). Any redirect branch must reuse this helper.
 4. **`src/lib/rate-limit.ts`** — deliberately in-memory for single-instance VPS architecture.
@@ -409,7 +432,7 @@ npm run format:check
 # 4. i18n parity check (must pass all 10 tests across 4 locales)
 npx vitest run src/i18n/messages.test.ts
 
-# 5. Full test suite (all 96 test suites, 1,076+ tests must pass)
+# 5. Full test suite (all 105 test suites, 1,126+ tests must pass)
 npm run test
 ```
 
@@ -421,7 +444,7 @@ If any check fails, resolve it before declaring the task finished.
 
 ### Recipe 1: Adding a New Database Migration
 
-1. Name file `supabase/migrations/131_<snake_case_description>.sql` (strictly incremented from 130).
+1. Name file `supabase/migrations/134_<snake_case_description>.sql` (strictly incremented from 133).
 2. For account-scoped tables, always enforce RLS:
    ```sql
    ALTER TABLE my_table ENABLE ROW LEVEL SECURITY;
@@ -459,3 +482,11 @@ If any check fails, resolve it before declaring the task finished.
   const isViewOnly = useCan('view-only');
   const canManage = useCan('manage-members');
   ```
+
+### Recipe 5: Publishing or Scheduling a Social Media Post
+
+1. Use `publishPostDirectly()` or `scheduleSocialPost()` via `@/lib/social/scheduler.ts` and `@/lib/social/meta-api.ts`.
+2. Access tokens in `social_accounts` are encrypted with `encryptToken()` / `decryptToken()` from `@/lib/social/encryption.ts` using `ENCRYPTION_KEY`. Never expose raw decrypted tokens in API responses.
+3. Image uploads must target the `social-media` storage bucket (`storage.objects`) scoped under `account-<accountId>/`.
+4. Role check: Drafting requires `canManageSocialPosts(role)`. Live publishing or scheduling requires `canPublishSocialPost(role)`.
+5. The scheduled queue is processed automatically every minute by the `social-post-scheduler` Edge Function triggered via `pg_cron` (Migration 133).

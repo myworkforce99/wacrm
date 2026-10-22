@@ -35,7 +35,7 @@ export function CustomFieldsManager({
   const t = useTranslations('Contacts.customFields');
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-popover text-popover-foreground sm:max-w-md">
+      <DialogContent className="border-border bg-popover text-popover-foreground w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-popover-foreground">
             {t('title')}

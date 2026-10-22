@@ -67,7 +67,7 @@ export function TemplatePicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col p-6 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85vh] w-full max-w-[95vw] flex-col overflow-hidden p-4 sm:max-w-2xl sm:p-6">
         <DialogHeader className="p-0">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 text-primary flex size-8 items-center justify-center rounded-lg">

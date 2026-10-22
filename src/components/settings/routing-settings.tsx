@@ -258,7 +258,7 @@ function CreateRuleDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="border-border bg-popover max-h-[85vh] overflow-y-auto sm:max-w-md">
+      <DialogContent className="border-border bg-popover max-h-[85vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle>New Routing Rule</DialogTitle>
           <DialogDescription>

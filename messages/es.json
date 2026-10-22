@@ -2822,11 +2822,22 @@
       "retry": "Reintentar",
       "calendarTab": "Calendario",
       "postsTab": "Publicaciones",
+      "gridTab": "Cuadrícula",
       "noScheduledPosts": "No hay publicaciones programadas",
-      "scheduleYourFirst": "Programa una publicación para verla aquí"
+      "scheduleYourFirst": "Programa una publicación para verla aquí",
+      "searchPlaceholder": "Buscar publicaciones por texto, cuenta...",
+      "allStatuses": "Todos los estados",
+      "statusNeedsReview": "Requiere revisión",
+      "allPlatforms": "Todas las plataformas",
+      "clearFilters": "Limpiar filtros",
+      "noFilteredResults": "Ninguna publicación coincide con los filtros",
+      "needsReviewBanner": "{count} {count, plural, =1 {borrador está} other {borradores están}} esperando revisión y aprobación de un administrador",
+      "viewAllDrafts": "Revisar borradores",
+      "scheduleOnDate": "Programar en este día"
     },
     "composer": {
       "title": "Nueva publicación",
+      "editTitle": "Editar publicación",
       "selectAccount": "Seleccionar cuenta",
       "caption": "Texto / Leyenda",
       "captionPlaceholder": "Escribe una leyenda...",
@@ -2834,6 +2845,9 @@
       "uploadImage": "Subir imagen",
       "changeImage": "Cambiar imagen",
       "publishNow": "Publicar ahora",
+      "updatePost": "Actualizar publicación",
+      "updating": "Actualizando...",
+      "postUpdated": "Publicación actualizada con éxito",
       "saveDraft": "Guardar borrador",
       "submitForReview": "Enviar para revisión",
       "agentNotice": "Las publicaciones creadas por agentes se guardan como borradores para la aprobación del administrador.",
@@ -2848,11 +2862,42 @@
       "generating": "Generando...",
       "propertyDetailsPlaceholder": "ej. 3BHK en Noida, ₹1.2 Cr, listo para mudarse",
       "useTemplate": "Usar plantilla",
+      "attachProperty": "Adjuntar propiedad",
       "aiAssistLabel": "Asistente IA",
       "tone": "Tono",
       "toneProfessional": "Profesional",
       "toneFriendly": "Amigable",
       "toneUrgent": "Urgente"
+    },
+    "preview": {
+      "title": "Vista previa",
+      "previewInstagram": "Vista previa de Instagram",
+      "previewFacebook": "Vista previa de Facebook",
+      "draftedBy": "Borrador de {name}",
+      "viewLive": "Ver publicación en vivo",
+      "reviewPending": "Esperando revisión del administrador",
+      "reviewPendingDesc": "Este borrador fue enviado por un agente y está esperando que un administrador o propietario lo apruebe y publique.",
+      "failedNotice": "Error al publicar",
+      "editPost": "Editar publicación",
+      "deletePost": "Eliminar publicación",
+      "scheduleFor": "Programado para {time}",
+      "publishedOn": "Publicado el {time}"
+    },
+    "delete": {
+      "title": "Eliminar publicación",
+      "description": "¿Estás seguro de que deseas eliminar esta publicación ({name})? Esta acción no se puede deshacer.",
+      "cancel": "Cancelar",
+      "confirm": "Eliminar publicación",
+      "deleting": "Eliminando...",
+      "success": "Publicación eliminada con éxito",
+      "error": "Error al eliminar la publicación"
+    },
+    "properties": {
+      "title": "Adjuntar propiedad del inventario",
+      "search": "Buscar propiedades por nombre o ubicación...",
+      "select": "Adjuntar a la publicación",
+      "noProperties": "No se encontraron propiedades en el inventario",
+      "useHeroImage": "Usar imagen de la propiedad"
     },
     "templates": {
       "title": "Plantillas de publicación",
@@ -2884,7 +2929,11 @@
       "publishDraft": "Aprobar y publicar",
       "cancelSchedule": "Cancelar programación",
       "approveAndSchedule": "Aprobar y programar",
-      "scheduledFor": "Programado para {time}"
+      "scheduledFor": "Programado para {time}",
+      "preview": "Vista previa",
+      "edit": "Editar",
+      "delete": "Eliminar",
+      "author": "Autor"
     },
     "calendar": {
       "month": "Mes",

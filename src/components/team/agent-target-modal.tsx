@@ -85,7 +85,7 @@ export function AgentTargetModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
         <form onSubmit={handleSave}>
           <DialogHeader>
             <div className="flex items-center gap-2">

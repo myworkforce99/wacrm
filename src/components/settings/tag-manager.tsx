@@ -254,7 +254,7 @@ export function TagManager() {
 
       {/* Delete confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
           <DialogHeader>
             <DialogTitle>{t('deleteTag')}</DialogTitle>
             <DialogDescription>

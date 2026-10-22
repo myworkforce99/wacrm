@@ -674,7 +674,7 @@ export function ContactForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border-border text-foreground flex max-h-[92vh] flex-col overflow-hidden rounded-2xl p-0 shadow-2xl sm:max-w-2xl">
+      <DialogContent className="bg-card border-border text-foreground flex max-h-[92vh] w-full max-w-[95vw] flex-col overflow-hidden rounded-2xl p-0 shadow-2xl sm:max-w-2xl">
         {/* Header */}
         <DialogHeader className="border-border/70 bg-muted/20 shrink-0 border-b p-5 pb-4">
           <div className="flex items-center justify-between gap-3">
@@ -722,7 +722,7 @@ export function ContactForm({
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="flex-1 space-y-6 overflow-y-auto p-5 sm:p-6"
+            className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto p-4 sm:p-6"
           >
             {/* Section 1: Contact Information */}
             <div className="space-y-4">
@@ -1264,7 +1264,7 @@ export function ContactForm({
             </div>
 
             {/* Footer */}
-            <DialogFooter className="bg-muted/20 border-border/70 -mx-6 mt-6 -mb-6 flex shrink-0 flex-row items-center justify-between border-t p-4 sm:justify-between">
+            <DialogFooter className="bg-muted/20 border-border/70 -mx-4 mt-6 -mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2 border-t p-4 sm:-mx-6 sm:-mb-6 sm:justify-between">
               <span className="text-muted-foreground hidden text-[11px] sm:inline">
                 {t('requiredHint')}
               </span>

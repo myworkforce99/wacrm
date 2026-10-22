@@ -87,7 +87,7 @@ export function VisitDeleteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-destructive flex items-center gap-2">
             <Trash2 className="size-5" />

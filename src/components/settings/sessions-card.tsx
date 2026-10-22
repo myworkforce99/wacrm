@@ -72,7 +72,7 @@ export function SessionsCard() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
           <DialogHeader>
             <DialogTitle>{t('signOutConfirmTitle')}</DialogTitle>
             <DialogDescription>{t('signOutConfirmDesc')}</DialogDescription>

@@ -270,7 +270,7 @@ export function PropertyFormModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-2xl sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Building className="text-primary size-5" />

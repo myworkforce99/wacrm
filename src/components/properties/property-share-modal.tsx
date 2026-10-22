@@ -215,7 +215,7 @@ export function PropertyShareModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto p-4 sm:max-w-xl sm:p-6">
+      <DialogContent className="max-h-[85vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-xl sm:p-6">
         <DialogHeader className="pb-1">
           <DialogTitle className="flex items-center gap-2 text-base font-semibold sm:text-lg">
             <MessageCircle className="size-5 text-emerald-500" />

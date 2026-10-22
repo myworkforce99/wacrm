@@ -333,7 +333,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="border-border bg-card top-[25%] max-w-lg overflow-hidden rounded-2xl p-0 shadow-2xl"
+        className="border-border bg-card top-[25%] w-full max-w-[95vw] overflow-hidden rounded-2xl p-0 shadow-2xl sm:max-w-lg"
       >
         <DialogTitle className="sr-only">Command Search</DialogTitle>
         <div className="border-border flex items-center border-b px-4 py-3">

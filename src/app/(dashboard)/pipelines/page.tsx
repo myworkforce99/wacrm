@@ -996,7 +996,7 @@ export default function PipelinesPage() {
 
         {/* New Pipeline Dialog */}
         <Dialog open={newPipelineOpen} onOpenChange={setNewPipelineOpen}>
-          <DialogContent className="bg-popover border-border sm:max-w-sm">
+          <DialogContent className="bg-popover border-border w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
             <DialogHeader>
               <DialogTitle className="text-popover-foreground">
                 {t('newPipeline')}

@@ -503,7 +503,7 @@ export function ScheduleVisitSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="bg-popover border-border flex w-full max-w-xl flex-col p-0 sm:max-w-[560px]"
+        className="bg-popover border-border flex w-full max-w-full flex-col p-0 sm:max-w-[560px]"
       >
         <SheetHeader className="border-border/50 border-b px-5 pt-5 pb-4">
           <div className="flex items-center gap-2.5">

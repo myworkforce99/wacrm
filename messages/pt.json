@@ -2822,11 +2822,22 @@
       "retry": "Tentar novamente",
       "calendarTab": "Calendário",
       "postsTab": "Publicações",
+      "gridTab": "Grade de feed",
       "noScheduledPosts": "Nenhuma publicação agendada",
-      "scheduleYourFirst": "Agende uma publicação para vê-la aqui"
+      "scheduleYourFirst": "Agende uma publicação para vê-la aqui",
+      "searchPlaceholder": "Buscar publicações por legenda, conta...",
+      "allStatuses": "Todos os status",
+      "statusNeedsReview": "Requer revisão",
+      "allPlatforms": "Todas as plataformas",
+      "clearFilters": "Limpar filtros",
+      "noFilteredResults": "Nenhuma publicação corresponde aos filtros",
+      "needsReviewBanner": "{count} {count, plural, =1 {rascunho está} other {rascunhos estão}} aguardando revisão e aprovação do administrador",
+      "viewAllDrafts": "Revisar rascunhos",
+      "scheduleOnDate": "Agendar neste dia"
     },
     "composer": {
       "title": "Nova publicação",
+      "editTitle": "Editar publicação",
       "selectAccount": "Selecionar conta",
       "caption": "Legenda",
       "captionPlaceholder": "Escreva uma legenda...",
@@ -2834,6 +2845,9 @@
       "uploadImage": "Enviar imagem",
       "changeImage": "Alterar imagem",
       "publishNow": "Publicar agora",
+      "updatePost": "Atualizar publicação",
+      "updating": "Atualizando...",
+      "postUpdated": "Publicação atualizada com sucesso",
       "saveDraft": "Salvar rascunho",
       "submitForReview": "Enviar para revisão",
       "agentNotice": "As publicações criadas por agentes são salvas como rascunhos para aprovação do administrador.",
@@ -2848,11 +2862,42 @@
       "generating": "Gerando...",
       "propertyDetailsPlaceholder": "ex: 3BHK em Noida, ₹1.2 Cr, pronto para morar",
       "useTemplate": "Usar modelo",
+      "attachProperty": "Anexar imóvel",
       "aiAssistLabel": "Assistente IA",
       "tone": "Tom",
       "toneProfessional": "Profissional",
       "toneFriendly": "Amigável",
       "toneUrgent": "Urgente"
+    },
+    "preview": {
+      "title": "Pré-visualização",
+      "previewInstagram": "Pré-visualização do Instagram",
+      "previewFacebook": "Pré-visualização do Facebook",
+      "draftedBy": "Rascunho de {name}",
+      "viewLive": "Ver publicação ao vivo",
+      "reviewPending": "Aguardando revisão do administrador",
+      "reviewPendingDesc": "Este rascunho foi enviado por um agente e está aguardando a aprovação e publicação de um administrador ou proprietário.",
+      "failedNotice": "Falha na publicação",
+      "editPost": "Editar publicação",
+      "deletePost": "Excluir publicação",
+      "scheduleFor": "Agendado para {time}",
+      "publishedOn": "Publicado em {time}"
+    },
+    "delete": {
+      "title": "Excluir publicação",
+      "description": "Tem certeza de que deseja excluir esta publicação ({name})? Esta ação não pode ser desfeita.",
+      "cancel": "Cancelar",
+      "confirm": "Excluir publicação",
+      "deleting": "Excluindo...",
+      "success": "Publicação excluída com sucesso",
+      "error": "Falha ao excluir a publicação"
+    },
+    "properties": {
+      "title": "Anexar imóvel do inventário",
+      "search": "Buscar imóveis por nome ou localização...",
+      "select": "Anexar à publicação",
+      "noProperties": "Nenhum imóvel encontrado no inventário",
+      "useHeroImage": "Usar imagem do imóvel"
     },
     "templates": {
       "title": "Modelos de publicação",
@@ -2884,7 +2929,11 @@
       "publishDraft": "Aprovar e publicar",
       "cancelSchedule": "Cancelar agendamento",
       "approveAndSchedule": "Aprovar e agendar",
-      "scheduledFor": "Agendado para {time}"
+      "scheduledFor": "Agendado para {time}",
+      "preview": "Pré-visualizar",
+      "edit": "Editar",
+      "delete": "Excluir",
+      "author": "Autor"
     },
     "calendar": {
       "month": "Mês",

@@ -137,7 +137,7 @@ export function PortalConnectModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-border bg-card max-h-[88vh] w-full max-w-[calc(100vw-2rem)] overflow-y-auto p-4 sm:max-w-lg sm:p-6">
+      <DialogContent className="border-border bg-card max-h-[88vh] w-full max-w-[calc(100vw-2rem)] overflow-x-hidden overflow-y-auto p-4 sm:max-w-lg sm:p-6">
         <DialogHeader className="space-y-1">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-foreground text-lg font-bold sm:text-xl">

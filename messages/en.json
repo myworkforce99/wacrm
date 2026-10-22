@@ -2823,11 +2823,22 @@
       "retry": "Retry",
       "calendarTab": "Calendar",
       "postsTab": "Posts",
+      "gridTab": "Feed Grid",
       "noScheduledPosts": "No scheduled posts",
-      "scheduleYourFirst": "Schedule a post to see it here"
+      "scheduleYourFirst": "Schedule a post to see it here",
+      "searchPlaceholder": "Search posts by caption, account...",
+      "allStatuses": "All Statuses",
+      "statusNeedsReview": "Needs Review",
+      "allPlatforms": "All Platforms",
+      "clearFilters": "Clear filters",
+      "noFilteredResults": "No posts match your filters",
+      "needsReviewBanner": "{count} {count, plural, =1 {draft is} other {drafts are}} awaiting admin review & approval",
+      "viewAllDrafts": "Review Drafts",
+      "scheduleOnDate": "Schedule on this Day"
     },
     "composer": {
       "title": "New Post",
+      "editTitle": "Edit Post",
       "selectAccount": "Select account",
       "caption": "Caption",
       "captionPlaceholder": "Write a caption...",
@@ -2835,6 +2846,9 @@
       "uploadImage": "Upload Image",
       "changeImage": "Change Image",
       "publishNow": "Publish Now",
+      "updatePost": "Update Post",
+      "updating": "Updating...",
+      "postUpdated": "Post updated successfully",
       "saveDraft": "Save Draft",
       "submitForReview": "Submit for Review",
       "agentNotice": "Posts created by agents are saved as drafts for admin approval before publishing.",
@@ -2849,11 +2863,42 @@
       "generating": "Generating...",
       "propertyDetailsPlaceholder": "e.g. 3BHK in Noida, ₹1.2 Cr, ready to move",
       "useTemplate": "Use Template",
+      "attachProperty": "Attach Property",
       "aiAssistLabel": "AI Assist",
       "tone": "Tone",
       "toneProfessional": "Professional",
       "toneFriendly": "Friendly",
       "toneUrgent": "Urgent"
+    },
+    "preview": {
+      "title": "Post Preview",
+      "previewInstagram": "Instagram Preview",
+      "previewFacebook": "Facebook Preview",
+      "draftedBy": "Drafted by {name}",
+      "viewLive": "View Live Post",
+      "reviewPending": "Awaiting Admin Review",
+      "reviewPendingDesc": "This draft was submitted by an agent and is waiting for an Admin or Owner to approve and publish.",
+      "failedNotice": "Publishing failed",
+      "editPost": "Edit Post",
+      "deletePost": "Delete Post",
+      "scheduleFor": "Scheduled for {time}",
+      "publishedOn": "Published on {time}"
+    },
+    "delete": {
+      "title": "Delete Post",
+      "description": "Are you sure you want to delete this post ({name})? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete Post",
+      "deleting": "Deleting...",
+      "success": "Post deleted successfully",
+      "error": "Failed to delete post"
+    },
+    "properties": {
+      "title": "Attach Property from Inventory",
+      "search": "Search properties by name or location...",
+      "select": "Attach to Post",
+      "noProperties": "No properties found in inventory",
+      "useHeroImage": "Use Property Image"
     },
     "templates": {
       "title": "Post Templates",
@@ -2885,7 +2930,11 @@
       "publishDraft": "Approve & Publish",
       "cancelSchedule": "Cancel Schedule",
       "approveAndSchedule": "Approve & Schedule",
-      "scheduledFor": "Scheduled for {time}"
+      "scheduledFor": "Scheduled for {time}",
+      "preview": "Preview",
+      "edit": "Edit",
+      "delete": "Delete",
+      "author": "Author"
     },
     "calendar": {
       "month": "Month",

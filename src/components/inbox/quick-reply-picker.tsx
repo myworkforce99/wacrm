@@ -55,7 +55,7 @@ export function QuickReplyPicker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-full max-w-[95vw] p-4 sm:max-w-md sm:p-6">
         <DialogHeader>
           <DialogTitle>{t('quickReplies')}</DialogTitle>
         </DialogHeader>

@@ -659,7 +659,7 @@ export function MembersTab() {
           if (!open) setRemovingMember(null);
         }}
       >
-        <DialogContent className="bg-popover border-border sm:max-w-sm">
+        <DialogContent className="bg-popover border-border w-full max-w-[95vw] p-4 sm:max-w-sm sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-popover-foreground flex items-center gap-2">
               <AlertTriangle className="size-4 text-amber-400" />
