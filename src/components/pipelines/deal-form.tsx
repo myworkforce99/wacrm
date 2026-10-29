@@ -14,6 +14,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { canManageMembers } from '@/lib/auth/roles';
@@ -23,6 +26,7 @@ import {
   getAgentAssignedContactIds,
   buildAgentContactFilter,
 } from '@/lib/contacts/agent-scoping';
+import { DealFormSchema, type DealFormValues } from '@/lib/schemas/deal';
 import type {
   Contact,
   Conversation,
@@ -87,17 +91,9 @@ export function DealForm({
   const supabase = createClient();
   const { accountId, accountRole, profile, user, defaultCurrency } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
+  const queryClient = useQueryClient();
 
-  const [title, setTitle] = useState('');
-  const [value, setValue] = useState('');
-  const [currency, setCurrency] = useState(defaultCurrency);
-  const [contactId, setContactId] = useState('');
-  const [stageId, setStageId] = useState('');
-  const [assignedTo, setAssignedTo] = useState('');
-  const [expectedCloseDate, setExpectedCloseDate] = useState('');
-  const [notes, setNotes] = useState('');
   const [brokeragePct, setBrokeragePct] = useState<number | null>(null);
-
   const [contacts, setContacts] = useState<ExtendedContact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [linkedConversation, setLinkedConversation] =
@@ -112,30 +108,63 @@ export function DealForm({
   const [lostModalOpen, setLostModalOpen] = useState(false);
   const [lostLoading, setLostLoading] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    control,
+    formState: { errors },
+  } = useForm<DealFormValues>({
+    resolver: zodResolver(DealFormSchema),
+    defaultValues: {
+      title: '',
+      value: '',
+      currency: defaultCurrency,
+      contact_id: '',
+      stage_id: defaultStageId || stages[0]?.id || '',
+      assigned_to: !isManager && profile?.id ? profile.id : '',
+      expected_close_date: '',
+      notes: '',
+    },
+  });
+
+  const contactId = useWatch({ control, name: 'contact_id' });
+  const rawValue = useWatch({ control, name: 'value' });
+  const currencyWatch = useWatch({ control, name: 'currency' });
+  const currency = currencyWatch || defaultCurrency;
+  const title = useWatch({ control, name: 'title' });
+  const stageId = useWatch({ control, name: 'stage_id' });
+
   // Reset the form fields every time the sheet opens or its input props change
-  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!open) return;
-    setConfirmDelete(false);
+    const timer = setTimeout(() => {
+      setConfirmDelete(false);
+    }, 0);
     if (deal) {
-      setTitle(deal.title);
-      setValue(String(deal.value ?? ''));
-      setCurrency(deal.currency || defaultCurrency);
-      setContactId(deal.contact_id ?? '');
-      setStageId(deal.stage_id);
-      setAssignedTo(deal.assigned_to ?? '');
-      setExpectedCloseDate(deal.expected_close_date ?? '');
-      setNotes(deal.notes ?? '');
+      reset({
+        title: deal.title,
+        value: deal.value != null ? String(deal.value) : '',
+        currency: deal.currency || defaultCurrency,
+        contact_id: deal.contact_id ?? '',
+        stage_id: deal.stage_id,
+        assigned_to: deal.assigned_to ?? '',
+        expected_close_date: deal.expected_close_date ?? '',
+        notes: deal.notes ?? '',
+      });
     } else {
-      setTitle('');
-      setValue('');
-      setCurrency(defaultCurrency);
-      setContactId('');
-      setStageId(defaultStageId || stages[0]?.id || '');
-      setAssignedTo(!isManager && profile?.id ? profile.id : '');
-      setExpectedCloseDate('');
-      setNotes('');
+      reset({
+        title: '',
+        value: '',
+        currency: defaultCurrency,
+        contact_id: '',
+        stage_id: defaultStageId || stages[0]?.id || '',
+        assigned_to: !isManager && profile?.id ? profile.id : '',
+        expected_close_date: '',
+        notes: '',
+      });
     }
+    return () => clearTimeout(timer);
   }, [
     open,
     deal,
@@ -144,8 +173,8 @@ export function DealForm({
     defaultCurrency,
     isManager,
     profile?.id,
+    reset,
   ]);
-  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Load account settings (brokerage %)
   useEffect(() => {
@@ -220,9 +249,10 @@ export function DealForm({
   // Fetch linked conversation for the selected contact
   useEffect(() => {
     if (!open || !contactId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLinkedConversation(null);
-      return;
+      const timer = setTimeout(() => {
+        setLinkedConversation(null);
+      }, 0);
+      return () => clearTimeout(timer);
     }
     let cancelled = false;
     const timer = setTimeout(() => {
@@ -248,10 +278,11 @@ export function DealForm({
 
   // Parse budget / value for live preview
   const parsedNumericVal = (() => {
-    if (!value) return 0;
-    const b = parseBudget(value);
+    const strVal = rawValue != null ? String(rawValue).trim() : '';
+    if (!strVal) return 0;
+    const b = parseBudget(strVal);
     if (b !== null && !isNaN(b)) return b;
-    const f = parseFloat(value);
+    const f = parseFloat(strVal);
     return isNaN(f) ? 0 : f;
   })();
 
@@ -260,28 +291,42 @@ export function DealForm({
       ? Math.round((parsedNumericVal * brokeragePct) / 100)
       : null;
 
-  async function handleSave() {
-    if (!title.trim() || !contactId || !stageId) {
-      toast.error(t('toastRequired'));
-      return;
-    }
+  function handleSuccessSaved() {
+    onOpenChange(false);
+    onSaved();
+    void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+  }
+
+  async function onFormSubmit(data: DealFormValues) {
     // Anti-poaching guard: agents can only create/update deals for their assigned leads
-    if (!isManager && !contacts.some((c) => c.id === contactId)) {
+    if (!isManager && !contacts.some((c) => c.id === data.contact_id)) {
       toast.error(t('toastFailedSave'));
       return;
     }
     setSaving(true);
 
+    const strVal = data.value != null ? String(data.value).trim() : '';
+    let numericVal = 0;
+    if (strVal) {
+      const b = parseBudget(strVal);
+      if (b !== null && !isNaN(b)) {
+        numericVal = b;
+      } else {
+        const f = parseFloat(strVal);
+        numericVal = isNaN(f) ? 0 : f;
+      }
+    }
+
     const payload = {
-      title: title.trim(),
-      value: parsedNumericVal,
-      currency,
-      contact_id: contactId,
+      title: data.title.trim(),
+      value: numericVal,
+      currency: data.currency,
+      contact_id: data.contact_id,
       pipeline_id: pipelineId,
-      stage_id: stageId,
-      assigned_to: assignedTo || null,
-      notes: notes.trim() || null,
-      expected_close_date: expectedCloseDate || null,
+      stage_id: data.stage_id,
+      assigned_to: data.assigned_to || null,
+      notes: data.notes?.trim() || null,
+      expected_close_date: data.expected_close_date || null,
     };
 
     if (deal) {
@@ -304,8 +349,8 @@ export function DealForm({
       const {
         data: { session },
       } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) {
+      const userObj = session?.user;
+      if (!userObj) {
         toast.error(t('toastNotSignedIn'));
         setSaving(false);
         return;
@@ -317,7 +362,7 @@ export function DealForm({
       }
       const { error } = await supabase.from('deals').insert({
         ...payload,
-        user_id: user.id,
+        user_id: userObj.id,
         account_id: accountId,
         status: 'open',
         last_activity_at: new Date().toISOString(),
@@ -331,8 +376,7 @@ export function DealForm({
 
     setSaving(false);
     toast.success(deal ? t('toastUpdated') : t('toastCreated'));
-    onOpenChange(false);
-    onSaved();
+    handleSuccessSaved();
   }
 
   async function handleMarkWon() {
@@ -354,8 +398,7 @@ export function DealForm({
       return;
     }
 
-    onOpenChange(false);
-    onSaved();
+    handleSuccessSaved();
 
     toast.success(t('toastMarkedWon'), {
       duration: 6000,
@@ -378,9 +421,18 @@ export function DealForm({
     if (!deal) return;
     setLostLoading(true);
 
+    // Ensure re_engage_on is date-only (YYYY-MM-DD) — DB column is DATE type, not TIMESTAMPTZ.
+    // datetime-local inputs produce "YYYY-MM-DDTHH:mm" which Postgres rejects.
+    const safePayload = {
+      ...payload,
+      re_engage_on: payload.re_engage_on
+        ? payload.re_engage_on.slice(0, 10)
+        : undefined,
+    };
+
     const res = await fetch(`/api/deals/${deal.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: 'lost', ...payload }),
+      body: JSON.stringify({ status: 'lost', ...safePayload }),
       headers: { 'Content-Type': 'application/json' },
     });
     setLostLoading(false);
@@ -394,8 +446,7 @@ export function DealForm({
     }
 
     setLostModalOpen(false);
-    onOpenChange(false);
-    onSaved();
+    handleSuccessSaved();
 
     toast.success(t('toastMarkedLost'), {
       duration: 6000,
@@ -424,8 +475,7 @@ export function DealForm({
       return;
     }
     toast.success(t('toastReopened'));
-    onOpenChange(false);
-    onSaved();
+    handleSuccessSaved();
   }
 
   async function handleDelete() {
@@ -439,8 +489,7 @@ export function DealForm({
     }
     toast.success(t('toastDeleted'));
     setConfirmDelete(false);
-    onOpenChange(false);
-    onSaved();
+    handleSuccessSaved();
   }
 
   const isClosed = deal?.status && deal.status !== 'open';
@@ -452,7 +501,10 @@ export function DealForm({
           side="right"
           className="bg-popover border-border text-popover-foreground w-full p-0 sm:max-w-lg"
         >
-          <div className="flex h-full flex-col">
+          <form
+            onSubmit={handleSubmit(onFormSubmit)}
+            className="flex h-full flex-col"
+          >
             <SheetHeader className="border-border/50 border-b p-4">
               <SheetTitle className="text-popover-foreground">
                 {deal ? t('editDeal') : t('newDeal')}
@@ -496,19 +548,22 @@ export function DealForm({
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('title')}</Label>
                 <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  {...register('title')}
                   placeholder={t('titlePlaceholder')}
                   className="border-border bg-muted text-foreground"
                 />
+                {errors.title && (
+                  <p className="text-destructive text-[11px]">
+                    {errors.title.message}
+                  </p>
+                )}
               </div>
 
               {/* Contact */}
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('contact')}</Label>
                 <select
-                  value={contactId}
-                  onChange={(e) => setContactId(e.target.value)}
+                  {...register('contact_id')}
                   className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
                 >
                   <option value="">{t('selectContact')}</option>
@@ -518,6 +573,11 @@ export function DealForm({
                     </option>
                   ))}
                 </select>
+                {errors.contact_id && (
+                  <p className="text-destructive text-[11px]">
+                    {errors.contact_id.message}
+                  </p>
+                )}
 
                 {/* Selected Contact Card with 1-click actions */}
                 {selectedContact && (
@@ -580,8 +640,7 @@ export function DealForm({
                       <IndianRupee className="text-muted-foreground absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
                       <Input
                         type="text"
-                        value={value}
-                        onChange={(e) => setValue(e.target.value)}
+                        {...register('value')}
                         placeholder="e.g. 1.5 Cr or 8500000"
                         className="border-border bg-muted text-foreground pl-8 text-sm"
                       />
@@ -592,8 +651,7 @@ export function DealForm({
                       {t('currency')}
                     </Label>
                     <select
-                      value={currency}
-                      onChange={(e) => setCurrency(e.target.value)}
+                      {...register('currency')}
                       className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
                     >
                       {CURRENCIES.map((c) => (
@@ -637,8 +695,7 @@ export function DealForm({
                 </Label>
                 <Input
                   type="date"
-                  value={expectedCloseDate}
-                  onChange={(e) => setExpectedCloseDate(e.target.value)}
+                  {...register('expected_close_date')}
                   className="border-border bg-muted text-foreground"
                 />
               </div>
@@ -647,8 +704,7 @@ export function DealForm({
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('stage')}</Label>
                 <select
-                  value={stageId}
-                  onChange={(e) => setStageId(e.target.value)}
+                  {...register('stage_id')}
                   className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none"
                 >
                   {stages.map((s) => (
@@ -657,6 +713,11 @@ export function DealForm({
                     </option>
                   ))}
                 </select>
+                {errors.stage_id && (
+                  <p className="text-destructive text-[11px]">
+                    {errors.stage_id.message}
+                  </p>
+                )}
               </div>
 
               {/* Assigned To */}
@@ -674,8 +735,7 @@ export function DealForm({
                 </div>
                 <select
                   disabled={!isManager}
-                  value={assignedTo}
-                  onChange={(e) => setAssignedTo(e.target.value)}
+                  {...register('assigned_to')}
                   className="border-border bg-muted text-foreground focus:border-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none disabled:cursor-not-allowed disabled:opacity-75"
                 >
                   <option value="">{t('unassigned')}</option>
@@ -691,8 +751,7 @@ export function DealForm({
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t('notes')}</Label>
                 <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  {...register('notes')}
                   placeholder={t('notesPlaceholder')}
                   className="border-border bg-muted text-foreground min-h-[90px]"
                 />
@@ -760,6 +819,7 @@ export function DealForm({
             <div className="border-border/50 bg-popover/80 border-t p-4">
               <div className="flex gap-2">
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   className="border-border text-muted-foreground hover:bg-muted flex-1 bg-transparent"
@@ -767,8 +827,8 @@ export function DealForm({
                   {t('cancel')}
                 </Button>
                 <Button
-                  onClick={handleSave}
-                  disabled={saving || !title.trim() || !contactId || !stageId}
+                  type="submit"
+                  disabled={saving || !title?.trim() || !contactId || !stageId}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
                 >
                   {saving
@@ -813,7 +873,7 @@ export function DealForm({
                   </button>
                 ))}
             </div>
-          </div>
+          </form>
         </SheetContent>
       </Sheet>
 

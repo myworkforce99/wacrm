@@ -24,7 +24,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { SlaBadge } from '@/components/ui/sla-badge';
 
 interface ConversationListProps {
@@ -335,6 +335,26 @@ export function ConversationList({
 
   const activeFilter = FILTER_OPTIONS.find((o) => o.value === filter);
 
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const rowVirtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 72,
+    overscan: 5,
+  });
+
+  useEffect(() => {
+    if (activeConversationId && filtered.length > 0) {
+      const activeIndex = filtered.findIndex(
+        (c) => c.id === activeConversationId
+      );
+      if (activeIndex >= 0) {
+        rowVirtualizer.scrollToIndex(activeIndex, { align: 'auto' });
+      }
+    }
+  }, [activeConversationId, filtered, rowVirtualizer]);
+
   return (
     // w-full on mobile so the list occupies the whole viewport when it's
     // the single pane showing; fixed 320px on desktop where it shares the
@@ -595,11 +615,11 @@ export function ConversationList({
 
       {/* Conversation Items.
           `min-h-0` is load-bearing: a flex child defaults to
-          min-height:auto, so without it this ScrollArea grows to fit
+          min-height:auto, so without it this container grows to fit
           every conversation instead of shrinking to the remaining
           space — the list then overflows and gets clipped by the
           parent's overflow-hidden with no scrollbar (issue #229). */}
-      <ScrollArea className="min-h-0 flex-1">
+      <div ref={parentRef} className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="border-primary h-5 w-5 animate-spin rounded-full border-2 border-t-transparent" />
@@ -611,19 +631,42 @@ export function ConversationList({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col pb-20 lg:pb-0">
-            {filtered.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conversation={conv}
-                isActive={conv.id === activeConversationId}
-                onSelect={handleSelect}
-                t={t}
-              />
-            ))}
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+            className="pb-20 lg:pb-0"
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const conv = filtered[virtualRow.index];
+              if (!conv) return null;
+              return (
+                <div
+                  key={conv.id}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <ConversationItem
+                    conversation={conv}
+                    isActive={conv.id === activeConversationId}
+                    onSelect={handleSelect}
+                    t={t}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 }

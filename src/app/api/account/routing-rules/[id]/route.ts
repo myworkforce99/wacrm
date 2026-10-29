@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { hasMinRole } from '@/lib/auth/roles';
 import { toApiErrorResponse } from '@/lib/api/v1/respond';
 
+import { LeadRoutingRulePatchSchema } from '@/lib/schemas/routing-rule';
+
 export async function PATCH(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -18,12 +20,31 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const parsed = LeadRoutingRulePatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 }
+      );
+    }
+    const val = parsed.data;
+    if (Object.keys(val).length === 0) {
+      return NextResponse.json(
+        { error: 'No fields to update' },
+        { status: 400 }
+      );
+    }
+
     const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('lead_routing_rules')
-      .update(body)
+      .update(val)
       .eq('id', id)
       .eq('account_id', account.accountId)
       .select()

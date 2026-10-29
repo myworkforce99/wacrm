@@ -1,6 +1,7 @@
 import { requireApiKey } from '@/lib/auth/api-context';
 import { ok, fail, toApiErrorResponse } from '@/lib/api/v1/respond';
 import { getPropertyById, PropertyError } from '@/lib/api/v1/properties';
+import { PropertyPatchSchema } from '@/lib/schemas';
 
 export async function GET(
   request: Request,
@@ -29,83 +30,42 @@ export async function PATCH(
       string,
       unknown
     > | null;
-    if (!body || typeof body !== 'object') {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return fail('bad_request', 'Request body must be a JSON object', 400);
     }
 
     const existing = await getPropertyById(ctx.supabase, ctx.accountId, id);
     if (!existing) return fail('not_found', 'Property not found', 404);
 
-    const updates: Record<string, unknown> = {};
-    if ('title' in body && typeof body.title === 'string' && body.title.trim())
-      updates.title = body.title.trim();
-    if (
-      'location' in body &&
-      (typeof body.location === 'string' || body.location === null)
-    )
-      updates.location = body.location;
-    if (
-      'price' in body &&
-      (typeof body.price === 'number' || body.price === null)
-    )
-      updates.price = body.price;
-    if (
-      'property_type' in body &&
-      (typeof body.property_type === 'string' || body.property_type === null)
-    )
-      updates.property_type = body.property_type;
-    if (
-      'bedrooms' in body &&
-      (typeof body.bedrooms === 'number' || body.bedrooms === null)
-    )
-      updates.bedrooms = body.bedrooms;
-    if ('tags' in body && (Array.isArray(body.tags) || body.tags === null))
-      updates.tags = Array.isArray(body.tags)
-        ? body.tags.filter((t) => typeof t === 'string')
-        : null;
+    const parsed = PropertyPatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return fail(
+        'bad_request',
+        parsed.error.issues[0]?.message ?? 'Invalid input',
+        400
+      );
+    }
 
-    if (
-      'configuration' in body &&
-      (typeof body.configuration === 'string' || body.configuration === null)
-    )
-      updates.configuration = body.configuration;
-    if (
-      'builder_name' in body &&
-      (typeof body.builder_name === 'string' || body.builder_name === null)
-    )
-      updates.builder_name = body.builder_name;
-    if (
-      'project_name' in body &&
-      (typeof body.project_name === 'string' || body.project_name === null)
-    )
-      updates.project_name = body.project_name;
-    if (
-      'rera_id' in body &&
-      (typeof body.rera_id === 'string' || body.rera_id === null)
-    )
-      updates.rera_id = body.rera_id;
-    if (
-      'possession_status' in body &&
-      (typeof body.possession_status === 'string' ||
-        body.possession_status === null)
-    )
-      updates.possession_status = body.possession_status;
-    if (
-      'possession_date' in body &&
-      (typeof body.possession_date === 'string' ||
-        body.possession_date === null)
-    )
-      updates.possession_date = body.possession_date;
-    if (
-      'carpet_area' in body &&
-      (typeof body.carpet_area === 'number' || body.carpet_area === null)
-    )
-      updates.carpet_area = body.carpet_area;
-    if (
-      'facing' in body &&
-      (typeof body.facing === 'string' || body.facing === null)
-    )
-      updates.facing = body.facing;
+    const updates: Record<string, unknown> = {};
+    const val = parsed.data;
+    if (val.title !== undefined) updates.title = val.title;
+    if (val.location !== undefined) updates.location = val.location;
+    if (val.price !== undefined) updates.price = val.price;
+    if (val.property_type !== undefined)
+      updates.property_type = val.property_type;
+    if (val.bedrooms !== undefined) updates.bedrooms = val.bedrooms;
+    if (val.tags !== undefined) updates.tags = val.tags;
+    if (val.configuration !== undefined)
+      updates.configuration = val.configuration;
+    if (val.builder_name !== undefined) updates.builder_name = val.builder_name;
+    if (val.project_name !== undefined) updates.project_name = val.project_name;
+    if (val.rera_id !== undefined) updates.rera_id = val.rera_id;
+    if (val.possession_status !== undefined)
+      updates.possession_status = val.possession_status;
+    if (val.possession_date !== undefined)
+      updates.possession_date = val.possession_date;
+    if (val.carpet_area !== undefined) updates.carpet_area = val.carpet_area;
+    if (val.facing !== undefined) updates.facing = val.facing;
 
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString();

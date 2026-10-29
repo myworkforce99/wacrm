@@ -10,6 +10,7 @@ import {
   serializeProperty,
   PropertyError,
 } from '@/lib/api/v1/properties';
+import { PropertyInputSchema } from '@/lib/schemas';
 
 export async function GET(request: Request) {
   try {
@@ -54,41 +55,44 @@ export async function POST(request: Request) {
       string,
       unknown
     > | null;
-    if (!body || typeof body !== 'object') {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return fail('bad_request', 'Request body must be a JSON object', 400);
     }
 
-    if (typeof body.title !== 'string' || !body.title.trim()) {
-      return fail('bad_request', "'title' is required", 400);
+    const parsed = PropertyInputSchema.safeParse(body);
+    if (!parsed.success) {
+      return fail(
+        'bad_request',
+        parsed.error.issues[0]?.message ?? 'Invalid input',
+        400
+      );
     }
 
+    const val = parsed.data;
     const insertData: Record<string, unknown> = {
       account_id: ctx.accountId,
-      title: body.title.trim(),
+      title: val.title,
     };
 
-    if (typeof body.location === 'string') insertData.location = body.location;
-    if (typeof body.price === 'number') insertData.price = body.price;
-    if (typeof body.property_type === 'string')
-      insertData.property_type = body.property_type;
-    if (typeof body.bedrooms === 'number') insertData.bedrooms = body.bedrooms;
-    if (Array.isArray(body.tags))
-      insertData.tags = body.tags.filter((t) => typeof t === 'string');
-
-    if (typeof body.configuration === 'string')
-      insertData.configuration = body.configuration;
-    if (typeof body.builder_name === 'string')
-      insertData.builder_name = body.builder_name;
-    if (typeof body.project_name === 'string')
-      insertData.project_name = body.project_name;
-    if (typeof body.rera_id === 'string') insertData.rera_id = body.rera_id;
-    if (typeof body.possession_status === 'string')
-      insertData.possession_status = body.possession_status;
-    if (typeof body.possession_date === 'string')
-      insertData.possession_date = body.possession_date;
-    if (typeof body.carpet_area === 'number')
-      insertData.carpet_area = body.carpet_area;
-    if (typeof body.facing === 'string') insertData.facing = body.facing;
+    if (val.location !== undefined) insertData.location = val.location;
+    if (val.price !== undefined) insertData.price = val.price;
+    if (val.property_type !== undefined)
+      insertData.property_type = val.property_type;
+    if (val.bedrooms !== undefined) insertData.bedrooms = val.bedrooms;
+    if (val.tags !== undefined) insertData.tags = val.tags;
+    if (val.configuration !== undefined)
+      insertData.configuration = val.configuration;
+    if (val.builder_name !== undefined)
+      insertData.builder_name = val.builder_name;
+    if (val.project_name !== undefined)
+      insertData.project_name = val.project_name;
+    if (val.rera_id !== undefined) insertData.rera_id = val.rera_id;
+    if (val.possession_status !== undefined)
+      insertData.possession_status = val.possession_status;
+    if (val.possession_date !== undefined)
+      insertData.possession_date = val.possession_date;
+    if (val.carpet_area !== undefined) insertData.carpet_area = val.carpet_area;
+    if (val.facing !== undefined) insertData.facing = val.facing;
 
     const { data, error } = await ctx.supabase
       .from('properties')

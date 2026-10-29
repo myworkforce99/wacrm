@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { DashboardShell } from './dashboard-shell';
 import { AnnouncementBanner } from '@/components/layout/announcement-banner';
+import { QueryProvider } from '@/components/providers/query-provider';
 
 // Server layout whose only job is to declare "do not index" metadata
 // for the authed app. robots.ts already disallows these paths at the
@@ -28,7 +29,9 @@ export default function DashboardLayout({
   return (
     <div className="bg-background flex h-[100dvh] w-full flex-col overflow-hidden">
       <AnnouncementBanner />
-      <DashboardShell>{children}</DashboardShell>
+      <QueryProvider>
+        <DashboardShell>{children}</DashboardShell>
+      </QueryProvider>
     </div>
   );
 }

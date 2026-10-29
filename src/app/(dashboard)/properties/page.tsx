@@ -12,7 +12,7 @@
  *  - Full i18n support, dark & light mode styling, and React 19 safety
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
@@ -22,6 +22,7 @@ import { canManageMembers } from '@/lib/auth/roles';
 import { formatINR } from '@/lib/currency';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { PageHeader } from '@/components/layout/page-header';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -95,13 +96,32 @@ export default function PropertiesPage() {
   const router = useRouter();
   const supabase = createClient();
   const isViewOnly = useCan('view-only');
-  const { accountRole } = useAuth();
+  const { accountRole, accountId } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const canManageInventory = isManager && !isViewOnly;
+  const queryClient = useQueryClient();
 
-  // Data states
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Query properties with React Query
+  const {
+    data: properties = [],
+    isLoading: loading,
+    refetch: refetchProperties,
+  } = useQuery({
+    queryKey: ['properties', accountId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching properties:', error);
+        throw error;
+      }
+      return (data ?? []) as Property[];
+    },
+    enabled: !!accountId,
+  });
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -127,30 +147,6 @@ export default function PropertiesPage() {
   const [selectedPropertyForVisit, setSelectedPropertyForVisit] = useState<
     string | undefined
   >(undefined);
-
-  // Fetch properties from Supabase
-  const fetchProperties = useCallback(async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching properties:', error);
-    } else {
-      setProperties((data ?? []) as Property[]);
-    }
-    setLoading(false);
-  }, [supabase]);
-
-  // React 19 safe deferred fetch
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchProperties();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchProperties]);
 
   // KPI Calculations
   const stats = useMemo(() => {
@@ -304,20 +300,12 @@ export default function PropertiesPage() {
     setScheduleSheetOpen(true);
   }
 
-  function handlePropertySaved(saved: Property) {
-    setProperties((prev) => {
-      const idx = prev.findIndex((p) => p.id === saved.id);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = saved;
-        return next;
-      }
-      return [saved, ...prev];
-    });
+  function handlePropertySaved() {
+    void queryClient.invalidateQueries({ queryKey: ['properties'] });
   }
 
-  function handlePropertyDeleted(id: string) {
-    setProperties((prev) => prev.filter((p) => p.id !== id));
+  function handlePropertyDeleted() {
+    void queryClient.invalidateQueries({ queryKey: ['properties'] });
   }
 
   // Helper renderer for Possession Badge
@@ -388,7 +376,11 @@ export default function PropertiesPage() {
   }
 
   return (
-    <PullToRefresh onRefresh={fetchProperties}>
+    <PullToRefresh
+      onRefresh={async () => {
+        await refetchProperties();
+      }}
+    >
       <div className="space-y-6 pb-20">
         {/* Page Header */}
         <PageHeader

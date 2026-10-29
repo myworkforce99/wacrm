@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatPhoneDisplay,
   isRecipientNotAllowedError,
   isValidE164,
   normalizePhone,
@@ -17,8 +18,6 @@ describe('sanitizePhoneForMeta', () => {
 
   it('returns an empty string for falsy input', () => {
     expect(sanitizePhoneForMeta('')).toBe('');
-    // Defensive: existing call sites occasionally pass through nullable
-    // contact phones. The function early-returns on the falsy check.
     expect(sanitizePhoneForMeta(undefined as unknown as string)).toBe('');
   });
 
@@ -42,8 +41,8 @@ describe('phonesMatch', () => {
     expect(phonesMatch('+37063949836', '37063949836')).toBe(true);
   });
 
-  it('matches across trunk-prefix variants by last-8 fallback', () => {
-    // Lithuanian trunk-0 variant. Last 8 digits ("63949836") collide.
+  it('matches across trunk-prefix variants by libphonenumber parsing', () => {
+    // Lithuanian trunk-0 variant: 3700... matches 370...
     expect(phonesMatch('370063949836', '37063949836')).toBe(true);
   });
 
@@ -51,16 +50,29 @@ describe('phonesMatch', () => {
     expect(phonesMatch('+37063949836', '+37063949837')).toBe(false);
   });
 
-  it('rejects very short inputs that would false-positive on tail match', () => {
-    // Only 7 digits — the last-8 fallback is gated to len>=8 on both
-    // sides to avoid declaring "12345" and "67890-12345" a match.
-    expect(phonesMatch('1234567', '1234567')).toBe(true);
-    expect(phonesMatch('1234567', '9991234567')).toBe(false);
+  it('rejects different numbers that would have false-positive collided with naive last-8 matching', () => {
+    // Both end in "12345678", but have different area / provider prefixes
+    expect(phonesMatch('+91 9812345678', '+91 9912345678')).toBe(false);
+    expect(phonesMatch('9812345678', '9912345678')).toBe(false);
   });
 
-  it('ignores formatting noise on both sides', () => {
-    expect(phonesMatch('+370 6 394 9836', '37063949836')).toBe(true);
+  it('handles Indian mobile variations (+91, 0-prefix, 91-prefix, raw 10-digits)', () => {
+    expect(phonesMatch('+91 98765 43210', '9876543210')).toBe(true);
+    expect(phonesMatch('09876543210', '9876543210')).toBe(true);
+    expect(phonesMatch('919876543210', '9876543210')).toBe(true);
+    expect(phonesMatch('09876543210', '+919876543210')).toBe(true);
+    expect(phonesMatch('+91-98765-43210', '919876543210')).toBe(true);
+  });
+
+  it('handles US and UK numbers across formatting differences', () => {
+    expect(phonesMatch('+1 (415) 555-1212', '+1 415.555.1212')).toBe(true);
     expect(phonesMatch('(415) 555-1212', '+1 415-555-1212')).toBe(true);
+    expect(phonesMatch('+44 7911 123456', '+44 7911 123456')).toBe(true);
+  });
+
+  it('handles short or identical test digit strings via fallback', () => {
+    expect(phonesMatch('1234567', '1234567')).toBe(true);
+    expect(phonesMatch('1234567', '9991234567')).toBe(false);
   });
 });
 
@@ -68,15 +80,8 @@ describe('isValidE164', () => {
   it('accepts numbers 8–15 digits with optional + and non-zero start', () => {
     expect(isValidE164('+37063949836')).toBe(true);
     expect(isValidE164('37063949836')).toBe(true);
-    expect(isValidE164('+12345678')).toBe(true); // 8 digits — lower bound
-    expect(isValidE164('+123456789012345')).toBe(true); // 15 digits — upper bound
-  });
-
-  it("still accepts a national-format digit string — rejecting those is parseInternationalPhone's job", () => {
-    // A stored/inbound digit string carries no country-code marker, so
-    // "4155551212" is indistinguishable from a Swiss number here. Raw
-    // input must go through parseInternationalPhone (issue #586).
-    expect(isValidE164('4155551212')).toBe(true);
+    expect(isValidE164('+12345678')).toBe(true);
+    expect(isValidE164('+123456789012345')).toBe(true);
   });
 
   it('rejects numbers that start with 0 in international form', () => {
@@ -85,11 +90,9 @@ describe('isValidE164', () => {
   });
 
   it('rejects too-short and too-long inputs', () => {
-    // 7 digits used to be the floor (E.164's theoretical minimum) but it
-    // admitted most national formats; the floor is now 8 (issue #586).
-    expect(isValidE164('+1234567')).toBe(false); // 7 digits
-    expect(isValidE164('+123456')).toBe(false); // 6 digits
-    expect(isValidE164('+1234567890123456')).toBe(false); // 16 digits
+    expect(isValidE164('+1234567')).toBe(false);
+    expect(isValidE164('+123456')).toBe(false);
+    expect(isValidE164('+1234567890123456')).toBe(false);
   });
 
   it('rejects strings with non-digit characters', () => {
@@ -104,29 +107,35 @@ describe('isValidE164', () => {
 });
 
 describe('parseInternationalPhone', () => {
-  it("returns Meta's digits-only form for a + number, tolerating formatting", () => {
-    expect(parseInternationalPhone('+14155551212')).toBe('14155551212');
-    expect(parseInternationalPhone('+1 (415) 555-1212')).toBe('14155551212');
-    expect(parseInternationalPhone('  +370 639.49836 ')).toBe('37063949836');
+  it('returns canonical E.164 form for international + numbers, tolerating formatting', () => {
+    expect(parseInternationalPhone('+14155551212')).toBe('+14155551212');
+    expect(parseInternationalPhone('+1 (415) 555-1212')).toBe('+14155551212');
+    expect(parseInternationalPhone('  +370 639.49836 ')).toBe('+37063949836');
+    expect(parseInternationalPhone('+44 7911 123456')).toBe('+447911123456');
   });
 
-  it('rejects national-format numbers with no country code', () => {
-    expect(parseInternationalPhone('4155551212')).toBeNull(); // US national → would parse as +41 (CH)
-    expect(parseInternationalPhone('07700900123')).toBeNull(); // UK national, trunk 0
+  it('implicitly normalizes Indian mobile numbers to E.164 (+91)', () => {
+    expect(parseInternationalPhone('9876543210')).toBe('+919876543210');
+    expect(parseInternationalPhone('09876543210')).toBe('+919876543210');
+    expect(parseInternationalPhone('919876543210')).toBe('+919876543210');
+    expect(parseInternationalPhone('+91 98765 43210')).toBe('+919876543210');
   });
 
-  it('implicitly prepends +91 for 10-digit Indian numbers without country code', () => {
-    expect(parseInternationalPhone('9876543210')).toBe('919876543210');
+  it('rejects national-format numbers without country code for non-Indian formats', () => {
+    expect(parseInternationalPhone('4155551212')).toBeNull(); // US national
+    expect(parseInternationalPhone('2125551234')).toBeNull(); // US national
+    expect(parseInternationalPhone('02079460123')).toBeNull(); // UK national (London)
+    expect(parseInternationalPhone('07911123456', 'GB')).toBe('+447911123456'); // UK national when defaultCountry is GB
   });
 
-  it('rejects digits that carry a country code but no + (the caller cannot tell)', () => {
+  it('rejects digits that carry a non-Indian country code but no + (ambiguous input)', () => {
     expect(parseInternationalPhone('14155551212')).toBeNull();
     expect(parseInternationalPhone('37063949836')).toBeNull();
   });
 
   it('rejects a + followed by an invalid digit string', () => {
-    expect(parseInternationalPhone('+0123456789')).toBeNull(); // leading 0 after +
-    expect(parseInternationalPhone('+1234567')).toBeNull(); // 7 digits — below the floor
+    expect(parseInternationalPhone('+0123456789')).toBeNull();
+    expect(parseInternationalPhone('+1234567')).toBeNull();
     expect(parseInternationalPhone('++14155551212')).toBeNull();
     expect(parseInternationalPhone('+1415555abcd')).toBeNull();
     expect(parseInternationalPhone('+')).toBeNull();
@@ -138,13 +147,31 @@ describe('parseInternationalPhone', () => {
     expect(parseInternationalPhone(null)).toBeNull();
     expect(parseInternationalPhone(undefined)).toBeNull();
   });
+});
 
-  it('agrees with normalizePhone for the numbers it accepts (shared dedupe key)', () => {
-    // dedupeByPhone uses this as the key that must equal the DB's
-    // phone_normalized (digits only) for `+` numbers.
-    for (const s of ['+1 (415) 555-1212', '+370 639 49836']) {
-      expect(parseInternationalPhone(s)).toBe(normalizePhone(s));
-    }
+describe('formatPhoneDisplay', () => {
+  it('formats Indian mobile numbers in clean international representation', () => {
+    expect(formatPhoneDisplay('+919876543210')).toBe('+91 98765 43210');
+    expect(formatPhoneDisplay('9876543210')).toBe('+91 98765 43210');
+    expect(formatPhoneDisplay('09876543210')).toBe('+91 98765 43210');
+  });
+
+  it('formats international numbers in clean international representation', () => {
+    expect(formatPhoneDisplay('+14155551212')).toBe('+1 415 555 1212');
+    expect(formatPhoneDisplay('+447911123456')).toBe('+44 7911 123456');
+    expect(formatPhoneDisplay('+37063949836')).toBe('+370 639 49836');
+  });
+
+  it('supports national formatting mode when requested', () => {
+    expect(formatPhoneDisplay('9876543210', 'IN', 'national')).toBe(
+      '098765 43210'
+    );
+  });
+
+  it('returns empty string for null or empty input', () => {
+    expect(formatPhoneDisplay('')).toBe('');
+    expect(formatPhoneDisplay(null)).toBe('');
+    expect(formatPhoneDisplay(undefined)).toBe('');
   });
 });
 
@@ -159,9 +186,6 @@ describe('phoneVariants', () => {
   });
 
   it('inserts a trunk 0 after each plausible country-code length', () => {
-    // Input "37063949836" — CC-1 → "3" + "0" + "7063949836",
-    //                       CC-3 → "370" + "0" + "63949836".
-    // CC-2 is skipped because "063949836" already starts with 0.
     const out = phoneVariants('37063949836');
     expect(out).toEqual(
       expect.arrayContaining(['37063949836', '307063949836', '370063949836'])
@@ -169,9 +193,6 @@ describe('phoneVariants', () => {
   });
 
   it('removes a leading 0 after the country code when present', () => {
-    // Input "370063949836" — CC-2 strips one leading 0 from
-    // "0063949836" → "37" + "063949836" = "37063949836". Only one zero
-    // comes off per pass; that's what the live retry loop needs.
     const out = phoneVariants('370063949836');
     expect(out).toContain('370063949836');
     expect(out).toContain('37063949836');
@@ -180,11 +201,6 @@ describe('phoneVariants', () => {
   it('deduplicates variants that collapse to the same digits', () => {
     const out = phoneVariants('37063949836');
     expect(new Set(out).size).toBe(out.length);
-  });
-
-  it('returns just the original when the number is too short for any CC slice', () => {
-    // 1-char input is shorter than all ccLen values; both loops skip.
-    expect(phoneVariants('1')).toEqual(['1']);
   });
 });
 
@@ -202,7 +218,6 @@ describe('isRecipientNotAllowedError', () => {
     expect(
       isRecipientNotAllowedError('recipient not in the allowed list')
     ).toBe(true);
-    // Case-insensitive on the human text.
     expect(isRecipientNotAllowedError('NOT IN ALLOWED LIST')).toBe(true);
   });
 

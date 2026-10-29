@@ -5,6 +5,7 @@ import { getCurrentAccount } from '@/lib/auth/account';
 import { createClient } from '@/lib/supabase/server';
 import { hasMinRole } from '@/lib/auth/roles';
 import { toApiErrorResponse } from '@/lib/api/v1/respond';
+import { LeadRoutingRuleInputSchema } from '@/lib/schemas/routing-rule';
 
 export async function GET() {
   try {
@@ -41,22 +42,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const supabase = await createClient();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
 
-    // Using service-role or user-client? The migration sets RLS so user client is fine.
-    // wait, supabaseServer is the user client.
+    const parsed = LeadRoutingRuleInputSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+        { status: 400 }
+      );
+    }
+    const val = parsed.data;
+
+    const supabase = await createClient();
 
     const { data, error } = await supabase
       .from('lead_routing_rules')
       .insert({
         account_id: account.accountId,
-        priority: body.priority ?? 0,
-        condition_type: body.condition_type,
-        condition_value: body.condition_value,
-        action_type: body.action_type,
-        action_value: body.action_value,
-        is_active: body.is_active ?? true,
+        priority: val.priority,
+        condition_type: val.condition_type,
+        condition_value: val.condition_value,
+        action_type: val.action_type,
+        action_value: val.action_value,
+        is_active: val.is_active,
       })
       .select()
       .single();

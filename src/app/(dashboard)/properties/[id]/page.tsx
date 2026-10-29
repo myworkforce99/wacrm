@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import type { Property } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -33,31 +33,23 @@ export default function PropertyDetailPage() {
   const { account } = useAuth();
   const defaultCurrency = account?.default_currency || 'INR';
 
-  const [property, setProperty] = useState<Property | null>(null);
-  const [loading, setLoading] = useState(true);
+  const propertyId = params?.id as string | undefined;
 
-  const fetchProperty = useCallback(async () => {
-    if (!params.id) return;
-    setLoading(true);
+  const { data: property = null, isLoading: loading } = useQuery({
+    queryKey: ['property', propertyId],
+    queryFn: async () => {
+      if (!propertyId) return null;
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('id', propertyId)
+        .single();
 
-    const { data, error } = await supabase
-      .from('properties')
-      .select('*')
-      .eq('id', params.id as string)
-      .single();
-
-    if (!error && data) {
-      setProperty(data);
-    }
-    setLoading(false);
-  }, [supabase, params.id]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchProperty();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchProperty]);
+      if (error) throw error;
+      return data as Property;
+    },
+    enabled: !!propertyId,
+  });
 
   if (loading) {
     return (

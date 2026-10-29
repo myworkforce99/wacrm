@@ -15,6 +15,8 @@ import { UserPlus, ChevronRight, Inbox, ArrowRight } from 'lucide-react';
 import { SourceBadge } from '@/components/ui/source-badge';
 import Link from 'next/link';
 import { vibrate } from '@/lib/utils/vibrate';
+import { formatPhoneDisplay } from '@/lib/whatsapp/phone-utils';
+import { useQueryClient } from '@tanstack/react-query';
 
 type UnassignedLead = {
   id: string;
@@ -26,6 +28,7 @@ type UnassignedLead = {
 
 export function UnassignedPool() {
   const t = useTranslations('Team.unassignedPool');
+  const queryClient = useQueryClient();
   const [leads, setLeads] = useState<UnassignedLead[]>([]);
   const [agents, setAgents] = useState<
     { id: string; name: string; openCount: number }[]
@@ -140,6 +143,7 @@ export function UnassignedPool() {
       setSheetOpen(false);
       setSelectedLead(null);
       void fetchPool();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch {
       toast.error(t('toastError'));
     } finally {
@@ -193,7 +197,9 @@ export function UnassignedPool() {
               </div>
               <p className="text-muted-foreground text-xs">
                 {lead.phone && (
-                  <span className="mr-2 font-mono">{lead.phone}</span>
+                  <span className="mr-2 font-mono">
+                    {formatPhoneDisplay(lead.phone)}
+                  </span>
                 )}
                 <span>{new Date(lead.created_at).toLocaleDateString()}</span>
               </p>

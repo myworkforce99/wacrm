@@ -13,56 +13,58 @@ running fork where migrations may have been added since this was written.
 - Migration files live at `supabase/migrations/NNN_description.sql`, three-digit, snake_case description.
 - `supabase/ci/verify-schema.sql` exists as a schema-check script — any new table should keep it passing; extend it if it asserts against a fixed table list.
 
-## Full table inventory (42 migrations, as of this document)
+## Full table inventory (72 migrations, 48 tables, as of this document)
 
-| Table                           | Introduced in                 | Notes                                                                                                                                                                                                              |
-| ------------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `accounts`                      | 017, extended 122             | Multi-tenant root. `owner_user_id` is immutable owner. `settings` JSONB (122).                                                                                                                                     |
-| `account_invitations`           | 017, extended 019/020         | Invite-link flow, RPCs added later                                                                                                                                                                                 |
-| `profiles`                      | 001, extended 017/031/034     | `account_role` (017) is the live role column; `role` (001) is dead/legacy                                                                                                                                          |
-| `contacts`                      | 001, extended 004/022/036/040 | `phone_normalized` generated column (022); `wa_user_id`/`wa_parent_user_id` (040)                                                                                                                                  |
-| `contact_tags`                  | 001                           | join table                                                                                                                                                                                                         |
-| `contact_notes`                 | 001                           |                                                                                                                                                                                                                    |
-| `contact_custom_values`         | 001                           |                                                                                                                                                                                                                    |
-| `custom_fields`                 | 001                           | account-scoped                                                                                                                                                                                                     |
-| `tags`                          | 001                           |                                                                                                                                                                                                                    |
-| `conversations`                 | 001, extended 036             | `status`: open/pending/closed                                                                                                                                                                                      |
-| `messages`                      | 001, extended 009/042         | `message_actions` (009), `failure_reason` (042)                                                                                                                                                                    |
-| `message_reactions`             | 009                           |                                                                                                                                                                                                                    |
-| `message_templates`             | 001, extended 014/015         | Meta template sync/lifecycle                                                                                                                                                                                       |
-| `pipelines`                     | 001                           | **verify tenancy column before extending — see ARCHITECTURE.md §6**                                                                                                                                                |
-| `pipeline_stages`               | 001, extended 002             | `position`, `color`                                                                                                                                                                                                |
-| `deals`                         | 001, extended 002/004/129     | `status`: open/won/lost; `contact_id` goes NULL on contact delete (004); `closed_at`, `lost_reason_id`, `lost_note`, `lost_from_stage_id`, `won_value`, `reopened_count`, `last_activity_at`, `re_engage_on` (129) |
-| `lost_reasons`                  | 129                           | Account-scoped lookup table for loss reason codes. Seeded with 8 defaults per account. RLS: read=agent+, write=admin+.                                                                                             |
-| `broadcasts`                    | 001, extended 003/005/037/038 | resumable sends (038), reliability fixes (037)                                                                                                                                                                     |
-| `broadcast_recipients`          | 001, extended 003             | `wamid` tracking                                                                                                                                                                                                   |
-| `automations`                   | 006, extended 007             |                                                                                                                                                                                                                    |
-| `automation_steps`              | 006                           |                                                                                                                                                                                                                    |
-| `automation_logs`               | 006                           |                                                                                                                                                                                                                    |
-| `automation_pending_executions` | 006                           | for scheduled/delayed steps                                                                                                                                                                                        |
-| `flows`                         | 010, extended 012/016         | visual builder backing store                                                                                                                                                                                       |
-| `flow_nodes`                    | 010                           |                                                                                                                                                                                                                    |
-| `flow_runs`                     | 010                           | one active run per contact, enforced                                                                                                                                                                               |
-| `flow_run_events`               | 010                           | audit/history of a run                                                                                                                                                                                             |
-| `whatsapp_config`               | 001, extended 013/015         | per-account WABA connection                                                                                                                                                                                        |
-| `api_keys`                      | 026                           | scoped, hashed, revocable                                                                                                                                                                                          |
-| `webhook_endpoints`             | 028, extended 037             | outbound webhooks                                                                                                                                                                                                  |
-| `notifications`                 | 027                           |                                                                                                                                                                                                                    |
-| `member_presence`               | 024                           | online/offline per user                                                                                                                                                                                            |
-| `quick_replies`                 | 001 (approx.)                 | canned replies                                                                                                                                                                                                     |
-| `ai_configs`                    | 029, extended 033             | per-account AI provider key + settings                                                                                                                                                                             |
-| `ai_knowledge_documents`        | 030                           |                                                                                                                                                                                                                    |
-| `ai_knowledge_chunks`           | 030                           | pgvector/full-text retrieval                                                                                                                                                                                       |
-| `ai_usage_log`                  | 029                           | spend/usage tracking                                                                                                                                                                                               |
-| `lead_details`                  | 043                           | real-estate vertical additions                                                                                                                                                                                     |
-| `properties`                    | 043, policy updated 130       | real-estate vertical additions; admin/owner mutation only (130)                                                                                                                                                    |
-| `site_visits`                   | 043                           | real-estate vertical additions                                                                                                                                                                                     |
-| `broadcast_templates`           | 117                           | global read-only RE broadcast template library (no `account_id`, world-readable)                                                                                                                                   |
-| `lead_routing_rules`            | 113                           | account-scoped condition→action routing rules for incoming leads                                                                                                                                                   |
-| `assignment_history`            | 102                           | immutable audit log of conversation re-assignments                                                                                                                                                                 |
-| `tasks`                         | 121                           | account-scoped to-do items linked to contacts and/or site visits                                                                                                                                                   |
-| `social_accounts`               | 131                           | account-scoped social connections (Instagram/Facebook); access tokens encrypted at rest                                                                                                                            |
-| `social_posts`                  | 132                           | account-scoped social posts (draft, scheduled, publishing, published, failed)                                                                                                                                      |
+| Table                           | Introduced in                         | Notes                                                                                                                                                                                          |
+| ------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `accounts`                      | 017, extended 122                     | Multi-tenant root. `owner_user_id` is immutable owner. `settings` JSONB (122).                                                                                                                 |
+| `account_invitations`           | 017, extended 019/020                 | Invite-link flow, RPCs added later                                                                                                                                                             |
+| `profiles`                      | 001, extended 017/031/034/112         | `account_role` (017) is the live role column; `role` (001) is dead/legacy. `is_available` boolean (112).                                                                                       |
+| `contacts`                      | 001, extended 004/022/036/040/105/127 | `phone_normalized` generated column (022); `wa_user_id`/`wa_parent_user_id` (040); `lead_source` (105); unified lifecycle columns (127).                                                       |
+| `contact_tags`                  | 001                                   | join table                                                                                                                                                                                     |
+| `contact_notes`                 | 001                                   |                                                                                                                                                                                                |
+| `contact_custom_values`         | 001                                   |                                                                                                                                                                                                |
+| `custom_fields`                 | 001                                   | account-scoped                                                                                                                                                                                 |
+| `tags`                          | 001                                   |                                                                                                                                                                                                |
+| `conversations`                 | 001, extended 036/102                 | `status`: open/pending/closed; `assigned_agent_id` tracking (102)                                                                                                                              |
+| `messages`                      | 001, extended 009/042                 | `message_actions` (009), `failure_reason` (042)                                                                                                                                                |
+| `message_reactions`             | 009                                   |                                                                                                                                                                                                |
+| `message_templates`             | 001, extended 014/015                 | Meta template sync/lifecycle                                                                                                                                                                   |
+| `pipelines`                     | 001                                   | Account-scoped pipeline container                                                                                                                                                              |
+| `pipeline_stages`               | 001, extended 002/100/129             | `position`, `color`; RE stages seeded on signup                                                                                                                                                |
+| `deals`                         | 001, extended 002/004/128/129         | `status`: open/won/lost; default currency INR (128); `closed_at`, `lost_reason_id`, `lost_note`, `lost_from_stage_id`, `won_value`, `reopened_count`, `last_activity_at`, `re_engage_on` (129) |
+| `lost_reasons`                  | 129                                   | Account-scoped lookup table for loss reason codes. Seeded with 8 defaults per account. RLS: read=agent+, write=admin+.                                                                         |
+| `broadcasts`                    | 001, extended 003/005/037/038         | resumable sends (038), reliability fixes (037)                                                                                                                                                 |
+| `broadcast_recipients`          | 001, extended 003                     | `wamid` tracking                                                                                                                                                                               |
+| `automations`                   | 006, extended 007/101                 | trigger types including site visits (101)                                                                                                                                                      |
+| `automation_steps`              | 006                                   |                                                                                                                                                                                                |
+| `automation_logs`               | 006                                   |                                                                                                                                                                                                |
+| `automation_pending_executions` | 006                                   | for scheduled/delayed steps                                                                                                                                                                    |
+| `flows`                         | 010, extended 012/016                 | visual builder backing store                                                                                                                                                                   |
+| `flow_nodes`                    | 010                                   |                                                                                                                                                                                                |
+| `flow_runs`                     | 010                                   | one active run per contact, enforced                                                                                                                                                           |
+| `flow_run_events`               | 010                                   | audit/history of a run                                                                                                                                                                         |
+| `whatsapp_config`               | 001, extended 013/015/039             | per-account WABA connection; `mirror_inbound_media` (039)                                                                                                                                      |
+| `api_keys`                      | 026                                   | scoped, hashed, revocable                                                                                                                                                                      |
+| `webhook_endpoints`             | 028, extended 037                     | outbound webhooks                                                                                                                                                                              |
+| `notifications`                 | 027                                   | in-app notification center                                                                                                                                                                     |
+| `member_presence`               | 024                                   | online/offline/away per user                                                                                                                                                                   |
+| `quick_replies`                 | 001 (approx.), extended 126           | canned replies seeded with RE defaults (126)                                                                                                                                                   |
+| `ai_configs`                    | 029, extended 033                     | per-account AI provider key + settings                                                                                                                                                         |
+| `ai_knowledge_documents`        | 030                                   |                                                                                                                                                                                                |
+| `ai_knowledge_chunks`           | 030                                   | pgvector/full-text retrieval                                                                                                                                                                   |
+| `ai_usage_log`                  | 029                                   | spend/usage tracking                                                                                                                                                                           |
+| `lead_details`                  | 100                                   | Real-estate 1-to-1 extension of contacts: budget_min, budget_max, location_preference, property_type, intent                                                                                   |
+| `properties`                    | 100, policy updated 130               | Real-estate property listings; admin/owner mutation only (130); read/share for agents                                                                                                          |
+| `site_visits`                   | 100                                   | Scheduled field visits, pickup logistics, status tracking (pending, confirmed, completed, no_show, rescheduled)                                                                                |
+| `assignment_history`            | 102                                   | Immutable audit log of conversation re-assignments and SLA transitions                                                                                                                         |
+| `push_subscriptions`            | 104                                   | Web push notification subscription storage per user (for background visit/lead alerts)                                                                                                         |
+| `lead_routing_rules`            | 113                                   | Account-scoped condition→action routing rules for incoming leads                                                                                                                               |
+| `agent_targets`                 | 116                                   | Account-scoped monthly performance targets (target_visits, target_bookings) per agent                                                                                                          |
+| `broadcast_templates`           | 117                                   | Global read-only RE broadcast template library (no `account_id`, world-readable)                                                                                                               |
+| `tasks`                         | 121                                   | Account-scoped to-do items linked to contacts and/or site visits                                                                                                                               |
+| `social_accounts`               | 131                                   | Account-scoped social connections (Instagram/Facebook); access tokens encrypted at rest                                                                                                        |
+| `social_posts`                  | 132                                   | Account-scoped social posts (draft, scheduled, publishing, published, failed)                                                                                                                  |
 
 Not yet present — these are the additions still planned: **`deals_history`** (deal-stage audit trail, Section F of the implementation plan).
 
@@ -77,6 +79,7 @@ Not yet present — these are the additions still planned: **`deals_history`** (
 | `update_updated_at_column()`                       | 001                      | Trigger function used by all `updated_at` triggers                                               |
 | `handle_new_user()`                                | 001, updated through 126 | Auth trigger; seeds account, profile, pipeline, automations, qualifier flow, and RE presets      |
 | `seed_re_presets_for_account(account_id, user_id)` | 126                      | Factored helper that seeds tags, custom fields, and quick replies; callable from backfill blocks |
+| `process_due_social_posts()`                       | 133                      | Cron worker helper that invokes Edge Function `social-post-scheduler` every minute via `pg_net`  |
 
 ## Core entity shapes (from `src/types/index.ts` — the canonical TS source)
 
@@ -85,26 +88,48 @@ Copy the existing style (doc-comments explaining _why_ a field exists, not just 
 ```ts
 // Contact — id, user_id, account_id, phone, phone_normalized (generated),
 // wa_user_id, wa_parent_user_id, wa_username, name, email, company,
-// avatar_url, created_at, updated_at (+ hydrated tags via contact_tags join)
+// avatar_url, lead_source, created_at, updated_at (+ hydrated tags/details)
+
+// LeadDetails — id, account_id, contact_id, budget_min, budget_max,
+// location_preference, property_type, intent, created_at, updated_at
+
+// Property — id, account_id, title, location, price, property_type,
+// bedrooms, tags, created_at, updated_at
+
+// SiteVisit — id, account_id, contact_id (nullable), property_id (nullable),
+// scheduled_at, status ('pending'|'confirmed'|'completed'|'no_show'|'rescheduled'),
+// notes, created_at, updated_at (+ hydrated contact/property)
 
 // Pipeline — id, user_id, name, created_at
-//   NOTE: no account_id on the type — confirm actual tenancy mechanism
-//   in the live schema before adding real-estate-specific columns.
 
 // PipelineStage — id, pipeline_id, name, position, color, created_at
 
 // Deal — id, user_id, pipeline_id, stage_id, contact_id (nullable),
 // conversation_id, assigned_to, title, value, currency, notes,
-// expected_close_date, status ('open'|'won'|'lost'), created_at,
-// updated_at (+ hydrated contact/stage/assignee)
+// expected_close_date, status ('open'|'won'|'lost'), closed_at,
+// lost_reason_id, lost_note, lost_from_stage_id, won_value,
+// reopened_count, last_activity_at, re_engage_on, created_at, updated_at
+
+// Task — id, account_id, user_id, contact_id, site_visit_id, title,
+// description, due_date, status, priority, created_at, updated_at
+
+// SocialAccount — id, account_id, platform ('instagram'|'facebook'),
+// platform_account_id, account_name, username, profile_picture_url,
+// is_active, created_at, updated_at
+
+// SocialPost — id, account_id, created_by, social_account_id (nullable),
+// platform ('instagram'|'facebook'), post_type ('post'|'reel'|'story'),
+// caption, media_urls, scheduled_at, published_at,
+// status ('draft'|'scheduled'|'publishing'|'published'|'failed'),
+// error_message, property_id (nullable), created_at, updated_at
 ```
 
-### Real-estate additions this implies (Section D of the implementation plan)
+### Real-estate vertical schema notes (Migration 100)
 
-- `lead_details`: 1-to-1 extension table for `contacts` with `budget_min`, `budget_max`, `location_preference`, `property_type`, `intent`. (Migration 043)
-- `site_visits`: table for scheduled visits. `id`, account tenancy column, `contact_id` (nullable, `ON DELETE SET NULL`), `property_id` (nullable), `scheduled_at`, `status`, `notes`, `created_at`, `updated_at`. (Migration 043)
-- `properties`: table for listings, account-scoped like `custom_fields`/`api_keys`. (Migration 043)
+- `lead_details`: 1-to-1 extension table for `contacts` with `budget_min`, `budget_max`, `location_preference`, `property_type`, `intent`.
+- `site_visits`: table for scheduled visits with pickup logistics, reminder automations, and no-show recovery flows.
+- `properties`: table for listings, account-scoped with RERA compliance badging; admin/owner mutation only (Migration 130).
 
 ## RLS pattern to follow
 
-Every account-scoped table added since migration 017 enforces isolation via account membership, using a shared `is_account_member(account_id, min_role)` SQL helper (referenced directly in `lib/auth/roles.ts`'s comments — the same ranked-role logic exists on both the TypeScript and SQL sides so they can't drift independently). **New tables (`site_visits`, `properties`) should call this same helper in their RLS policies rather than writing a new tenancy check from scratch.** Locate the helper's definition (search migrations for `is_account_member`) and copy its usage pattern from a recent table's policy (e.g. `webhook_endpoints`, `api_keys`, or `ai_configs`) rather than the older 001-era tables, since those predate the account-sharing model.
+Every account-scoped table added since migration 017 enforces isolation via account membership, using a shared `is_account_member(account_id, min_role)` SQL helper (referenced directly in `lib/auth/roles.ts`'s comments — the same ranked-role logic exists on both the TypeScript and SQL sides so they can't drift independently). **New tables should call this same helper in their RLS policies rather than writing a new tenancy check from scratch.** Locate the helper's definition (search migrations for `is_account_member`) and copy its usage pattern from a recent table's policy (e.g. `properties`, `site_visits`, `social_accounts`, or `social_posts`).

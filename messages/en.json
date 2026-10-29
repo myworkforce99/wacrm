@@ -2644,7 +2644,14 @@
       "chatInCrm": "Chat in CRM",
       "contactNoPhone": "This contact does not have a valid phone number.",
       "toastCopied": "Brochure message copied to clipboard!",
-      "toastCopyFailed": "Failed to copy message to clipboard."
+      "toastCopyFailed": "Failed to copy message to clipboard.",
+      "downloadPdf": "Download PDF Brochure",
+      "sendPdf": "Send PDF on WhatsApp",
+      "generatingPdf": "Generating PDF...",
+      "uploadingPdf": "Uploading PDF...",
+      "pdfSentSuccess": "PDF Brochure sent to contact! ✓",
+      "pdfSendFailed": "Failed to send PDF Brochure.",
+      "pdfDownloaded": "PDF Brochure downloaded."
     },
     "delete": {
       "title": "Delete Property",
@@ -2662,6 +2669,35 @@
       "bedrooms": "Bedrooms",
       "tags": "Tags"
     }
+  },
+  "CostSheet": {
+    "title": "Send Cost Sheet",
+    "description": "Generate an itemized real estate cost sheet to download or dispatch via WhatsApp.",
+    "selectContact": "Select Contact",
+    "selectContactPlaceholder": "Select a contact...",
+    "selectProperty": "Select Property",
+    "noPropertiesFound": "No matching properties found.",
+    "priceOnRequest": "Price on request",
+    "previewMessage": "Text Message Preview",
+    "itemizedEstimate": "Itemized Cost Breakdown",
+    "sendViaWhatsApp": "Send Text on WhatsApp",
+    "downloadPdf": "Download PDF",
+    "sendPdfWhatsApp": "Send PDF on WhatsApp",
+    "generatingPdf": "Generating PDF...",
+    "pdfSentSuccess": "Cost Sheet PDF sent! ✓",
+    "pdfSendFailed": "Failed to send Cost Sheet PDF",
+    "pdfDownloaded": "Cost Sheet PDF downloaded.",
+    "textSentSuccess": "Cost Sheet sent! ✓",
+    "textSendFailed": "Failed to send Cost Sheet",
+    "noTemplateConfigured": "No Cost Sheet text template configured.",
+    "setUpInSettings": "Set one up in Settings → Cost Sheet.",
+    "agreementValue": "Agreement Value",
+    "floorRise": "Floor Rise Premium",
+    "parking": "Covered Parking",
+    "gst": "Statutory GST",
+    "stampDuty": "Stamp Duty",
+    "registration": "Registration & Legal Fee",
+    "totalEstimate": "Total All-Inclusive Estimate"
   },
   "Integrations": {
     "capture_email": {

@@ -2643,7 +2643,14 @@
       "chatInCrm": "Chat en CRM",
       "contactNoPhone": "Este contacto no tiene un número de teléfono válido.",
       "toastCopied": "¡Mensaje del folleto copiado al portapapeles!",
-      "toastCopyFailed": "Error al copiar el mensaje al portapapeles."
+      "toastCopyFailed": "Error al copiar el mensaje al portapapeles.",
+      "downloadPdf": "Descargar folleto en PDF",
+      "sendPdf": "Enviar PDF por WhatsApp",
+      "generatingPdf": "Generando PDF...",
+      "uploadingPdf": "Subiendo PDF...",
+      "pdfSentSuccess": "¡Folleto en PDF enviado al contacto! ✓",
+      "pdfSendFailed": "Error al enviar el folleto en PDF.",
+      "pdfDownloaded": "Folleto en PDF descargado."
     },
     "delete": {
       "title": "Eliminar Propiedad",
@@ -2661,6 +2668,35 @@
       "bedrooms": "Dormitorios",
       "tags": "Etiquetas"
     }
+  },
+  "CostSheet": {
+    "title": "Enviar hoja de costos",
+    "description": "Genere una hoja de costos inmobiliarios detallada para descargar o enviar por WhatsApp.",
+    "selectContact": "Seleccionar contacto",
+    "selectContactPlaceholder": "Seleccione un contacto...",
+    "selectProperty": "Seleccionar propiedad",
+    "noPropertiesFound": "No se encontraron propiedades coincidentes.",
+    "priceOnRequest": "Precio a consultar",
+    "previewMessage": "Vista previa del mensaje de texto",
+    "itemizedEstimate": "Desglose detallado de costos",
+    "sendViaWhatsApp": "Enviar texto por WhatsApp",
+    "downloadPdf": "Descargar PDF",
+    "sendPdfWhatsApp": "Enviar PDF por WhatsApp",
+    "generatingPdf": "Generando PDF...",
+    "pdfSentSuccess": "¡Hoja de costos en PDF enviada! ✓",
+    "pdfSendFailed": "Error al enviar la hoja de costos en PDF",
+    "pdfDownloaded": "Hoja de costos en PDF descargada.",
+    "textSentSuccess": "¡Hoja de costos enviada! ✓",
+    "textSendFailed": "Error al enviar la hoja de costos",
+    "noTemplateConfigured": "No hay plantilla de texto configurada.",
+    "setUpInSettings": "Configure una en Configuración → Hoja de costos.",
+    "agreementValue": "Valor del contrato",
+    "floorRise": "Prima por altura de piso",
+    "parking": "Estacionamiento cubierto",
+    "gst": "Impuesto GST legal",
+    "stampDuty": "Impuesto de timbre",
+    "registration": "Tasa de registro y documentación",
+    "totalEstimate": "Total estimado todo incluido"
   },
   "Integrations": {
     "capture_email": {

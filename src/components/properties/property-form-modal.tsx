@@ -1,12 +1,23 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { canManageMembers } from '@/lib/auth/roles';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Property } from '@/types';
+import {
+  PropertyFormSchema,
+  type PropertyFormValues,
+  type PropertyType,
+  type PossessionStatus,
+  type FacingDirection,
+  FACING_DIRECTIONS,
+} from '@/lib/schemas/property';
 import { parseBudget } from '@/lib/contacts/parse-budget';
 import { formatINR } from '@/lib/currency';
 import {
@@ -48,7 +59,7 @@ interface PropertyFormModalProps {
   onSaved: (property: Property) => void;
 }
 
-const PROPERTY_TYPES = [
+const PROPERTY_TYPES: PropertyType[] = [
   'Apartment',
   'Villa',
   'Plot',
@@ -66,17 +77,6 @@ const RESIDENTIAL_CONFIGURATIONS = [
   '5+ BHK',
 ];
 
-const FACING_OPTIONS = [
-  'East',
-  'North',
-  'North-East',
-  'West',
-  'South',
-  'North-West',
-  'South-East',
-  'South-West',
-];
-
 const SUGGESTED_AMENITIES = [
   'Swimming Pool',
   'Clubhouse',
@@ -90,6 +90,22 @@ const SUGGESTED_AMENITIES = [
   'Children Play Area',
 ];
 
+const DEFAULT_FORM_VALUES: PropertyFormValues = {
+  title: '',
+  project_name: '',
+  builder_name: '',
+  location: '',
+  property_type: 'Apartment',
+  configuration: '2BHK',
+  bedrooms: '2',
+  carpet_area: '',
+  facing: 'East',
+  price_input: '',
+  rera_id: '',
+  possession_status: 'ready_to_move',
+  possession_date: '',
+};
+
 export function PropertyFormModal({
   open,
   onOpenChange,
@@ -101,30 +117,34 @@ export function PropertyFormModal({
   const { accountId, accountRole } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isEdit = !!property;
+  const queryClient = useQueryClient();
 
-  // Form states
-  const [title, setTitle] = useState('');
-  const [projectName, setProjectName] = useState('');
-  const [builderName, setBuilderName] = useState('');
-  const [location, setLocation] = useState('');
-  const [propertyType, setPropertyType] = useState('Apartment');
-  const [configuration, setConfiguration] = useState('2BHK');
-  const [bedrooms, setBedrooms] = useState('2');
-  const [carpetArea, setCarpetArea] = useState('');
-  const [facing, setFacing] = useState('East');
-  const [priceInput, setPriceInput] = useState('');
-  const [reraId, setReraId] = useState('');
-  const [possessionStatus, setPossessionStatus] = useState<
-    'ready_to_move' | 'under_construction' | 'nearing_possession'
-  >('ready_to_move');
-  const [possessionDate, setPossessionDate] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<PropertyFormValues>({
+    resolver: zodResolver(PropertyFormSchema),
+    defaultValues: DEFAULT_FORM_VALUES,
+  });
+
+  const propertyType = watch('property_type');
+  const configuration = watch('configuration');
+  const facing = watch('facing');
+  const priceInput = watch('price_input');
+  const reraId = watch('rera_id') || '';
+  const possessionStatus = watch('possession_status');
+
   // Live parsed budget preview
   const parsedPrice = useMemo(() => {
-    return parseBudget(priceInput);
+    return parseBudget(priceInput || '');
   }, [priceInput]);
 
   const isNonBhkPropertyType =
@@ -148,40 +168,30 @@ export function PropertyFormModal({
     if (!open) return;
 
     if (property) {
-      setTitle(property.title || '');
-      setProjectName(property.project_name || '');
-      setBuilderName(property.builder_name || '');
-      setLocation(property.location || '');
-      setPropertyType(property.property_type || 'Apartment');
-      setConfiguration(property.configuration || '2BHK');
-      setBedrooms(property.bedrooms != null ? String(property.bedrooms) : '2');
-      setCarpetArea(
-        property.carpet_area != null ? String(property.carpet_area) : ''
-      );
-      setFacing(property.facing || 'East');
-      setPriceInput(property.price != null ? String(property.price) : '');
-      setReraId(property.rera_id || '');
-      setPossessionStatus(property.possession_status || 'ready_to_move');
-      setPossessionDate(property.possession_date || '');
+      reset({
+        title: property.title || '',
+        project_name: property.project_name || '',
+        builder_name: property.builder_name || '',
+        location: property.location || '',
+        property_type: (property.property_type as PropertyType) || 'Apartment',
+        configuration: property.configuration || '2BHK',
+        bedrooms: property.bedrooms != null ? String(property.bedrooms) : '2',
+        carpet_area:
+          property.carpet_area != null ? String(property.carpet_area) : '',
+        facing: (property.facing as FacingDirection) || 'East',
+        price_input: property.price != null ? String(property.price) : '',
+        rera_id: property.rera_id || '',
+        possession_status:
+          (property.possession_status as PossessionStatus) || 'ready_to_move',
+        possession_date: property.possession_date || '',
+      });
       setTags(property.tags || []);
     } else {
-      setTitle('');
-      setProjectName('');
-      setBuilderName('');
-      setLocation('');
-      setPropertyType('Apartment');
-      setConfiguration('2BHK');
-      setBedrooms('2');
-      setCarpetArea('');
-      setFacing('East');
-      setPriceInput('');
-      setReraId('');
-      setPossessionStatus('ready_to_move');
-      setPossessionDate('');
+      reset(DEFAULT_FORM_VALUES);
       setTags([]);
     }
     setNewTagInput('');
-  }, [open, property]);
+  }, [open, property, reset]);
 
   function handleAddTag(tagToAdd: string) {
     const trimmed = tagToAdd.trim();
@@ -194,14 +204,7 @@ export function PropertyFormModal({
     setTags((prev) => prev.filter((t) => t !== tagToRemove));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!title.trim()) {
-      toast.error(t('errorTitleRequired'));
-      return;
-    }
-
+  async function onFormSubmit(values: PropertyFormValues) {
     if (!accountId) {
       toast.error(t('errorNoAccount'));
       return;
@@ -214,21 +217,32 @@ export function PropertyFormModal({
 
     setSaving(true);
 
-    const isNonBhk = propertyType === 'Plot' || propertyType === 'Commercial';
+    const isNonBhk =
+      values.property_type === 'Plot' || values.property_type === 'Commercial';
+    const computedPrice = parseBudget(values.price_input || '');
+
     const payload = {
-      title: title.trim(),
-      project_name: projectName.trim() || null,
-      builder_name: builderName.trim() || null,
-      location: location.trim() || null,
-      property_type: propertyType || null,
-      configuration: isNonBhk ? propertyType : configuration || null,
-      bedrooms: isNonBhk ? null : bedrooms ? parseInt(bedrooms, 10) : null,
-      carpet_area: carpetArea ? parseFloat(carpetArea) : null,
-      facing: facing || null,
-      price: parsedPrice,
-      rera_id: reraId.trim() || null,
-      possession_status: possessionStatus,
-      possession_date: possessionDate || null,
+      title: values.title.trim(),
+      project_name: values.project_name?.trim() || null,
+      builder_name: values.builder_name?.trim() || null,
+      location: values.location?.trim() || null,
+      property_type: values.property_type || null,
+      configuration: isNonBhk
+        ? values.property_type
+        : values.configuration || null,
+      bedrooms: isNonBhk
+        ? null
+        : values.bedrooms
+          ? parseInt(values.bedrooms, 10)
+          : null,
+      carpet_area: values.carpet_area ? parseFloat(values.carpet_area) : null,
+      facing: values.facing || null,
+      price: computedPrice,
+      rera_id: values.rera_id?.trim() || null,
+      possession_status: values.possession_status,
+      possession_date: values.possession_date
+        ? values.possession_date.slice(0, 10)
+        : null,
       tags: tags.length > 0 ? tags : null,
     };
 
@@ -244,6 +258,10 @@ export function PropertyFormModal({
         if (error) throw error;
         toast.success(t('toastUpdated'));
         onSaved(data as Property);
+        void queryClient.invalidateQueries({ queryKey: ['properties'] });
+        void queryClient.invalidateQueries({
+          queryKey: ['property', property.id],
+        });
         onOpenChange(false);
       } else {
         const { data, error } = await supabase
@@ -258,6 +276,7 @@ export function PropertyFormModal({
         if (error) throw error;
         toast.success(t('toastCreated'));
         onSaved(data as Property);
+        void queryClient.invalidateQueries({ queryKey: ['properties'] });
         onOpenChange(false);
       }
     } catch (err: unknown) {
@@ -281,7 +300,7 @@ export function PropertyFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-5">
           {/* Section 1: Basic Identity */}
           <div className="space-y-3">
             <h3 className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -294,12 +313,15 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  {...register('title')}
                   placeholder={t('placeholderTitle')}
                   className="h-9 text-xs"
-                  required
                 />
+                {errors.title && (
+                  <p className="text-destructive text-[11px]">
+                    {errors.title.message}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -308,8 +330,7 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-project"
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
+                  {...register('project_name')}
                   placeholder={t('placeholderProject')}
                   className="h-9 text-xs"
                 />
@@ -321,8 +342,7 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-builder"
-                  value={builderName}
-                  onChange={(e) => setBuilderName(e.target.value)}
+                  {...register('builder_name')}
                   placeholder={t('placeholderBuilder')}
                   className="h-9 text-xs"
                 />
@@ -338,8 +358,7 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
+                  {...register('location')}
                   placeholder={t('placeholderLocation')}
                   className="h-9 text-xs"
                 />
@@ -359,16 +378,16 @@ export function PropertyFormModal({
                   value={propertyType}
                   onValueChange={(val) => {
                     if (val) {
-                      setPropertyType(val);
+                      setValue('property_type', val as PropertyType);
                       if (val === 'Plot' || val === 'Commercial') {
-                        setConfiguration(val);
-                        setBedrooms('');
+                        setValue('configuration', val);
+                        setValue('bedrooms', '');
                       } else if (
                         configuration === 'Plot' ||
                         configuration === 'Commercial'
                       ) {
-                        setConfiguration('2BHK');
-                        setBedrooms('2');
+                        setValue('configuration', '2BHK');
+                        setValue('bedrooms', '2');
                       }
                     }
                   }}
@@ -401,11 +420,11 @@ export function PropertyFormModal({
                     value={configuration}
                     onValueChange={(val) => {
                       if (val) {
-                        setConfiguration(val);
+                        setValue('configuration', val);
                         // Auto-populate bedroom count if format matches \d+BHK
                         const match = val.match(/^(\d+)BHK/);
-                        if (match) setBedrooms(match[1]);
-                        else if (val === 'Studio') setBedrooms('1');
+                        if (match) setValue('bedrooms', match[1]);
+                        else if (val === 'Studio') setValue('bedrooms', '1');
                       }
                     }}
                   >
@@ -437,8 +456,7 @@ export function PropertyFormModal({
                     type="number"
                     min="0"
                     max="20"
-                    value={bedrooms}
-                    onChange={(e) => setBedrooms(e.target.value)}
+                    {...register('bedrooms')}
                     className="h-9 text-xs"
                   />
                 )}
@@ -456,8 +474,7 @@ export function PropertyFormModal({
                   id="prop-carpet-area"
                   type="number"
                   min="0"
-                  value={carpetArea}
-                  onChange={(e) => setCarpetArea(e.target.value)}
+                  {...register('carpet_area')}
                   placeholder="e.g. 1450"
                   className="h-9 text-xs"
                 />
@@ -471,14 +488,14 @@ export function PropertyFormModal({
                 <Select
                   value={facing}
                   onValueChange={(val) => {
-                    if (val) setFacing(val);
+                    if (val) setValue('facing', val as FacingDirection);
                   }}
                 >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue placeholder={t('selectFacing')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {FACING_OPTIONS.map((f) => (
+                    {FACING_DIRECTIONS.map((f) => (
                       <SelectItem key={f} value={f} className="text-xs">
                         {f}
                       </SelectItem>
@@ -497,8 +514,7 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-price"
-                  value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
+                  {...register('price_input')}
                   placeholder="e.g. 1.25 Cr, 85L"
                   className="h-9 text-xs"
                 />
@@ -541,8 +557,7 @@ export function PropertyFormModal({
                 </Label>
                 <Input
                   id="prop-rera"
-                  value={reraId}
-                  onChange={(e) => setReraId(e.target.value)}
+                  {...register('rera_id')}
                   placeholder="e.g. PRM/KA/RERA/1251/446/PR/190823/002804"
                   className="h-9 font-mono text-xs"
                 />
@@ -556,12 +571,7 @@ export function PropertyFormModal({
                   value={possessionStatus}
                   onValueChange={(val) => {
                     if (val) {
-                      setPossessionStatus(
-                        val as
-                          | 'ready_to_move'
-                          | 'under_construction'
-                          | 'nearing_possession'
-                      );
+                      setValue('possession_status', val as PossessionStatus);
                     }
                   }}
                 >
@@ -593,8 +603,7 @@ export function PropertyFormModal({
                 <Input
                   id="prop-possession-date"
                   type="date"
-                  value={possessionDate}
-                  onChange={(e) => setPossessionDate(e.target.value)}
+                  {...register('possession_date')}
                   className="h-9 text-xs"
                 />
               </div>

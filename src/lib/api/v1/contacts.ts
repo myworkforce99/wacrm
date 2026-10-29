@@ -58,7 +58,9 @@ export function serializeContact(row: Record<string, unknown>): ApiContact {
       .map((t) => ({ id: t.id, name: t.name, color: t.color })),
     lead_details: Array.isArray(row.lead_details)
       ? (row.lead_details as Record<string, unknown>[])
-      : undefined,
+      : row.lead_details && typeof row.lead_details === 'object'
+        ? [row.lead_details as Record<string, unknown>]
+        : undefined,
     created_at: row.created_at as string,
     updated_at: row.updated_at as string,
   };

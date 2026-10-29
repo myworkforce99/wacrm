@@ -2,8 +2,15 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import {
+  Loader2,
+  Download,
+  MessageCircle,
+  Send,
+  Calculator,
+} from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -12,6 +19,13 @@ import {
   getAgentAssignedContactIds,
   buildAgentContactFilter,
 } from '@/lib/contacts/agent-scoping';
+import {
+  generateCostSheetPdf,
+  downloadPdfBlob,
+  calculateCostSheet,
+  type CostSheetProps,
+} from '@/lib/pdf';
+import { uploadAccountMedia } from '@/lib/storage/upload-media';
 
 import {
   Sheet,
@@ -22,7 +36,6 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-// import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { formatINR } from '@/lib/currency';
 import type { Contact, Property, LeadDetail } from '@/types';
@@ -40,35 +53,16 @@ export function CostSheetModal({
   contactId: initialContactId,
   propertyId,
 }: CostSheetModalProps) {
+  const t = useTranslations('CostSheet');
   const { user, profile, accountRole } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [loading, setLoading] = useState(false);
   const [loadingContacts, setLoadingContacts] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [sendingText, setSendingText] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [sendingPdf, setSendingPdf] = useState(false);
   const [templateContent, setTemplateContent] = useState<string | null>(null);
-
-  /* ============================================================
-   * [ADVANCE COST SHEET STATE - Disabled for now, to be re-enabled in future development]
-   * const [isAdvanced, setIsAdvanced] = useState(false);
-   * const [accountRates, setAccountRates] = useState<{
-   *   base_rate?: number;
-   *   floor_rise?: number;
-   *   floor_rise_from?: number;
-   *   parking?: number;
-   *   gst_percent?: number;
-   *   stamp_duty_percent?: number;
-   *   registration_fee?: number;
-   * }>({
-   *   base_rate: 8500,
-   *   floor_rise: 50,
-   *   floor_rise_from: 5,
-   *   parking: 400000,
-   *   gst_percent: 5,
-   *   stamp_duty_percent: 6,
-   *   registration_fee: 30000,
-   * });
-   * ============================================================ */
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContactId, setSelectedContactId] = useState<
@@ -83,12 +77,16 @@ export function CostSheetModal({
     string | undefined
   >(propertyId);
   const [agentDetails, setAgentDetails] = useState({ name: '', phone: '' });
+  const [agencyName, setAgencyName] = useState('WaCRM Real Estate');
 
   // 1. Fetch contacts if no initialContactId provided
   useEffect(() => {
     if (!open || initialContactId) return;
     let isMounted = true;
-    setLoadingContacts(true);
+    const timer = setTimeout(() => {
+      setLoadingContacts(true);
+    }, 0);
+
     async function fetchContacts() {
       try {
         const db = createClient();
@@ -125,13 +123,13 @@ export function CostSheetModal({
     void fetchContacts();
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
   }, [open, initialContactId, isManager, user, profile]);
 
   // 2. Fetch required data when a contact is selected
   useEffect(() => {
     if (!open) return;
-    // Reset state on open changes
     if (open) {
       if (initialContactId) {
         setSelectedContactId(initialContactId);
@@ -145,7 +143,9 @@ export function CostSheetModal({
     if (!open || !selectedContactId) return;
 
     let isMounted = true;
-    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(true);
+    }, 0);
 
     async function loadData() {
       try {
@@ -171,20 +171,14 @@ export function CostSheetModal({
 
         if (!isMounted) return;
 
-        // Fetch agent info
+        // Fetch agent & agency info
+        const resolvedAgency = accountData.account?.name || 'WaCRM Real Estate';
         const agentName =
           accountData.role?.full_name || accountData.account?.name || 'Agent';
-        const agentPhone = 'Agent Phone'; // Usually would come from profile or whatsapp config, fallback to placeholder
+        const agentPhone =
+          (accountData.account?.phone as string | undefined) || '';
+        setAgencyName(resolvedAgency);
         setAgentDetails({ name: agentName, phone: agentPhone });
-
-        /* ============================================================
-         * [ADVANCE COST SHEET MODE & RATES - Disabled for now]
-         * const accountMode = accountData.account?.settings?.cost_sheet_mode;
-         * setIsAdvanced(accountMode === 'advance');
-         * if (accountData.account?.settings?.cost_sheet_rates) {
-         *   setAccountRates(accountData.account.settings.cost_sheet_rates);
-         * }
-         * ============================================================ */
 
         const costSheetId = accountData.account?.cost_sheet_template_id;
         if (costSheetId) {
@@ -246,51 +240,26 @@ export function CostSheetModal({
       }
     }
 
-    loadData();
+    void loadData();
 
     return () => {
       isMounted = false;
+      clearTimeout(timer);
     };
-  }, [open, selectedContactId, propertyId]);
+  }, [open, selectedContactId, propertyId, profile]);
 
   const selectedProperty = useMemo(() => {
     return matchingProperties.find((p) => p.id === selectedPropertyId);
   }, [matchingProperties, selectedPropertyId]);
 
-  /* ============================================================
-   * [ADVANCE COST SHEET CALCULATION - Disabled for now, to be re-enabled in future development]
-   * const calculation = useMemo(() => {
-   *   if (!selectedProperty) return null;
-   *   const carpetArea = selectedProperty.carpet_area || 1000;
-   *   const baseRate = accountRates.base_rate || 8500;
-   *   const agreementValue = selectedProperty.price
-   *     ? Number(selectedProperty.price)
-   *     : carpetArea * baseRate;
-   *   const parkingCost = accountRates.parking ?? 400000;
-   *   const subtotal = agreementValue + parkingCost;
-   *   const gstAmount = Math.round(
-   *     (subtotal * (accountRates.gst_percent ?? 5)) / 100
-   *   );
-   *   const stampDutyAmount = Math.round(
-   *     (agreementValue * (accountRates.stamp_duty_percent ?? 6)) / 100
-   *   );
-   *   const regFee = accountRates.registration_fee ?? 30000;
-   *   const totalAllInclusive =
-   *     subtotal + gstAmount + stampDutyAmount + regFee;
-   *
-   *   return {
-   *     agreementValue,
-   *     carpetArea,
-   *     baseRate,
-   *     parkingCost,
-   *     subtotal,
-   *     gstAmount,
-   *     stampDutyAmount,
-   *     regFee,
-   *     totalAllInclusive,
-   *   };
-   * }, [selectedProperty, accountRates]);
-   * ============================================================ */
+  const calculation = useMemo(() => {
+    if (!selectedProperty) return null;
+    return calculateCostSheet({
+      price: selectedProperty.price,
+      carpetArea: selectedProperty.carpet_area,
+      possessionStatus: selectedProperty.possession_status,
+    });
+  }, [selectedProperty]);
 
   const filledTemplate = useMemo(() => {
     if (!templateContent) return '';
@@ -320,19 +289,6 @@ export function CostSheetModal({
         : '',
       agent_name: agentDetails.name,
       agent_phone: agentDetails.phone,
-      /* ============================================================
-       * [ADVANCE COST SHEET MACROS - Disabled for now]
-       * base_rate: calculation?.baseRate
-       *   ? `${formatINR(calculation.baseRate)} / sq ft`
-       *   : '₹8,500 / sq ft',
-       * parking: calculation ? formatINR(calculation.parkingCost) : '₹4,00,000',
-       * gst: calculation ? formatINR(calculation.gstAmount) : '5%',
-       * stamp_duty: calculation ? formatINR(calculation.stampDutyAmount) : '6%',
-       * registration: calculation ? formatINR(calculation.regFee) : '₹30,000',
-       * total_cost: calculation
-       *   ? formatINR(calculation.totalAllInclusive)
-       *   : '',
-       * ============================================================ */
     };
 
     let template = templateContent;
@@ -353,9 +309,96 @@ export function CostSheetModal({
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => dataMap[key] ?? '');
   }, [templateContent, selectedProperty, contactData, agentDetails]);
 
-  const handleSend = async () => {
+  // Construct PDF props from currently selected property, contact, and agent
+  const getPdfProps = (): CostSheetProps | null => {
+    if (!selectedProperty) return null;
+    return {
+      agencyName,
+      agentName: agentDetails.name,
+      agentPhone: agentDetails.phone || undefined,
+      clientName: contactData?.name || undefined,
+      clientPhone: contactData?.phone || undefined,
+      propertyTitle: selectedProperty.title,
+      projectName: selectedProperty.project_name,
+      builderName: selectedProperty.builder_name,
+      location: selectedProperty.location,
+      configuration: selectedProperty.configuration,
+      bedrooms: selectedProperty.bedrooms,
+      carpetArea: selectedProperty.carpet_area,
+      facing: selectedProperty.facing,
+      possessionStatus: selectedProperty.possession_status,
+      possessionDate: selectedProperty.possession_date,
+      reraId: selectedProperty.rera_id,
+      basePrice: selectedProperty.price,
+    };
+  };
+
+  const handleDownloadPdf = async () => {
+    const props = getPdfProps();
+    if (!props) return;
+    setGeneratingPdf(true);
+    try {
+      const blob = await generateCostSheetPdf(props);
+      const cleanTitle = (props.propertyTitle || 'Property')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 30);
+      const filename = `Cost_Sheet_${cleanTitle}.pdf`;
+      downloadPdfBlob(blob, filename);
+      toast.success(t('pdfDownloaded'));
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error('Failed to generate Cost Sheet PDF');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  };
+
+  const handleSendPdfWhatsApp = async () => {
+    const props = getPdfProps();
+    if (!props || !selectedContactId) return;
+    setSendingPdf(true);
+    try {
+      const blob = await generateCostSheetPdf(props);
+      const cleanTitle = (props.propertyTitle || 'Property')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 30);
+      const filename = `Cost_Sheet_${cleanTitle}.pdf`;
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+
+      // Upload to chat-media bucket via uploadAccountMedia
+      const { publicUrl } = await uploadAccountMedia('chat-media', pdfFile);
+
+      // Call /api/whatsapp/send with message_type: 'document'
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: selectedContactId,
+          message_type: 'document',
+          media_url: publicUrl,
+          filename,
+          content_text: `Cost Sheet for ${props.propertyTitle} (${props.location || 'Listing'})`,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to dispatch PDF via WhatsApp');
+      }
+
+      toast.success(t('pdfSentSuccess'));
+      onOpenChange(false);
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : t('pdfSendFailed'));
+    } finally {
+      setSendingPdf(false);
+    }
+  };
+
+  const handleSendText = async () => {
     if (!templateContent || !selectedContactId) return;
-    setSending(true);
+    setSendingText(true);
     try {
       const res = await fetch('/api/whatsapp/send', {
         method: 'POST',
@@ -372,15 +415,13 @@ export function CostSheetModal({
         throw new Error(data.error || 'Failed to send WhatsApp message');
       }
 
-      toast.success('Cost Sheet sent! ✓');
+      toast.success(t('textSentSuccess'));
       onOpenChange(false);
     } catch (err: unknown) {
       console.error(err);
-      toast.error(
-        err instanceof Error ? err.message : 'Failed to send Cost Sheet'
-      );
+      toast.error(err instanceof Error ? err.message : t('textSendFailed'));
     } finally {
-      setSending(false);
+      setSendingText(false);
     }
   };
 
@@ -391,15 +432,16 @@ export function CostSheetModal({
         className="sm:side-right h-[90vh] overflow-y-auto sm:h-full sm:max-w-md"
       >
         <SheetHeader>
-          <SheetTitle>Send Cost Sheet</SheetTitle>
-          <SheetDescription>
-            Send a property cost breakdown via WhatsApp.
-          </SheetDescription>
+          <SheetTitle className="flex items-center gap-2">
+            <Calculator className="text-primary size-5" />
+            {t('title')}
+          </SheetTitle>
+          <SheetDescription>{t('description')}</SheetDescription>
         </SheetHeader>
 
         {!initialContactId && !selectedContactId ? (
           <div className="mt-6 space-y-4">
-            <Label>Select Contact</Label>
+            <Label>{t('selectContact')}</Label>
             {loadingContacts ? (
               <div className="flex h-10 items-center justify-center">
                 <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
@@ -410,7 +452,7 @@ export function CostSheetModal({
                 onChange={(e) => setSelectedContactId(e.target.value)}
                 className="border-border bg-muted text-foreground focus:border-primary focus:ring-primary h-9 w-full rounded-lg border px-2.5 text-sm outline-none focus:ring-1"
               >
-                <option value="">Select a contact...</option>
+                <option value="">{t('selectContactPlaceholder')}</option>
                 {contacts.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name || c.phone}
@@ -423,48 +465,11 @@ export function CostSheetModal({
           <div className="flex h-40 items-center justify-center">
             <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
           </div>
-        ) : !templateContent ? (
-          <div className="text-muted-foreground mt-8 text-center text-sm">
-            <p>No Cost Sheet template configured.</p>
-            <p className="mt-2">
-              Set one up in{' '}
-              <Link
-                href="/settings?tab=cost-sheet"
-                className="text-primary hover:underline"
-                onClick={() => onOpenChange(false)}
-              >
-                Settings → Cost Sheet
-              </Link>
-              .
-            </p>
-          </div>
         ) : (
-          <div className="mt-6 space-y-6">
-            {/* ============================================================
-             * [ADVANCE COST SHEET TOGGLE - Disabled for now, to be re-enabled in future development]
-             *
-             * <div className="flex items-center justify-between rounded-lg border bg-card p-3 shadow-xs">
-             *   <div className="space-y-0.5">
-             *     <Label
-             *       htmlFor="advance-cost-sheet-toggle"
-             *       className="text-foreground text-sm font-semibold cursor-pointer"
-             *     >
-             *       Advance Cost Sheet
-             *     </Label>
-             *     <p className="text-muted-foreground text-xs">
-             *       Itemized breakdown with GST, Stamp Duty & Parking
-             *     </p>
-             *   </div>
-             *   <Switch
-             *     id="advance-cost-sheet-toggle"
-             *     checked={isAdvanced}
-             *     onCheckedChange={setIsAdvanced}
-             *   />
-             * </div>
-             * ============================================================ */}
-
+          <div className="mt-6 space-y-5">
+            {/* Property Selector */}
             <div className="space-y-3">
-              <Label>Select Property</Label>
+              <Label>{t('selectProperty')}</Label>
               {matchingProperties.length > 0 ? (
                 <RadioGroup
                   value={selectedPropertyId}
@@ -474,7 +479,7 @@ export function CostSheetModal({
                   {matchingProperties.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-start space-x-3 rounded-md border p-3"
+                      className="border-border bg-card/60 flex items-start space-x-3 rounded-md border p-3 transition-colors"
                     >
                       <RadioGroupItem
                         value={p.id}
@@ -485,12 +490,14 @@ export function CostSheetModal({
                         htmlFor={`prop-${p.id}`}
                         className="flex flex-1 cursor-pointer flex-col"
                       >
-                        <span className="font-semibold">{p.title}</span>
-                        <span className="text-muted-foreground text-sm">
-                          {p.location}
+                        <span className="text-foreground font-semibold">
+                          {p.title}
                         </span>
-                        <span className="mt-1 text-sm font-medium">
-                          {p.price ? formatINR(p.price) : 'Price on request'}
+                        <span className="text-muted-foreground text-xs">
+                          {p.location || 'Location upon inquiry'}
+                        </span>
+                        <span className="text-primary mt-1 text-xs font-semibold">
+                          {p.price ? formatINR(p.price) : t('priceOnRequest')}
                         </span>
                       </Label>
                     </div>
@@ -498,46 +505,150 @@ export function CostSheetModal({
                 </RadioGroup>
               ) : (
                 <p className="text-muted-foreground text-sm">
-                  No matching properties found.
+                  {t('noPropertiesFound')}
                 </p>
               )}
-
-              {/* ============================================================
-               * [ADVANCE COST SHEET ITEMIZED BREAKDOWN - Disabled for now, to be re-enabled in future development]
-               *
-               * {isAdvanced && calculation && (
-               *   <div className="rounded-lg border bg-card p-4 space-y-2.5 text-sm">
-               *     <div className="flex justify-between items-center font-semibold border-b pb-2">
-               *       <span className="text-foreground">Itemized Cost Estimate (Indian Standard)</span>
-               *       <span className="text-primary text-base font-bold">
-               *         {formatINR(calculation.totalAllInclusive)}
-               *       </span>
-               *     </div>
-               *     ...
-               *   </div>
-               * )}
-               * ============================================================ */}
             </div>
 
-            <div className="space-y-2">
-              <Label>Preview Message</Label>
-              <div className="bg-muted max-h-[300px] overflow-y-auto rounded-md p-4">
-                <pre className="text-foreground font-mono text-sm whitespace-pre-wrap">
-                  {filledTemplate}
-                </pre>
+            {/* Itemized Cost Breakdown Card */}
+            {calculation && (
+              <div className="border-border bg-card space-y-2 rounded-lg border p-3.5 text-xs shadow-xs">
+                <div className="border-border flex items-center justify-between border-b pb-2">
+                  <span className="text-foreground font-semibold">
+                    {t('itemizedEstimate')}
+                  </span>
+                  <span className="text-primary text-sm font-bold">
+                    {formatINR(calculation.totalAllInclusive)}
+                  </span>
+                </div>
+                <div className="space-y-1.5 pt-1">
+                  <div className="text-muted-foreground flex justify-between">
+                    <span>{t('agreementValue')}</span>
+                    <span className="text-foreground font-medium">
+                      {formatINR(calculation.agreementValue)}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground flex justify-between">
+                    <span>{t('parking')}</span>
+                    <span className="text-foreground font-medium">
+                      {formatINR(calculation.parkingCost)}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground flex justify-between">
+                    <span>
+                      {t('gst')} ({calculation.gstPercent}%)
+                    </span>
+                    <span className="text-foreground font-medium">
+                      {formatINR(calculation.gstAmount)}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground flex justify-between">
+                    <span>
+                      {t('stampDuty')} ({calculation.stampDutyPercent}%)
+                    </span>
+                    <span className="text-foreground font-medium">
+                      {formatINR(calculation.stampDutyAmount)}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground flex justify-between">
+                    <span>{t('registration')}</span>
+                    <span className="text-foreground font-medium">
+                      {formatINR(calculation.registrationFee)}
+                    </span>
+                  </div>
+                  <div className="border-border/60 text-foreground flex justify-between border-t pt-1.5 font-semibold">
+                    <span>{t('totalEstimate')}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      {formatINR(calculation.totalAllInclusive)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Text Message Preview (if template configured) */}
+            {templateContent ? (
+              <div className="space-y-2">
+                <Label className="text-xs">{t('previewMessage')}</Label>
+                <div className="bg-muted/70 max-h-[160px] overflow-y-auto rounded-md p-3">
+                  <pre className="text-foreground font-mono text-xs whitespace-pre-wrap">
+                    {filledTemplate}
+                  </pre>
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground rounded-lg border border-dashed p-3 text-center text-xs">
+                <p>{t('noTemplateConfigured')}</p>
+                <p className="mt-1">
+                  <Link
+                    href="/settings?tab=cost-sheet"
+                    className="text-primary hover:underline"
+                    onClick={() => onOpenChange(false)}
+                  >
+                    {t('setUpInSettings')}
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2 pt-2">
+              <Button
+                type="button"
+                className="w-full gap-2 bg-emerald-600 text-xs font-semibold text-white hover:bg-emerald-700"
+                onClick={handleSendPdfWhatsApp}
+                disabled={
+                  sendingPdf ||
+                  generatingPdf ||
+                  !selectedProperty ||
+                  !selectedContactId
+                }
+              >
+                {sendingPdf ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <MessageCircle className="size-4" />
+                )}
+                {t('sendPdfWhatsApp')}
+              </Button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={handleDownloadPdf}
+                  disabled={generatingPdf || sendingPdf || !selectedProperty}
+                >
+                  {generatingPdf ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Download className="size-3.5" />
+                  )}
+                  {t('downloadPdf')}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-1.5 text-xs"
+                  onClick={handleSendText}
+                  disabled={
+                    sendingText ||
+                    !templateContent ||
+                    !selectedContactId ||
+                    matchingProperties.length === 0
+                  }
+                >
+                  {sendingText ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Send className="size-3.5" />
+                  )}
+                  {t('sendViaWhatsApp')}
+                </Button>
               </div>
             </div>
-
-            <Button
-              className="w-full"
-              onClick={handleSend}
-              disabled={sending || matchingProperties.length === 0}
-            >
-              {sending ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Send via WhatsApp
-            </Button>
           </div>
         )}
       </SheetContent>

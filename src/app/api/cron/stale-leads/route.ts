@@ -116,7 +116,7 @@ export async function GET(request: Request) {
           .from('profiles')
           .select('user_id')
           .eq('account_id', deal.account_id)
-          .eq('account_role', 'admin');
+          .in('account_role', ['owner', 'admin']);
 
         if (admins) {
           const adminNotifs = admins

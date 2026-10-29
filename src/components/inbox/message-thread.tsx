@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { usePresence } from '@/hooks/use-presence';
@@ -132,22 +133,9 @@ function formatDateSeparator(
   return format(date, 'MMMM d, yyyy');
 }
 
-function groupMessagesByDate(messages: Message[]) {
-  const groups: { date: string; messages: Message[] }[] = [];
-  let currentDate = '';
-
-  for (const msg of messages) {
-    const day = format(new Date(msg.created_at), 'yyyy-MM-dd');
-    if (day !== currentDate) {
-      currentDate = day;
-      groups.push({ date: msg.created_at, messages: [msg] });
-    } else {
-      groups[groups.length - 1].messages.push(msg);
-    }
-  }
-
-  return groups;
-}
+type FlatThreadItem =
+  | { type: 'date'; id: string; date: string }
+  | { type: 'message'; id: string; message: Message };
 
 const STATUS_OPTIONS: {
   label: string;
@@ -498,13 +486,35 @@ export function MessageThread({
       });
   }, [conversationId, hasUnread]);
 
-  // Auto-scroll to bottom on new messages
-  useEffect(() => {
-    if (scrollRef.current) {
-      const el = scrollRef.current;
-      el.scrollTop = el.scrollHeight;
+  const flatItems = useMemo<FlatThreadItem[]>(() => {
+    const items: FlatThreadItem[] = [];
+    let currentDate = '';
+
+    for (const msg of messages) {
+      const day = format(new Date(msg.created_at), 'yyyy-MM-dd');
+      if (day !== currentDate) {
+        currentDate = day;
+        items.push({ type: 'date', id: `date-${day}`, date: msg.created_at });
+      }
+      items.push({ type: 'message', id: msg.id, message: msg });
     }
+
+    return items;
   }, [messages]);
+
+  const rowVirtualizer = useVirtualizer({
+    count: flatItems.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: (index) => (flatItems[index]?.type === 'date' ? 36 : 72),
+    overscan: 5,
+  });
+
+  // Auto-scroll to bottom on new messages or conversation switch
+  useEffect(() => {
+    if (flatItems.length > 0) {
+      rowVirtualizer.scrollToIndex(flatItems.length - 1, { align: 'end' });
+    }
+  }, [flatItems.length, rowVirtualizer, conversation?.id]);
 
   const handleSend = useCallback(
     async (text: string, replyToId?: string) => {
@@ -1012,7 +1022,6 @@ export function MessageThread({
   }
 
   const displayName = contact.name || contactHandle(contact);
-  const messageGroups = groupMessagesByDate(messages);
   const currentStatus = STATUS_OPTIONS.find(
     (s) => s.value === conversation.status
   );
@@ -1369,65 +1378,99 @@ export function MessageThread({
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {messageGroups.map((group) => (
-              <div key={group.date}>
-                {/* Date separator */}
-                <div className="mb-4 flex items-center justify-center">
-                  <span className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-[10px] font-medium">
-                    {formatDateSeparator(group.date, t)}
-                  </span>
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: '100%',
+              position: 'relative',
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const item = flatItems[virtualRow.index];
+              if (!item) return null;
+
+              if (item.type === 'date') {
+                return (
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={rowVirtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                    className="py-2"
+                  >
+                    <div className="flex items-center justify-center">
+                      <span className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-[10px] font-medium">
+                        {formatDateSeparator(item.date, t)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              }
+
+              const msg = item.message;
+              const parent = msg.reply_to_message_id
+                ? messagesById.get(msg.reply_to_message_id)
+                : null;
+              const reply = parent
+                ? {
+                    authorLabel:
+                      parent.sender_type === 'agent' ||
+                      parent.sender_type === 'bot'
+                        ? t('me')
+                        : contact?.name || contact?.phone || t('unknown'),
+                    preview: buildReplyPreview(parent, tQuote),
+                  }
+                : null;
+              const msgReactions = reactionsByMessageId.get(msg.id);
+              // Toggle is computed at the call site — `msgReactions`
+              // and `user?.id` are already in scope, no extra hook.
+              const handlePillToggle = (emoji: string) => {
+                const own = msgReactions?.find(
+                  (r) => r.actor_type === 'agent' && r.actor_id === user?.id
+                );
+                const next = own?.emoji === emoji ? '' : emoji;
+                void postReaction(msg.id, next);
+              };
+
+              return (
+                <div
+                  key={virtualRow.key}
+                  data-index={virtualRow.index}
+                  ref={rowVirtualizer.measureElement}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                  className="py-1"
+                >
+                  <MessageActions
+                    message={msg}
+                    onReply={() => handleStartReply(msg)}
+                    onReact={(emoji) => {
+                      if (emoji) void postReaction(msg.id, emoji);
+                    }}
+                  >
+                    <MessageBubble
+                      message={msg}
+                      reply={reply}
+                      reactions={msgReactions}
+                      currentUserId={user?.id}
+                      onToggleReaction={handlePillToggle}
+                      onOpenMedia={handleMediaChange}
+                    />
+                  </MessageActions>
                 </div>
-                {/* Messages */}
-                <div className="space-y-2">
-                  {group.messages.map((msg) => {
-                    const parent = msg.reply_to_message_id
-                      ? messagesById.get(msg.reply_to_message_id)
-                      : null;
-                    const reply = parent
-                      ? {
-                          authorLabel:
-                            parent.sender_type === 'agent' ||
-                            parent.sender_type === 'bot'
-                              ? t('me')
-                              : contact?.name || contact?.phone || t('unknown'),
-                          preview: buildReplyPreview(parent, tQuote),
-                        }
-                      : null;
-                    const msgReactions = reactionsByMessageId.get(msg.id);
-                    // Toggle is computed at the call site — `msgReactions`
-                    // and `user?.id` are already in scope, no extra hook.
-                    const handlePillToggle = (emoji: string) => {
-                      const own = msgReactions?.find(
-                        (r) =>
-                          r.actor_type === 'agent' && r.actor_id === user?.id
-                      );
-                      const next = own?.emoji === emoji ? '' : emoji;
-                      void postReaction(msg.id, next);
-                    };
-                    return (
-                      <MessageActions
-                        key={msg.id}
-                        message={msg}
-                        onReply={() => handleStartReply(msg)}
-                        onReact={(emoji) => {
-                          if (emoji) void postReaction(msg.id, emoji);
-                        }}
-                      >
-                        <MessageBubble
-                          message={msg}
-                          reply={reply}
-                          reactions={msgReactions}
-                          currentUserId={user?.id}
-                          onToggleReaction={handlePillToggle}
-                          onOpenMedia={handleMediaChange}
-                        />
-                      </MessageActions>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

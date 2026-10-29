@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
 
 import type {
   Contact,
@@ -87,6 +88,7 @@ export function ContactSidebar({
   const tThread = useTranslations('Inbox.messageThread');
 
   const { accountId } = useAuth();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [notes, setNotes] = useState<ContactNote[]>([]);
@@ -265,6 +267,7 @@ export function ContactSidebar({
       toast.success('Requirements updated! ✓');
       setEditRequirementsOpen(false);
       onUpdated?.();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (err) {
       console.error(err);
       toast.error('Failed to save requirements');
@@ -286,6 +289,8 @@ export function ContactSidebar({
       }
       toast.success('Tag added');
       fetchContactData();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      void queryClient.invalidateQueries({ queryKey: ['tags'] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to add tag');
     }
@@ -297,6 +302,8 @@ export function ContactSidebar({
       await deleteContactTag(contact.id, tagId);
       setTags((prev) => prev.filter((t) => t.id !== tagId));
       toast.success('Tag removed');
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+      void queryClient.invalidateQueries({ queryKey: ['tags'] });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to remove tag');
     }

@@ -10,7 +10,7 @@ import {
   serializeSiteVisit,
   SiteVisitError,
 } from '@/lib/api/v1/site-visits';
-import type { SiteVisitStatus } from '@/types';
+import { SiteVisitInputSchema } from '@/lib/schemas';
 
 export async function GET(request: Request) {
   try {
@@ -55,34 +55,33 @@ export async function POST(request: Request) {
       string,
       unknown
     > | null;
-    if (!body || typeof body !== 'object') {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return fail('bad_request', 'Request body must be a JSON object', 400);
     }
 
+    const parsed = SiteVisitInputSchema.safeParse(body);
+    if (!parsed.success) {
+      return fail(
+        'bad_request',
+        parsed.error.issues[0]?.message ?? 'Invalid input',
+        400
+      );
+    }
+
+    const val = parsed.data;
     const insertData: Record<string, unknown> = {
       account_id: ctx.accountId,
+      status: val.status,
+      pickup_required: val.pickup_required,
     };
 
-    if (typeof body.contact_id === 'string')
-      insertData.contact_id = body.contact_id;
-    if (typeof body.property_id === 'string')
-      insertData.property_id = body.property_id;
-    if (typeof body.scheduled_at === 'string')
-      insertData.scheduled_at = body.scheduled_at;
-    if (typeof body.status === 'string') {
-      const validStatuses: SiteVisitStatus[] = [
-        'pending',
-        'confirmed',
-        'completed',
-        'no_show',
-        'rescheduled',
-      ];
-      if (!validStatuses.includes(body.status as SiteVisitStatus)) {
-        return fail('bad_request', 'Invalid status', 400);
-      }
-      insertData.status = body.status;
-    }
-    if (typeof body.notes === 'string') insertData.notes = body.notes;
+    if (val.contact_id !== undefined) insertData.contact_id = val.contact_id;
+    if (val.property_id !== undefined) insertData.property_id = val.property_id;
+    if (val.scheduled_at !== undefined)
+      insertData.scheduled_at = val.scheduled_at;
+    if (val.notes !== undefined) insertData.notes = val.notes;
+    if (val.pickup_location !== undefined)
+      insertData.pickup_location = val.pickup_location;
 
     const { data, error } = await ctx.supabase
       .from('site_visits')

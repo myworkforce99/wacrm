@@ -24,6 +24,7 @@ import {
   parseInternationalPhone,
   phoneVariants,
   isRecipientNotAllowedError,
+  sanitizePhoneForMeta,
 } from '@/lib/whatsapp/phone-utils';
 import { resolveTemplateRow } from '@/lib/whatsapp/template-body';
 import type { MessageTemplate } from '@/types';
@@ -159,7 +160,7 @@ export async function createBroadcast(
     });
     resolved.push({
       contactId: id,
-      phone: sanitized,
+      phone: sanitizePhoneForMeta(sanitized),
       params: Array.isArray(r.params)
         ? r.params.filter((p): p is string => typeof p === 'string')
         : [],

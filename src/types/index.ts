@@ -174,10 +174,19 @@ export interface LeadDetail {
   budget_min?: number;
   budget_max?: number;
   location_preference?: string;
+  /**
+   * Asset class the buyer is interested in.
+   * Values: 'Apartment' | 'Villa' | 'Plot' | 'Commercial' | 'Penthouse' | 'Builder Floor'.
+   * Distinct from `configuration_preference` which stores BHK options.
+   */
   property_type?: string;
   intent?: string;
   /** Portal this lead came from, e.g. '99acres', 'MagicBricks', 'Housing.com', 'Manual'. Set by the email parser (Section M) or manually via the contact form. */
   source?: string;
+  /**
+   * BHK/unit type preferences, e.g. ['2BHK', '3BHK']. Set during qualification.
+   * Distinct from `property_type` which stores the asset class.
+   */
   configuration_preference?: string[];
   possession_preference?: string;
   created_at: string;
@@ -462,6 +471,11 @@ export interface Deal {
   conversation_id?: string;
   assigned_to?: string;
   title: string;
+  /**
+   * Expected deal value in the account's default currency (INR).
+   * DB column type is NUMERIC. Always store and read as a number.
+   * The form uses string-formatted display values — parse before persisting.
+   */
   value: number;
   currency?: string;
   notes?: string;
@@ -523,11 +537,112 @@ export interface AssignmentHistory {
   from_agent_id?: string | null;
   to_agent_id?: string | null;
   actor_id?: string | null;
-  reason: string;
+  /**
+   * Canonical reason values written by the system:
+   * - 'claim'           — agent claimed an unassigned lead
+   * - 'release_pool'    — agent released lead back to unassigned pool
+   * - 'manual_reassign' — admin/manager manually reassigned
+   * - 'round_robin'     — auto-assigned by the routing engine (round-robin fallback)
+   * - 'routing_rule'    — auto-assigned by a matching lead routing rule
+   * - 'manual'          — DB trigger fallback (auth.uid() was available)
+   * - 'automation'      — DB trigger fallback (no auth.uid(), automation context)
+   */
+  reason:
+    | 'claim'
+    | 'release_pool'
+    | 'manual_reassign'
+    | 'round_robin'
+    | 'routing_rule'
+    | 'manual'
+    | 'automation'
+    | 'contact_edit_modal'
+    | 'contact_create_modal'
+    | 'bulk_reassign'
+    | 'auto_round_robin';
   created_at: string;
   from_agent?: Profile;
   to_agent?: Profile;
   actor?: Profile;
+}
+
+// ============================================================
+// Agent Targets (migration 116)
+// ============================================================
+
+/**
+ * Monthly site-visit and booking targets set per agent by managers.
+ * One row per (account, agent, month). Uses period_start as the
+ * canonical month key (first day of the month, YYYY-MM-DD).
+ */
+export interface AgentTarget {
+  id: string;
+  account_id: string;
+  /** References profiles.user_id — NOT profiles.id */
+  agent_id: string;
+  /** First day of the target month (YYYY-MM-DD). Unique key with agent_id. */
+  period_start: string;
+  /** Last day of the target month (YYYY-MM-DD). */
+  period_end: string;
+  target_visits: number;
+  target_bookings: number;
+}
+
+// ============================================================
+// API Keys (migration 026)
+// ============================================================
+
+/**
+ * Public REST API key row. The raw key is only returned once at
+ * creation time. Only the SHA-256 hash is stored; it is never
+ * reconstructed or returned in list responses.
+ */
+export interface ApiKey {
+  id: string;
+  account_id: string;
+  /** auth.users.id of the creator. NULL if creator was deleted. */
+  created_by: string | null;
+  /** Human-readable label set by the admin (e.g. "Zapier Integration"). */
+  name: string;
+  /** Display prefix e.g. "wacrm_live_a1b2c3d4" */
+  key_prefix: string;
+  /** SHA-256 hash of the raw key — never expose as plaintext. */
+  key_hash: string;
+  /** Scope strings e.g. ['contacts:read', 'messages:send']. */
+  scopes: string[];
+  last_used_at: string | null;
+  /** Expiration timestamp, null if never expires. */
+  expires_at: string | null;
+  /** Revocation timestamp, null if active. */
+  revoked_at: string | null;
+  created_at: string;
+}
+
+// ============================================================
+// Webhook Endpoints (migration 028)
+// ============================================================
+
+/**
+ * Outbound webhook endpoint registered by an account to receive
+ * CRM event notifications via HTTP POST. The `secret` column stores
+ * an AES-256-GCM-encrypted HMAC signing key — never expose as
+ * plaintext in client-facing API responses.
+ */
+export interface WebhookEndpoint {
+  id: string;
+  account_id: string;
+  /** auth.users.id of the creator. NULL if creator was deleted. */
+  created_by: string | null;
+  /** HTTPS endpoint to POST events to. */
+  url: string;
+  /** AES-256-GCM encrypted HMAC secret. Server-side use only. */
+  secret: string;
+  /** Event type subscriptions e.g. ['message.received', 'conversation.created']. */
+  events: string[];
+  is_active: boolean;
+  last_delivery_at: string | null;
+  /** Consecutive failure counter. Auto-disables endpoint when threshold exceeded. */
+  failure_count: number;
+  created_at: string;
 }
 
 export type BroadcastStatus =
@@ -600,6 +715,7 @@ export interface SiteVisit {
   account_id: string;
   contact_id: string | null;
   property_id?: string | null;
+  /** ISO-8601 datetime with timezone offset. Required when creating; null only on legacy/draft rows. */
   scheduled_at?: string;
   status: SiteVisitStatus;
   reminded_24h: boolean;
@@ -884,6 +1000,11 @@ export interface QuickReply {
   updated_at: string;
 }
 
+/**
+ * Canonical buyer configuration preferences for lead filtering and
+ * qualification. Includes both BHK options and asset-class options.
+ * This is the single source of truth used in /properties and /site-visits filters.
+ */
 export const PROPERTY_CONFIGURATIONS = [
   'Studio',
   '1BHK',
@@ -891,7 +1012,12 @@ export const PROPERTY_CONFIGURATIONS = [
   '3BHK',
   '4BHK',
   '5+ BHK',
-];
+  'Villa',
+  'Plot',
+  'Commercial',
+] as const;
+
+export type PropertyConfiguration = (typeof PROPERTY_CONFIGURATIONS)[number];
 
 export type BroadcastAudienceType =
   'all' | 'tags' | 'custom_field' | 'csv' | 'lead_segment';
@@ -983,4 +1109,31 @@ export interface SocialPost {
     email: string;
     avatar_url: string | null;
   };
+}
+
+// ============================================================
+// Push Subscriptions (migration 104)
+// ============================================================
+
+export interface PushSubscription {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  created_at: string;
+}
+
+// ============================================================
+// Broadcast Templates (migration 117)
+// ============================================================
+
+export interface BroadcastTemplate {
+  id: string;
+  name: string;
+  language: string;
+  category: string;
+  body_text: string;
+  tags: string[];
+  created_at: string;
 }

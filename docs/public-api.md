@@ -47,6 +47,10 @@ it. Grant the minimum.
 | `messages:read`      | Read messages and delivery status     |
 | `contacts:read`      | List and read contacts                |
 | `contacts:write`     | Create and update contacts            |
+| `properties:read`    | List and read properties              |
+| `properties:write`   | Create and update properties          |
+| `site_visits:read`   | List and read site visits             |
+| `site_visits:write`  | Create and update site visits         |
 | `conversations:read` | List and read conversations           |
 | `broadcasts:send`    | Launch broadcast campaigns            |
 | `webhooks:manage`    | Register and manage outbound webhooks |
@@ -277,6 +281,130 @@ Broadcast status + counts. Scope: `broadcasts:send`. `status` moves
 `sending` → `sent`; `delivered_count` / `read_count` keep climbing as
 Meta delivery webhooks arrive. `404` for another account's broadcast.
 
+### Properties
+
+Manage real estate listings and inventory.
+
+#### `GET /api/v1/properties`
+
+List properties in keyset-paginated order. Scope: `properties:read`. Supports `?limit=` (default 50, max 100) and `?cursor=`.
+
+```json
+{
+  "data": [
+    {
+      "id": "e0e24e10-...",
+      "account_id": "...",
+      "title": "Sobha Dream Acres 2BHK",
+      "location": "Panathur, Bangalore",
+      "price": 9500000,
+      "property_type": "Apartment",
+      "bedrooms": 2,
+      "tags": ["ready_to_move", "rera_approved"],
+      "created_at": "2026-10-15T10:00:00.000Z",
+      "updated_at": "2026-10-15T10:00:00.000Z"
+    }
+  ],
+  "meta": { "next_cursor": "eyJ..." }
+}
+```
+
+#### `POST /api/v1/properties`
+
+Create a property listing. Scope: `properties:write`.
+
+Request body:
+
+- `title` (string, required)
+- `location` (string, optional)
+- `price` (number, optional)
+- `property_type` (string, optional)
+- `bedrooms` (number, optional)
+- `tags` (string array, optional)
+
+```bash
+curl -X POST https://your-crm.example.com/api/v1/properties \
+  -H "Authorization: Bearer wacrm_live_xxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+        "title": "Godrej Woods 3BHK",
+        "location": "Sector 43, Noida",
+        "price": 18500000,
+        "bedrooms": 3,
+        "property_type": "Apartment",
+        "tags": ["luxury", "pool_view"]
+      }'
+```
+
+#### `GET /api/v1/properties/{id}`
+
+Retrieve a single property. Scope: `properties:read`. Returns `404` if not found in the account.
+
+#### `PATCH /api/v1/properties/{id}`
+
+Update property fields. Scope: `properties:write`.
+
+#### `DELETE /api/v1/properties/{id}`
+
+Delete a property. Scope: `properties:write`. Returns `{ "data": { "deleted": true } }`.
+
+### Site Visits
+
+Track and schedule physical/virtual property visits with contacts.
+
+#### `GET /api/v1/site-visits`
+
+List scheduled site visits with pagination. Scope: `site_visits:read`. Supports `?limit=` and `?cursor=`.
+
+```json
+{
+  "data": [
+    {
+      "id": "c1f7b889-...",
+      "account_id": "...",
+      "contact_id": "...",
+      "property_id": "...",
+      "scheduled_at": "2026-11-02T11:00:00.000Z",
+      "status": "confirmed",
+      "notes": "Client requested pickup from metro station",
+      "pickup_required": true,
+      "pickup_location": "Noida City Center Metro",
+      "reminded_24h": true,
+      "reminded_2h": false,
+      "created_at": "2026-10-25T14:30:00.000Z",
+      "updated_at": "2026-10-25T14:30:00.000Z"
+    }
+  ],
+  "meta": { "next_cursor": null }
+}
+```
+
+#### `POST /api/v1/site-visits`
+
+Schedule a site visit. Scope: `site_visits:write`.
+
+Request body:
+
+- `contact_id` (uuid, optional/nullable)
+- `property_id` (uuid, optional/nullable)
+- `scheduled_at` (ISO timestamp, required)
+- `status` (`pending` | `confirmed` | `completed` | `no_show` | `rescheduled`, optional, default `pending`)
+- `notes` (string, optional)
+- `pickup_required` (boolean, optional)
+- `pickup_location` (string, optional)
+
+#### `GET /api/v1/site-visits/{id}`
+
+Retrieve details for a site visit. Scope: `site_visits:read`.
+
+#### `PATCH /api/v1/site-visits/{id}`
+
+Update visit status, notes, or schedule time. Scope: `site_visits:write`.
+
+#### `DELETE /api/v1/site-visits/{id}`
+
+Cancel and delete a site visit. Scope: `site_visits:write`.
+
 ## Pagination
 
 Every list endpoint pages the same way. Request a page size with
@@ -392,8 +520,7 @@ internal targets are refused at delivery time.
 
 ## Roadmap
 
-The public API now covers messaging, contacts, conversations,
-broadcasts, and outbound webhooks — the full scope of
-[#245](https://github.com/ArnasDon/wacrm/issues/245). Future ideas
-(deals/pipelines, templates, flows, a delivery queue for webhooks) are
-not yet scheduled.
+The public API covers messaging, contacts, conversations, broadcasts,
+outbound webhooks, properties inventory, and site visits logistics. Future
+ideas (deals/pipelines, templates, flows, a delivery queue for webhooks)
+are evaluated based on user demand.

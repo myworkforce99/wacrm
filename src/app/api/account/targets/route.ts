@@ -4,6 +4,15 @@ import {
   getCurrentAccount,
   toErrorResponse,
 } from '@/lib/auth/account';
+import { AgentTargetInputSchema } from '@/lib/schemas/agent-target';
+
+function computeMonthEnd(dateStr: string): string {
+  const [yearStr, monthStr] = dateStr.split('-');
+  const y = parseInt(yearStr, 10);
+  const m = parseInt(monthStr, 10);
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${yearStr}-${monthStr.padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+}
 
 export async function GET(request: Request) {
   try {
@@ -41,31 +50,31 @@ export async function POST(request: Request) {
     const ctx = await requireRole('admin');
     const body = await request.json().catch(() => null);
 
-    if (!body || !body.agent_id || !body.period_start) {
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const parsed = AgentTargetInputSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'agent_id and period_start are required' },
+        { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
         { status: 400 }
       );
     }
+    const val = parsed.data;
+
+    const periodEnd = val.period_end || computeMonthEnd(val.period_start);
 
     const { data, error } = await ctx.supabase
       .from('agent_targets')
       .upsert(
         {
           account_id: ctx.accountId,
-          agent_id: body.agent_id,
-          period_start: body.period_start,
-          period_end:
-            body.period_end ||
-            new Date(
-              new Date(body.period_start).getFullYear(),
-              new Date(body.period_start).getMonth() + 1,
-              0
-            )
-              .toISOString()
-              .split('T')[0],
-          target_visits: body.target_visits ?? 0,
-          target_bookings: body.target_bookings ?? 0,
+          agent_id: val.agent_id,
+          period_start: val.period_start,
+          period_end: periodEnd,
+          target_visits: val.target_visits,
+          target_bookings: val.target_bookings,
         },
         { onConflict: 'account_id, agent_id, period_start' }
       )

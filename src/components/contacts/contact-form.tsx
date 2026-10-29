@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { canManageMembers } from '@/lib/auth/roles';
+import { useQueryClient } from '@tanstack/react-query';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { toast } from 'sonner';
 import type { Contact, Tag, ContactTag, Profile } from '@/types';
@@ -16,6 +19,11 @@ import {
 import { parseInternationalPhone } from '@/lib/whatsapp/phone-utils';
 import { parseBudget } from '@/lib/contacts/parse-budget';
 import { formatINR, formatINRRange } from '@/lib/currency';
+import {
+  ContactFormSchema,
+  type ContactFormInput,
+  type ContactFormValues,
+} from '@/lib/schemas/contact';
 import {
   Dialog,
   DialogContent,
@@ -112,6 +120,26 @@ interface PipelineStageItem {
   pipeline_id: string;
 }
 
+const DEFAULT_CONTACT_FORM_VALUES: ContactFormInput = {
+  name: '',
+  phone: '+91',
+  email: '',
+  company: '',
+  source: 'Manual Entry',
+  other_source: '',
+  location_preference: '',
+  budget_min_input: '',
+  budget_max_input: '',
+  configuration_preference: [],
+  property_type: 'all',
+  intent: 'all',
+  possession_preference: 'any',
+  assigned_agent_id: null as string | null | undefined,
+  stage_id: '',
+  selected_tag_ids: [],
+  note_text: '',
+};
+
 export function ContactForm({
   open,
   onOpenChange,
@@ -125,47 +153,10 @@ export function ContactForm({
   const { accountId, accountRole, profile } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isEdit = !!contact;
+  const queryClient = useQueryClient();
 
-  // Basic contact info
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('+91');
-  const [email, setEmail] = useState('');
-  const [company, setCompany] = useState('');
-
-  // Real estate qualification info
-  const [source, setSource] = useState('Manual Entry');
-  const [otherSource, setOtherSource] = useState('');
-  const [locationPreference, setLocationPreference] = useState('');
-  const [budgetMinInput, setBudgetMinInput] = useState('');
-  const [budgetMaxInput, setBudgetMaxInput] = useState('');
-  const [configurationPreference, setConfigurationPreference] = useState<
-    string[]
-  >([]);
-  const [propertyType, setPropertyType] = useState('all');
-  const [intent, setIntent] = useState('all');
-  const [possessionPreference, setPossessionPreference] = useState('any');
-
-  const isNonBhkPropertyType =
-    propertyType === 'Plot' || propertyType === 'Commercial';
-
-  const availableBhkOptions = useMemo(() => {
-    const list = [...BHK_CONFIGURATIONS];
-    for (const cfg of configurationPreference) {
-      if (!list.includes(cfg)) {
-        list.push(cfg);
-      }
-    }
-    return list;
-  }, [configurationPreference]);
-
-  // Assignment & pipeline stage
-  const [assignedAgentId, setAssignedAgentId] = useState('unassigned');
-  const [selectedStageId, setSelectedStageId] = useState('');
   const [selectedPipelineId, setSelectedPipelineId] = useState('');
   const [existingDealId, setExistingDealId] = useState<string | null>(null);
-
-  // Notes
-  const [noteText, setNoteText] = useState('');
 
   // Loading & saving states
   const [loadingData, setLoadingData] = useState(false);
@@ -180,10 +171,52 @@ export function ContactForm({
 
   // Reference data
   const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [stages, setStages] = useState<PipelineStageItem[]>([]);
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    getValues,
+    watch,
+    formState: { errors },
+  } = useForm<ContactFormInput, unknown, ContactFormValues>({
+    resolver: zodResolver(ContactFormSchema),
+    defaultValues: DEFAULT_CONTACT_FORM_VALUES,
+  });
+
+  const phone = watch('phone') || '';
+  const source = watch('source') || 'Manual Entry';
+  const budgetMinInput = watch('budget_min_input') || '';
+  const budgetMaxInput = watch('budget_max_input') || '';
+  const rawConfigPref = watch('configuration_preference');
+  const configurationPreference = useMemo(
+    () => rawConfigPref || [],
+    [rawConfigPref]
+  );
+  const propertyType = watch('property_type') || 'all';
+  const intent = watch('intent') || 'all';
+  const possessionPreference = watch('possession_preference') || 'any';
+  const assignedAgentId = watch('assigned_agent_id') ?? null;
+  const selectedStageId = watch('stage_id') || '';
+  const selectedTagIds = watch('selected_tag_ids') || [];
+  const noteText = watch('note_text') || '';
+
+  const isNonBhkPropertyType =
+    propertyType === 'Plot' || propertyType === 'Commercial';
+
+  const availableBhkOptions = useMemo(() => {
+    const list = [...BHK_CONFIGURATIONS];
+    for (const cfg of configurationPreference) {
+      if (!list.includes(cfg)) {
+        list.push(cfg);
+      }
+    }
+    return list;
+  }, [configurationPreference]);
 
   // Fetch reference data (tags, profiles, pipeline stages)
   const fetchReferenceData = useCallback(async () => {
@@ -243,40 +276,15 @@ export function ContactForm({
           .eq('contact_id', contactItem.id)
           .maybeSingle();
 
-        if (ld) {
-          if (ld.source) {
-            if (KNOWN_SOURCES.includes(ld.source)) {
-              setSource(ld.source);
-              setOtherSource('');
-            } else {
-              setSource('Other');
-              setOtherSource(ld.source);
-            }
+        let resolvedSource = 'Manual Entry';
+        let resolvedOtherSource = '';
+        if (ld?.source) {
+          if (KNOWN_SOURCES.includes(ld.source)) {
+            resolvedSource = ld.source;
           } else {
-            setSource('Manual Entry');
+            resolvedSource = 'Other';
+            resolvedOtherSource = ld.source;
           }
-
-          setLocationPreference(ld.location_preference ?? '');
-          setBudgetMinInput(
-            ld.budget_min ? formatINR(ld.budget_min).replace('₹', '') : ''
-          );
-          setBudgetMaxInput(
-            ld.budget_max ? formatINR(ld.budget_max).replace('₹', '') : ''
-          );
-          setConfigurationPreference(ld.configuration_preference || []);
-          setPossessionPreference(ld.possession_preference || 'any');
-          setPropertyType(ld.property_type || 'all');
-          setIntent(ld.intent || 'all');
-        } else {
-          setSource('Manual Entry');
-          setOtherSource('');
-          setLocationPreference('');
-          setBudgetMinInput('');
-          setBudgetMaxInput('');
-          setConfigurationPreference([]);
-          setPossessionPreference('any');
-          setPropertyType('all');
-          setIntent('all');
         }
 
         // 2. Fetch contact's tags directly
@@ -284,13 +292,9 @@ export function ContactForm({
           .from('contact_tags')
           .select('tag_id')
           .eq('contact_id', contactItem.id);
-        if (ctData) {
-          setSelectedTagIds(ctData.map((ct) => ct.tag_id));
-        } else {
-          setSelectedTagIds(
-            contactTags.map((ct) => ('tag_id' in ct ? ct.tag_id : ct.id))
-          );
-        }
+        const resolvedTagIds = ctData
+          ? ctData.map((ct) => ct.tag_id)
+          : contactTags.map((ct) => ('tag_id' in ct ? ct.tag_id : ct.id));
 
         // 3. Fetch deal for stage and assignment
         const { data: deal } = await supabase
@@ -303,18 +307,15 @@ export function ContactForm({
           .limit(1)
           .maybeSingle();
 
+        let resolvedAssignedAgentId: string | null = null;
         if (deal) {
           setExistingDealId(deal.id);
           setSelectedPipelineId(deal.pipeline_id);
-          setSelectedStageId(deal.stage_id);
           if (deal.assigned_to) {
-            setAssignedAgentId(deal.assigned_to);
-          } else {
-            setAssignedAgentId('unassigned');
+            resolvedAssignedAgentId = deal.assigned_to;
           }
         } else {
           setExistingDealId(null);
-          setSelectedStageId('');
           // Fall back to conversation assigned_agent_id
           const { data: conv } = await supabase
             .from('conversations')
@@ -323,59 +324,61 @@ export function ContactForm({
             .maybeSingle();
 
           if (conv?.assigned_agent_id) {
-            // Find matching profile by user_id
             const { data: prof } = await supabase
               .from('profiles')
               .select('id')
               .eq('user_id', conv.assigned_agent_id)
               .maybeSingle();
             if (prof) {
-              setAssignedAgentId(prof.id);
-            } else {
-              setAssignedAgentId('unassigned');
+              resolvedAssignedAgentId = prof.id;
             }
-          } else {
-            setAssignedAgentId('unassigned');
           }
         }
+
+        reset({
+          name: contactItem.name ?? '',
+          phone: contactItem.phone ?? '+91',
+          email: contactItem.email ?? '',
+          company: contactItem.company ?? '',
+          source: resolvedSource,
+          other_source: resolvedOtherSource,
+          location_preference: ld?.location_preference ?? '',
+          budget_min_input: ld?.budget_min
+            ? formatINR(ld.budget_min).replace('₹', '')
+            : '',
+          budget_max_input: ld?.budget_max
+            ? formatINR(ld.budget_max).replace('₹', '')
+            : '',
+          configuration_preference: ld?.configuration_preference || [],
+          possession_preference: ld?.possession_preference || 'any',
+          property_type: ld?.property_type || 'all',
+          intent: ld?.intent || 'all',
+          assigned_agent_id: resolvedAssignedAgentId,
+          stage_id: deal?.stage_id || '',
+          selected_tag_ids: resolvedTagIds,
+          note_text: '',
+        });
       } catch (err) {
         console.error('Error fetching lead details for edit:', err);
       } finally {
         setLoadingData(false);
       }
     },
-    [supabase, contactTags]
+    [supabase, contactTags, reset]
   );
 
   useEffect(() => {
     if (open) {
-      setName(contact?.name ?? '');
-      setPhone(contact?.phone ?? '+91');
-      setEmail(contact?.email ?? '');
-      setCompany(contact?.company ?? '');
       setDupMatch(null);
-      setNoteText('');
       void fetchReferenceData();
 
       if (contact?.id) {
         void fetchExistingLeadData(contact);
       } else {
-        setSource('Manual Entry');
-        setOtherSource('');
-        setLocationPreference('');
-        setBudgetMinInput('');
-        setBudgetMaxInput('');
-        setConfigurationPreference([]);
-        setPropertyType('all');
-        setIntent('all');
-        setPossessionPreference('any');
-        if (!isManager && profile?.id) {
-          setAssignedAgentId(profile.id);
-        } else {
-          setAssignedAgentId('unassigned');
-        }
-        setSelectedStageId('');
-        setSelectedTagIds([]);
+        reset({
+          ...DEFAULT_CONTACT_FORM_VALUES,
+          assigned_agent_id: !isManager && profile?.id ? profile.id : null,
+        });
         setExistingDealId(null);
       }
     }
@@ -384,13 +387,15 @@ export function ContactForm({
     contact,
     isManager,
     profile?.id,
+    reset,
     fetchReferenceData,
     fetchExistingLeadData,
   ]);
 
   async function checkDuplicate() {
     if (!accountId) return;
-    const value = phone.trim();
+    const currentPhone = getValues('phone');
+    const value = currentPhone ? currentPhone.trim() : '';
     if (!value) {
       setDupMatch(null);
       return;
@@ -420,11 +425,11 @@ export function ContactForm({
   }
 
   function toggleTag(tagId: string) {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
-    );
+    const current = getValues('selected_tag_ids') || [];
+    const next = current.includes(tagId)
+      ? current.filter((id) => id !== tagId)
+      : [...current, tagId];
+    setValue('selected_tag_ids', next, { shouldValidate: true });
   }
 
   const parsedMin = useMemo(
@@ -436,21 +441,10 @@ export function ContactForm({
     [budgetMaxInput]
   );
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (!name.trim()) {
-      toast.error(t('nameLabel') + ' is required');
-      return;
-    }
-
-    if (!phone.trim()) {
-      toast.error(t('phoneRequired'));
-      return;
-    }
-
-    const phoneChanged = !isEdit || phone.trim() !== (contact?.phone ?? '');
-    if (phoneChanged && !parseInternationalPhone(phone)) {
+  async function onFormSubmit(values: ContactFormValues) {
+    const phoneChanged =
+      !isEdit || values.phone.trim() !== (contact?.phone ?? '');
+    if (phoneChanged && !parseInternationalPhone(values.phone)) {
       toast.error(t('phoneNeedsCountryCode'));
       return;
     }
@@ -478,10 +472,10 @@ export function ContactForm({
         const { error: contactErr } = await supabase
           .from('contacts')
           .update({
-            name: name.trim() || null,
-            phone: phone.trim(),
-            email: email.trim() || null,
-            company: company.trim() || null,
+            name: values.name.trim() || null,
+            phone: values.phone.trim(),
+            email: values.email?.trim() || null,
+            company: values.company?.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', contactId);
@@ -492,10 +486,10 @@ export function ContactForm({
           .insert({
             user_id: user.id,
             account_id: accountId,
-            name: name.trim() || null,
-            phone: phone.trim(),
-            email: email.trim() || null,
-            company: company.trim() || null,
+            name: values.name.trim() || null,
+            phone: values.phone.trim(),
+            email: values.email?.trim() || null,
+            company: values.company?.trim() || null,
           })
           .select('id')
           .single();
@@ -506,21 +500,25 @@ export function ContactForm({
       if (!contactId) throw new Error('Failed to resolve contact ID');
 
       // 2. Upsert Real Estate Lead Details
-      const actualSource = source === 'Other' ? otherSource.trim() : source;
+      const actualSource =
+        values.source === 'Other'
+          ? (values.other_source || '').trim()
+          : values.source;
       const { error: ldError } = await supabase.from('lead_details').upsert(
         {
           account_id: accountId,
           contact_id: contactId,
           source: actualSource || 'Manual Entry',
-          location_preference: locationPreference.trim() || null,
+          location_preference: values.location_preference?.trim() || null,
           budget_min: parsedMin ?? null,
           budget_max: parsedMax ?? null,
           configuration_preference: isNonBhkPropertyType
             ? []
-            : configurationPreference,
-          possession_preference: possessionPreference || 'any',
-          property_type: propertyType === 'all' ? null : propertyType,
-          intent: intent === 'all' ? null : intent,
+            : values.configuration_preference,
+          possession_preference: values.possession_preference || 'any',
+          property_type:
+            values.property_type === 'all' ? null : values.property_type,
+          intent: values.intent === 'all' ? null : values.intent,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'contact_id' }
@@ -533,7 +531,7 @@ export function ContactForm({
         .select('tag_id')
         .eq('contact_id', contactId);
       const currentTagIds = new Set((currentTags || []).map((t) => t.tag_id));
-      const desiredTagIds = new Set(selectedTagIds);
+      const desiredTagIds = new Set(values.selected_tag_ids);
       const toRemove = [...currentTagIds].filter(
         (id) => !desiredTagIds.has(id)
       );
@@ -547,10 +545,9 @@ export function ContactForm({
       }
 
       // 4. Sync Agent Assignment & Conversation
-      const targetProfile =
-        assignedAgentId !== 'unassigned'
-          ? profiles.find((p) => p.id === assignedAgentId)
-          : null;
+      const targetProfile = values.assigned_agent_id
+        ? profiles.find((p) => p.id === values.assigned_agent_id)
+        : null;
 
       const { data: convData } = await supabase
         .from('conversations')
@@ -602,7 +599,7 @@ export function ContactForm({
 
       // 5. Sync Deal & Pipeline Stage
       const resolvedStageId =
-        selectedStageId || (stages.length > 0 ? stages[0].id : null);
+        values.stage_id || (stages.length > 0 ? stages[0].id : null);
       const resolvedPipelineId =
         selectedPipelineId ||
         (stages.length > 0 ? stages[0].pipeline_id : null);
@@ -611,11 +608,11 @@ export function ContactForm({
         const dealUpdates: Record<string, unknown> = {
           updated_at: new Date().toISOString(),
         };
-        if (selectedStageId) dealUpdates.stage_id = selectedStageId;
-        if (assignedAgentId === 'unassigned') {
+        if (values.stage_id) dealUpdates.stage_id = values.stage_id;
+        if (!values.assigned_agent_id) {
           dealUpdates.assigned_to = null;
-        } else if (assignedAgentId) {
-          dealUpdates.assigned_to = assignedAgentId;
+        } else if (values.assigned_agent_id) {
+          dealUpdates.assigned_to = values.assigned_agent_id;
         }
         if (parsedMax || parsedMin) {
           dealUpdates.value = parsedMax || parsedMin || 0;
@@ -631,9 +628,10 @@ export function ContactForm({
           pipeline_id: resolvedPipelineId,
           stage_id: resolvedStageId,
           contact_id: contactId,
-          assigned_to:
-            assignedAgentId !== 'unassigned' ? assignedAgentId : null,
-          title: `${name.trim() || phone.trim()} - Requirement`,
+          assigned_to: !!values.assigned_agent_id
+            ? values.assigned_agent_id
+            : null,
+          title: `${values.name.trim() || values.phone.trim()} - Requirement`,
           value: parsedMax || parsedMin || 0,
           currency: 'INR',
           status: 'open',
@@ -641,17 +639,18 @@ export function ContactForm({
       }
 
       // 6. Optional: Add Note if provided
-      if (noteText.trim()) {
+      if (values.note_text && values.note_text.trim()) {
         await supabase.from('contact_notes').insert({
           contact_id: contactId,
           user_id: user.id,
-          note_text: noteText.trim(),
+          note_text: values.note_text.trim(),
         });
       }
 
       toast.success(isEdit ? t('toastSuccessEdit') : t('toastSuccessAdd'));
       onOpenChange(false);
       onSaved();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (err: unknown) {
       if (isUniqueViolation(err)) {
         toast.error(t('toastConflict'));
@@ -659,7 +658,7 @@ export function ContactForm({
           const existing = await findExistingContact(
             supabase,
             accountId,
-            phone.trim()
+            values.phone.trim()
           );
           if (existing) setDupMatch({ contact: existing, exact: true });
         }
@@ -721,7 +720,7 @@ export function ContactForm({
           </div>
         ) : (
           <form
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit(onFormSubmit)}
             className="flex-1 space-y-6 overflow-x-hidden overflow-y-auto p-4 sm:p-6"
           >
             {/* Section 1: Contact Information */}
@@ -746,12 +745,15 @@ export function ContactForm({
                   </Label>
                   <Input
                     id="cf-name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    {...register('name')}
                     placeholder={t('namePlaceholder')}
                     className="bg-card border-border text-foreground h-9 text-xs"
-                    required
                   />
+                  {errors.name && (
+                    <p className="text-destructive text-[11px]">
+                      {errors.name.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -765,14 +767,20 @@ export function ContactForm({
                     id="cf-phone"
                     value={phone}
                     onChange={(e) => {
-                      setPhone(e.target.value);
+                      setValue('phone', e.target.value, {
+                        shouldValidate: true,
+                      });
                       if (dupMatch) setDupMatch(null);
                     }}
                     onBlur={checkDuplicate}
                     placeholder={t('phonePlaceholder')}
                     className="bg-card border-border text-foreground h-9 text-xs"
-                    required
                   />
+                  {errors.phone && (
+                    <p className="text-destructive text-[11px]">
+                      {errors.phone.message}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -816,11 +824,15 @@ export function ContactForm({
                   <Input
                     id="cf-email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...register('email')}
                     placeholder={t('emailPlaceholder')}
                     className="bg-card border-border text-foreground h-9 text-xs"
                   />
+                  {errors.email && (
+                    <p className="text-destructive text-[11px]">
+                      {errors.email.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -833,8 +845,7 @@ export function ContactForm({
                   </Label>
                   <Input
                     id="cf-company"
-                    value={company}
-                    onChange={(e) => setCompany(e.target.value)}
+                    {...register('company')}
                     placeholder={t('companyPlaceholder')}
                     className="bg-card border-border text-foreground h-9 text-xs"
                   />
@@ -870,7 +881,9 @@ export function ContactForm({
                   </Label>
                   <Select
                     value={source}
-                    onValueChange={(val) => setSource(val || 'Manual Entry')}
+                    onValueChange={(val) =>
+                      setValue('source', val || 'Manual Entry')
+                    }
                   >
                     <SelectTrigger
                       id="cf-source"
@@ -888,8 +901,7 @@ export function ContactForm({
                   </Select>
                   {source === 'Other' && (
                     <Input
-                      value={otherSource}
-                      onChange={(e) => setOtherSource(e.target.value)}
+                      {...register('other_source')}
                       placeholder="Specify source name..."
                       className="bg-card border-border text-foreground mt-2 h-8 text-xs"
                     />
@@ -906,8 +918,7 @@ export function ContactForm({
                   </Label>
                   <Input
                     id="cf-location"
-                    value={locationPreference}
-                    onChange={(e) => setLocationPreference(e.target.value)}
+                    {...register('location_preference')}
                     placeholder={t('locationPlaceholder')}
                     className="bg-card border-border text-foreground h-9 text-xs"
                   />
@@ -928,14 +939,12 @@ export function ContactForm({
 
                 <div className="grid grid-cols-2 gap-3">
                   <Input
-                    value={budgetMinInput}
-                    onChange={(e) => setBudgetMinInput(e.target.value)}
+                    {...register('budget_min_input')}
                     placeholder={t('budgetMinPlaceholder')}
                     className="bg-card border-border text-foreground h-8.5 text-xs"
                   />
                   <Input
-                    value={budgetMaxInput}
-                    onChange={(e) => setBudgetMaxInput(e.target.value)}
+                    {...register('budget_max_input')}
                     placeholder={t('budgetMaxPlaceholder')}
                     className="bg-card border-border text-foreground h-8.5 text-xs"
                   />
@@ -951,8 +960,8 @@ export function ContactForm({
                       key={preset.label}
                       type="button"
                       onClick={() => {
-                        setBudgetMinInput(preset.min);
-                        setBudgetMaxInput(preset.max);
+                        setValue('budget_min_input', preset.min);
+                        setValue('budget_max_input', preset.max);
                       }}
                       className="bg-card hover:bg-muted text-muted-foreground hover:text-foreground border-border cursor-pointer rounded-md border px-2 py-0.5 text-[11px] font-medium transition-colors"
                     >
@@ -974,7 +983,9 @@ export function ContactForm({
                   </Label>
                   <Select
                     value={propertyType}
-                    onValueChange={(val) => setPropertyType(val || 'all')}
+                    onValueChange={(val) =>
+                      setValue('property_type', val || 'all')
+                    }
                   >
                     <SelectTrigger
                       id="cf-property-type"
@@ -1005,7 +1016,7 @@ export function ContactForm({
                   </Label>
                   <Select
                     value={intent}
-                    onValueChange={(val) => setIntent(val || 'all')}
+                    onValueChange={(val) => setValue('intent', val || 'all')}
                   >
                     <SelectTrigger
                       id="cf-intent"
@@ -1057,11 +1068,12 @@ export function ContactForm({
                           key={config}
                           type="button"
                           onClick={() => {
-                            setConfigurationPreference((prev) =>
-                              prev.includes(config)
-                                ? prev.filter((c) => c !== config)
-                                : [...prev, config]
-                            );
+                            const next = isSelected
+                              ? configurationPreference.filter(
+                                  (c) => c !== config
+                                )
+                              : [...configurationPreference, config];
+                            setValue('configuration_preference', next);
                           }}
                           className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-all ${
                             isSelected
@@ -1089,7 +1101,9 @@ export function ContactForm({
                 </Label>
                 <Select
                   value={possessionPreference}
-                  onValueChange={(val) => setPossessionPreference(val || 'any')}
+                  onValueChange={(val) =>
+                    setValue('possession_preference', val || 'any')
+                  }
                 >
                   <SelectTrigger
                     id="cf-possession"
@@ -1134,9 +1148,12 @@ export function ContactForm({
                   </Label>
                   <Select
                     disabled={!isManager}
-                    value={assignedAgentId}
+                    value={assignedAgentId ?? 'unassigned'}
                     onValueChange={(val) =>
-                      setAssignedAgentId(val || 'unassigned')
+                      setValue(
+                        'assigned_agent_id',
+                        val === 'unassigned' ? null : val || null
+                      )
                     }
                   >
                     <SelectTrigger
@@ -1169,7 +1186,7 @@ export function ContactForm({
                   </Label>
                   <Select
                     value={selectedStageId}
-                    onValueChange={(val) => setSelectedStageId(val || '')}
+                    onValueChange={(val) => setValue('stage_id', val || '')}
                   >
                     <SelectTrigger
                       id="cf-stage"
@@ -1254,7 +1271,7 @@ export function ContactForm({
                 <Textarea
                   id="cf-note"
                   value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
+                  onChange={(e) => setValue('note_text', e.target.value)}
                   placeholder={
                     isEdit ? t('notesPlaceholderEdit') : t('notesPlaceholder')
                   }

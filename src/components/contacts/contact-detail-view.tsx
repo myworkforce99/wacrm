@@ -20,7 +20,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
 import { formatCurrency, formatINR, formatINRRange } from '@/lib/currency';
+import { formatPhoneDisplay } from '@/lib/whatsapp/phone-utils';
 import { toast } from 'sonner';
 import type {
   Contact,
@@ -117,6 +119,7 @@ export function ContactDetailView({
   const supabase = createClient();
   const { accountId, defaultCurrency, account } = useAuth();
   const hasCostSheet = !!account?.cost_sheet_template_id;
+  const queryClient = useQueryClient();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(false);
@@ -415,6 +418,8 @@ export function ContactDetailView({
     } else {
       toast.success('Visit status updated');
       fetchVisits();
+      void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
       onUpdated();
     }
   }
@@ -432,6 +437,7 @@ export function ContactDetailView({
         await addContactTag(contactId, tagId);
         setContactTagIds((prev) => [...prev, tagId]);
       }
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
       onUpdated();
     } catch (error) {
       toast.error(
@@ -746,7 +752,7 @@ export function ContactDetailView({
                 className="hover:text-primary flex cursor-pointer items-center gap-1 font-mono font-medium transition-colors"
                 title="Copy phone"
               >
-                <span>{contact?.phone}</span>
+                <span>{formatPhoneDisplay(contact?.phone)}</span>
                 {copiedPhone ? (
                   <Check className="text-primary size-3" />
                 ) : (

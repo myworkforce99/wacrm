@@ -13,9 +13,10 @@
  *  - Full i18n support, dark & light mode styling, and responsive layout
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { PullToRefresh } from '@/components/layout/pull-to-refresh';
 import { vibrate } from '@/lib/utils/vibrate';
@@ -192,16 +193,14 @@ export default function ContactsPage() {
   const t = useTranslations('Contacts.page');
   const router = useRouter();
   const supabase = createClient();
-  const { accountRole, user, profile, defaultCurrency } = useAuth();
+  const { accountRole, user, profile, defaultCurrency, accountId } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const canEdit = useCan('send-messages');
   const canEditSettings = useCan('edit-settings');
+  const queryClient = useQueryClient();
 
-  const [contacts, setContacts] = useState<ContactWithTags[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
 
   // Filters
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
@@ -228,289 +227,180 @@ export default function ContactsPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkReassignOpen, setBulkReassignOpen] = useState(false);
 
-  // Reference data
-  const [tagsMap, setTagsMap] = useState<Record<string, Tag>>({});
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-
-  const fetchSeq = useRef(0);
-
-  const fetchTags = useCallback(async () => {
-    const { data } = await supabase.from('tags').select('*');
-    if (data) {
+  // Tags query
+  const { data: tagsMap = {} } = useQuery({
+    queryKey: ['tags', accountId],
+    queryFn: async () => {
+      const { data } = await supabase.from('tags').select('*');
       const map: Record<string, Tag> = {};
-      data.forEach((t) => (map[t.id] = t));
-      setTagsMap(map);
-      setSelectedTagIds((prev) => {
-        const pruned = prev.filter((id) => map[id]);
-        return pruned.length === prev.length ? prev : pruned;
-      });
-    }
-  }, [supabase]);
-
-  const fetchProfiles = useCallback(async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, user_id, full_name, email, account_role')
-      .order('full_name');
-    if (data) setProfiles(data as Profile[]);
-  }, [supabase]);
-
-  const fetchContacts = useCallback(async () => {
-    const seq = ++fetchSeq.current;
-    setLoading(true);
-    setSelected(new Set());
-
-    const from = page * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    const term = search.trim();
-
-    let contactRows: Contact[];
-    let count: number;
-
-    if (selectedTagIds.length > 0) {
-      const { data, error } = await supabase.rpc('filter_contacts_by_tags', {
-        p_tag_ids: selectedTagIds,
-        p_search: term || null,
-        p_limit: PAGE_SIZE,
-        p_offset: from,
-        p_agent_user_id: accountRole === 'agent' && user?.id ? user.id : null,
-      });
-      if (seq !== fetchSeq.current) return;
-      if (error) {
-        toast.error(t('toastFailedLoad'));
-        setLoading(false);
-        return;
+      if (data) {
+        data.forEach((t) => {
+          map[t.id] = t;
+        });
       }
-      const rows = (data ?? []) as { contact: Contact; total_count: number }[];
+      return map;
+    },
+    enabled: !!accountId,
+  });
 
-      const ids = rows.map((r) => r.contact.id);
-      if (ids.length > 0) {
-        const { data: relations } = await supabase
-          .from('contacts')
-          .select(
-            'id, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))'
-          )
-          .in('id', ids)
-          .order('created_at', { referencedTable: 'deals', ascending: false });
+  // Profiles query
+  const { data: profiles = [] } = useQuery({
+    queryKey: ['profiles', accountId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, user_id, full_name, email, account_role')
+        .order('full_name');
+      return (data ?? []) as Profile[];
+    },
+    enabled: !!accountId,
+  });
 
-        const relationMap = new Map((relations ?? []).map((r) => [r.id, r]));
-        contactRows = rows.map((r) => ({
-          ...r.contact,
-          lead_details: relationMap.get(r.contact.id)?.lead_details ?? null,
-          deals: relationMap.get(r.contact.id)?.deals ?? [],
-        }));
-      } else {
-        contactRows = [];
-      }
-      count = rows.length > 0 ? Number(rows[0].total_count) : 0;
-    } else if (accountRole === 'agent' && user?.id) {
-      const profileId = profile?.id;
-      const { data: agentDeals } = profileId
-        ? await supabase
-            .from('deals')
-            .select('contact_id')
-            .eq('assigned_to', profileId)
-            .not('contact_id', 'is', null)
-        : { data: [] };
-
-      const dealContactIds = (agentDeals
-        ?.map((d) => d.contact_id)
-        .filter(Boolean) ?? []) as string[];
-
-      let agentQuery = supabase
-        .from('contacts')
-        .select(
-          '*, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
-          {
-            count: 'exact',
-          }
-        )
-        .order('created_at', { ascending: false })
-        .order('created_at', { referencedTable: 'deals', ascending: false })
-        .range(from, to);
-
-      if (dealContactIds.length > 0) {
-        agentQuery = agentQuery.or(
-          `user_id.eq.${user.id},id.in.(${dealContactIds.join(',')})`
-        );
-      } else {
-        agentQuery = agentQuery.eq('user_id', user.id);
-      }
-
-      if (term) {
-        const like = `%${term}%`;
-        agentQuery = agentQuery.or(
-          `name.ilike.${like},phone.ilike.${like},email.ilike.${like}`
-        );
-      }
-
-      const { data, count: exactCount, error } = await agentQuery;
-      if (seq !== fetchSeq.current) return;
-      if (error) {
-        toast.error(t('toastFailedLoad'));
-        setLoading(false);
-        return;
-      }
-      contactRows = (data as unknown as Contact[]) ?? [];
-      count = exactCount ?? 0;
-    } else {
+  // Contacts query
+  const {
+    data: contacts = [],
+    isLoading: loading,
+    refetch: refetchContacts,
+  } = useQuery({
+    queryKey: ['contacts', accountId],
+    queryFn: async () => {
       let query = supabase
         .from('contacts')
         .select(
-          '*, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))',
-          {
-            count: 'exact',
-          }
+          '*, lead_details(*), deals(id, status, assigned_to, pipeline_stages!deals_stage_id_fkey(name))'
         )
         .order('created_at', { ascending: false })
-        .order('created_at', { referencedTable: 'deals', ascending: false })
-        .range(from, to);
+        .order('created_at', { referencedTable: 'deals', ascending: false });
 
-      if (term) {
-        const like = `%${term}%`;
-        query = query.or(
-          `name.ilike.${like},phone.ilike.${like},email.ilike.${like}`
-        );
+      if (accountRole === 'agent' && user?.id) {
+        const profileId = profile?.id;
+        const { data: agentDeals } = profileId
+          ? await supabase
+              .from('deals')
+              .select('contact_id')
+              .eq('assigned_to', profileId)
+              .not('contact_id', 'is', null)
+          : { data: [] };
+
+        const dealContactIds = (agentDeals
+          ?.map((d) => d.contact_id)
+          .filter(Boolean) ?? []) as string[];
+
+        if (dealContactIds.length > 0) {
+          query = query.or(
+            `user_id.eq.${user.id},id.in.(${dealContactIds.join(',')})`
+          );
+        } else {
+          query = query.eq('user_id', user.id);
+        }
       }
 
-      const { data, count: exactCount, error } = await query;
-      if (seq !== fetchSeq.current) return;
+      const { data, error } = await query;
       if (error) {
         toast.error(t('toastFailedLoad'));
-        setLoading(false);
-        return;
+        throw error;
       }
-      contactRows = (data as unknown as Contact[]) ?? [];
-      count = exactCount ?? 0;
-    }
+      const contactRows = (data as unknown as Contact[]) ?? [];
 
-    setTotalCount(count);
-
-    if (contactRows.length === 0) {
-      setContacts([]);
-      setLoading(false);
-      return;
-    }
-
-    const contactIds = contactRows.map((c) => c.id);
-    const { data: contactTags } = await supabase
-      .from('contact_tags')
-      .select('contact_id, tag_id')
-      .in('contact_id', contactIds);
-
-    const { data: convData } = await supabase
-      .from('conversations')
-      .select('contact_id, first_unanswered_at, assigned_agent_id')
-      .in('contact_id', contactIds);
-
-    const convAssigneeIds = (convData
-      ?.map((c) => c.assigned_agent_id)
-      .filter(Boolean) ?? []) as string[];
-
-    type ContactRowWithDeals = Contact & {
-      deals?: { assigned_to?: string | null }[];
-    };
-    const dealAssigneeProfileIds = (contactRows as ContactRowWithDeals[])
-      .flatMap((c) => c.deals?.map((d) => d.assigned_to) ?? [])
-      .filter(Boolean) as string[];
-
-    const agentsByUserId: Record<string, { id: string; full_name: string }> =
-      {};
-    if (convAssigneeIds.length > 0) {
-      const { data: convProfiles } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', convAssigneeIds);
-      convProfiles?.forEach((p) => {
-        agentsByUserId[p.user_id] = { id: p.user_id, full_name: p.full_name };
-      });
-    }
-
-    const agentsByProfileId: Record<string, { id: string; full_name: string }> =
-      {};
-    if (dealAssigneeProfileIds.length > 0) {
-      const { data: dealProfiles } = await supabase
-        .from('profiles')
-        .select('id, user_id, full_name')
-        .in('id', dealAssigneeProfileIds);
-      dealProfiles?.forEach((p) => {
-        agentsByProfileId[p.id] = { id: p.user_id, full_name: p.full_name };
-      });
-    }
-
-    if (seq !== fetchSeq.current) return;
-
-    const tagsByContact: Record<string, string[]> = {};
-    contactTags?.forEach((ct) => {
-      if (!tagsByContact[ct.contact_id]) tagsByContact[ct.contact_id] = [];
-      tagsByContact[ct.contact_id].push(ct.tag_id);
-    });
-
-    const convByContact: Record<
-      string,
-      { first_unanswered_at: string | null; assigned_agent_id: string | null }
-    > = {};
-    convData?.forEach((c) => {
-      convByContact[c.contact_id] = {
-        first_unanswered_at: c.first_unanswered_at,
-        assigned_agent_id: c.assigned_agent_id,
-      };
-    });
-
-    const dealAssigneeByContact: Record<string, string | null> = {};
-    (contactRows as ContactRowWithDeals[]).forEach((c) => {
-      const firstDealWithAssignee = c.deals?.find((d) => d.assigned_to);
-      if (firstDealWithAssignee?.assigned_to) {
-        dealAssigneeByContact[c.id] = firstDealWithAssignee.assigned_to;
+      if (contactRows.length === 0) {
+        return [];
       }
-    });
 
-    const enriched: ContactWithTags[] = contactRows.map((c) => {
-      const conv = convByContact[c.id];
-      const convAgentId = conv?.assigned_agent_id ?? null;
-      const dealProfileId = dealAssigneeByContact[c.id] ?? null;
-      const assignee =
-        (convAgentId ? agentsByUserId[convAgentId] : null) ??
-        (dealProfileId ? agentsByProfileId[dealProfileId] : null) ??
-        null;
-      return {
-        ...c,
-        tags: (tagsByContact[c.id] ?? [])
-          .map((tid) => tagsMap[tid])
-          .filter(Boolean),
-        first_unanswered_at: conv?.first_unanswered_at,
-        assignee,
+      const contactIds = contactRows.map((c) => c.id);
+      const { data: contactTags } = await supabase
+        .from('contact_tags')
+        .select('contact_id, tag_id')
+        .in('contact_id', contactIds);
+
+      const { data: convData } = await supabase
+        .from('conversations')
+        .select('contact_id, first_unanswered_at, assigned_agent_id')
+        .in('contact_id', contactIds);
+
+      const convAssigneeIds = (convData
+        ?.map((c) => c.assigned_agent_id)
+        .filter(Boolean) ?? []) as string[];
+
+      type ContactRowWithDeals = Contact & {
+        deals?: { assigned_to?: string | null }[];
       };
-    });
+      const dealAssigneeProfileIds = (contactRows as ContactRowWithDeals[])
+        .flatMap((c) => c.deals?.map((d) => d.assigned_to) ?? [])
+        .filter(Boolean) as string[];
 
-    setContacts(enriched);
-    setLoading(false);
-  }, [
-    supabase,
-    page,
-    search,
-    selectedTagIds,
-    tagsMap,
-    t,
-    user,
-    profile,
-    accountRole,
-  ]);
+      const agentsByUserId: Record<string, { id: string; full_name: string }> =
+        {};
+      if (convAssigneeIds.length > 0) {
+        const { data: convProfiles } = await supabase
+          .from('profiles')
+          .select('user_id, full_name')
+          .in('user_id', convAssigneeIds);
+        convProfiles?.forEach((p) => {
+          agentsByUserId[p.user_id] = { id: p.user_id, full_name: p.full_name };
+        });
+      }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchTags();
-      void fetchProfiles();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchTags, fetchProfiles]);
+      const agentsByProfileId: Record<
+        string,
+        { id: string; full_name: string }
+      > = {};
+      if (dealAssigneeProfileIds.length > 0) {
+        const { data: dealProfiles } = await supabase
+          .from('profiles')
+          .select('id, user_id, full_name')
+          .in('id', dealAssigneeProfileIds);
+        dealProfiles?.forEach((p) => {
+          agentsByProfileId[p.id] = { id: p.user_id, full_name: p.full_name };
+        });
+      }
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchContacts();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchContacts]);
+      const tagsByContact: Record<string, string[]> = {};
+      contactTags?.forEach((ct) => {
+        if (!tagsByContact[ct.contact_id]) tagsByContact[ct.contact_id] = [];
+        tagsByContact[ct.contact_id].push(ct.tag_id);
+      });
+
+      const convByContact: Record<
+        string,
+        { first_unanswered_at: string | null; assigned_agent_id: string | null }
+      > = {};
+      convData?.forEach((c) => {
+        convByContact[c.contact_id] = {
+          first_unanswered_at: c.first_unanswered_at,
+          assigned_agent_id: c.assigned_agent_id,
+        };
+      });
+
+      const dealAssigneeByContact: Record<string, string | null> = {};
+      (contactRows as ContactRowWithDeals[]).forEach((c) => {
+        const firstDealWithAssignee = c.deals?.find((d) => d.assigned_to);
+        if (firstDealWithAssignee?.assigned_to) {
+          dealAssigneeByContact[c.id] = firstDealWithAssignee.assigned_to;
+        }
+      });
+
+      const enriched: ContactWithTags[] = contactRows.map((c) => {
+        const conv = convByContact[c.id];
+        const convAgentId = conv?.assigned_agent_id ?? null;
+        const dealProfileId = dealAssigneeByContact[c.id] ?? null;
+        const assignee =
+          (convAgentId ? agentsByUserId[convAgentId] : null) ??
+          (dealProfileId ? agentsByProfileId[dealProfileId] : null) ??
+          null;
+        return {
+          ...c,
+          tags: (tagsByContact[c.id] ?? [])
+            .map((tid) => tagsMap[tid])
+            .filter(Boolean),
+          first_unanswered_at: conv?.first_unanswered_at,
+          assignee,
+        };
+      });
+
+      return enriched;
+    },
+    enabled: !!accountId,
+  });
 
   function openAddForm() {
     setEditContact(null);
@@ -551,7 +441,7 @@ export default function ContactsPage() {
     } else {
       toast.success(t('toastDeleted'));
       vibrate([50, 100, 50]);
-      fetchContacts();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     }
 
     setDeleting(false);
@@ -559,17 +449,126 @@ export default function ContactsPage() {
     setDeleteTarget(null);
   }
 
+  // Role-based scoping for individual sales agents:
+  // Non-manager agents only view their own assigned leads.
+  const scopedContacts = useMemo(() => {
+    if (!isManager && user?.id) {
+      return contacts.filter(
+        (c) => c.assignee?.id === user.id || c.user_id === user.id
+      );
+    }
+    return contacts;
+  }, [contacts, isManager, user]);
+
+  // Multi-dimensional filtering across search, tags, source, stage, and assignee
+  const filteredContacts = useMemo(() => {
+    return scopedContacts.filter((c) => {
+      // 1. Omni search (name, phone, email)
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        const matchesName = c.name?.toLowerCase().includes(q);
+        const matchesPhone = c.phone?.toLowerCase().includes(q);
+        const matchesEmail = c.email?.toLowerCase().includes(q);
+        if (!matchesName && !matchesPhone && !matchesEmail) return false;
+      }
+
+      // 2. Tags filter (OR matches any selected tag)
+      if (selectedTagIds.length > 0) {
+        const hasTag = c.tags?.some((t) => selectedTagIds.includes(t.id));
+        if (!hasTag) return false;
+      }
+
+      // 3. Source filter
+      if (selectedSource !== 'all') {
+        const src = c.lead_details?.source || 'Manual Entry';
+        if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
+      }
+
+      // 4. Stage filter
+      if (selectedStage !== 'all') {
+        const stageName = c.deals?.[0]?.pipeline_stages?.name;
+        if (
+          !stageName ||
+          stageName.toLowerCase() !== selectedStage.toLowerCase()
+        ) {
+          return false;
+        }
+      }
+
+      // 5. Assignee filter (managers only)
+      if (isManager && selectedAssignee !== 'all') {
+        if (selectedAssignee === 'unassigned') {
+          if (c.assignee) return false;
+        } else {
+          if (c.assignee?.id !== selectedAssignee) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [
+    scopedContacts,
+    search,
+    selectedTagIds,
+    selectedSource,
+    selectedStage,
+    selectedAssignee,
+    isManager,
+  ]);
+
+  // Lead statistics for summary metrics bar
+  const stats = useMemo(() => {
+    const list = scopedContacts;
+    const total = list.length;
+    const hotCount = list.filter((c) =>
+      c.tags?.some((t) => t.name.toLowerCase().includes('hot'))
+    ).length;
+    const dealsCount = list.filter((c) =>
+      c.deals?.some((d) => d.status === 'open')
+    ).length;
+    const attentionCount = list.filter((c) =>
+      Boolean(c.first_unanswered_at)
+    ).length;
+    const freshCount = list.filter(
+      (c) =>
+        c.deals?.[0]?.pipeline_stages?.name === 'New' ||
+        !c.deals ||
+        c.deals.length === 0
+    ).length;
+
+    return {
+      total,
+      hot: hotCount,
+      deals: dealsCount,
+      attention: attentionCount,
+      fresh: freshCount,
+    };
+  }, [scopedContacts]);
+
+  const totalPages = Math.ceil(filteredContacts.length / PAGE_SIZE) || 1;
+  const hasNext = page < totalPages - 1;
+  const hasPrev = page > 0;
+
+  const paginatedContacts = useMemo(() => {
+    const from = page * PAGE_SIZE;
+    return filteredContacts.slice(from, from + PAGE_SIZE);
+  }, [filteredContacts, page]);
+
+
   const allOnPageSelected =
-    contacts.length > 0 && contacts.every((c) => selected.has(c.id));
-  const someOnPageSelected = contacts.some((c) => selected.has(c.id));
+    paginatedContacts.length > 0 &&
+    paginatedContacts.every((c) => selected.has(c.id));
+  const someOnPageSelected = paginatedContacts.some((c) =>
+    selected.has(c.id)
+  );
 
   function toggleSelectAll() {
     setSelected((prev) => {
       const next = new Set(prev);
       if (allOnPageSelected) {
-        contacts.forEach((c) => next.delete(c.id));
+        paginatedContacts.forEach((c) => next.delete(c.id));
       } else {
-        contacts.forEach((c) => next.add(c.id));
+        paginatedContacts.forEach((c) => next.add(c.id));
       }
       return next;
     });
@@ -596,89 +595,12 @@ export default function ContactsPage() {
     } else {
       toast.success(t('toastBulkDeleted', { count: ids.length }));
       setSelected(new Set());
-      fetchContacts();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     }
 
     setDeleting(false);
     setBulkDeleteOpen(false);
   }
-
-  // Role-based scoping for individual sales agents:
-  // Non-manager agents only view their own assigned leads.
-  const scopedContacts = useMemo(() => {
-    if (!isManager && user?.id) {
-      return contacts.filter(
-        (c) => c.assignee?.id === user.id || c.user_id === user.id
-      );
-    }
-    return contacts;
-  }, [contacts, isManager, user]);
-
-  // Multi-dimensional filtering across source, stage, and assignee
-  const filteredContacts = useMemo(() => {
-    return scopedContacts.filter((c) => {
-      if (selectedSource !== 'all') {
-        const src = c.lead_details?.source || 'Manual Entry';
-        if (src.toLowerCase() !== selectedSource.toLowerCase()) return false;
-      }
-      if (selectedStage !== 'all') {
-        const stageName = c.deals?.[0]?.pipeline_stages?.name;
-        if (
-          !stageName ||
-          stageName.toLowerCase() !== selectedStage.toLowerCase()
-        ) {
-          return false;
-        }
-      }
-      if (isManager && selectedAssignee !== 'all') {
-        if (selectedAssignee === 'unassigned') {
-          if (c.assignee) return false;
-        } else {
-          if (c.assignee?.id !== selectedAssignee) return false;
-        }
-      }
-      return true;
-    });
-  }, [
-    scopedContacts,
-    isManager,
-    selectedSource,
-    selectedStage,
-    selectedAssignee,
-  ]);
-
-  // Lead statistics for summary metrics bar
-  const stats = useMemo(() => {
-    const list = scopedContacts;
-    const total = !isManager ? list.length : totalCount;
-    const hotCount = list.filter((c) =>
-      c.tags?.some((t) => t.name.toLowerCase().includes('hot'))
-    ).length;
-    const dealsCount = list.filter((c) =>
-      c.deals?.some((d) => d.status === 'open')
-    ).length;
-    const attentionCount = list.filter((c) =>
-      Boolean(c.first_unanswered_at)
-    ).length;
-    const freshCount = list.filter(
-      (c) =>
-        c.deals?.[0]?.pipeline_stages?.name === 'New' ||
-        !c.deals ||
-        c.deals.length === 0
-    ).length;
-
-    return {
-      total,
-      hot: hotCount,
-      deals: dealsCount,
-      attention: attentionCount,
-      fresh: freshCount,
-    };
-  }, [scopedContacts, isManager, totalCount]);
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-  const hasNext = page < totalPages - 1;
-  const hasPrev = page > 0;
 
   const allTags = Object.values(tagsMap).sort((a, b) =>
     a.name.localeCompare(b.name)
@@ -721,14 +643,18 @@ export default function ContactsPage() {
   }
 
   return (
-    <PullToRefresh>
+    <PullToRefresh
+      onRefresh={async () => {
+        await refetchContacts();
+      }}
+    >
       <div className="space-y-6">
         {/* Header */}
         <PageHeader
           title="Leads"
           subtitle={
-            t('subtitle', { count: totalCount }) ||
-            `${totalCount} total leads in your pipeline`
+            t('subtitle', { count: stats.total }) ||
+            `${stats.total} total leads in your pipeline`
           }
           action={
             <div className="flex items-center gap-2">
@@ -820,6 +746,7 @@ export default function ContactsPage() {
             onClick={() => {
               setSelectedStage('all');
               setSelectedSource('all');
+              setPage(0);
             }}
             className="bg-card border-border/80 hover:border-primary/50 cursor-pointer rounded-xl border p-3.5 shadow-xs transition-all"
           >
@@ -835,9 +762,10 @@ export default function ContactsPage() {
           </div>
 
           <div
-            onClick={() =>
-              setSelectedStage(selectedStage === 'New' ? 'all' : 'New')
-            }
+            onClick={() => {
+              setSelectedStage(selectedStage === 'New' ? 'all' : 'New');
+              setPage(0);
+            }}
             className={`bg-card border-border/80 cursor-pointer rounded-xl border p-3.5 shadow-xs transition-all hover:border-blue-500/50 ${
               selectedStage === 'New'
                 ? 'border-blue-500 ring-2 ring-blue-500/30'
@@ -910,7 +838,10 @@ export default function ContactsPage() {
                 />
                 {search && (
                   <button
-                    onClick={() => setSearch('')}
+                    onClick={() => {
+                      setSearch('');
+                      setPage(0);
+                    }}
                     className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
                   >
                     <X className="size-3.5" />
@@ -921,7 +852,10 @@ export default function ContactsPage() {
               {/* Source Filter */}
               <Select
                 value={selectedSource}
-                onValueChange={(val) => setSelectedSource(val || 'all')}
+                onValueChange={(val) => {
+                  setSelectedSource(val || 'all');
+                  setPage(0);
+                }}
               >
                 <SelectTrigger
                   label={t('filterSource') || 'Source'}
@@ -948,7 +882,10 @@ export default function ContactsPage() {
               {/* Deal Stage / Status Filter */}
               <Select
                 value={selectedStage}
-                onValueChange={(val) => setSelectedStage(val || 'all')}
+                onValueChange={(val) => {
+                  setSelectedStage(val || 'all');
+                  setPage(0);
+                }}
               >
                 <SelectTrigger
                   label={t('filterStage') || 'Stage'}
@@ -998,7 +935,10 @@ export default function ContactsPage() {
                     {selectedTagIds.length > 0 && (
                       <button
                         type="button"
-                        onClick={() => setSelectedTagIds([])}
+                        onClick={() => {
+                          setSelectedTagIds([]);
+                          setPage(0);
+                        }}
                         className="cursor-pointer rounded border border-red-200/60 bg-red-50 px-1.5 py-0.5 text-[11px] font-medium text-red-600 transition-colors hover:bg-red-100 hover:text-red-700 dark:border-red-900/40 dark:bg-red-950/40 dark:text-red-400 dark:hover:bg-red-900/50 dark:hover:text-red-300"
                       >
                         {t('clearAll')}
@@ -1039,7 +979,10 @@ export default function ContactsPage() {
               {isManager && profiles.length > 0 && (
                 <Select
                   value={selectedAssignee}
-                  onValueChange={(val) => setSelectedAssignee(val || 'all')}
+                  onValueChange={(val) => {
+                    setSelectedAssignee(val || 'all');
+                    setPage(0);
+                  }}
                 >
                   <SelectTrigger
                     label={t('filterAssignee') || 'Assignee'}
@@ -1175,7 +1118,7 @@ export default function ContactsPage() {
           selectedIds={[...selected]}
           onSuccess={() => {
             setSelected(new Set());
-            fetchContacts();
+            void queryClient.invalidateQueries({ queryKey: ['contacts'] });
           }}
         />
 
@@ -1220,7 +1163,7 @@ export default function ContactsPage() {
               )}
             </div>
           ) : (
-            filteredContacts.map((contact) => {
+            paginatedContacts.map((contact) => {
               const dealStage = contact.deals?.[0]?.pipeline_stages?.name;
               return (
                 <div
@@ -1547,7 +1490,7 @@ export default function ContactsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredContacts.map((contact) => {
+                paginatedContacts.map((contact) => {
                   const dealStage = contact.deals?.[0]?.pipeline_stages?.name;
                   return (
                     <TableRow
@@ -1819,9 +1762,9 @@ export default function ContactsPage() {
           <div className="flex items-center justify-between pt-2">
             <p className="text-muted-foreground text-xs">
               {t('showingPagination', {
-                start: page * PAGE_SIZE + 1,
-                end: Math.min((page + 1) * PAGE_SIZE, totalCount),
-                total: totalCount,
+                start: filteredContacts.length === 0 ? 0 : page * PAGE_SIZE + 1,
+                end: Math.min((page + 1) * PAGE_SIZE, filteredContacts.length),
+                total: filteredContacts.length,
               })}
             </p>
             <div className="flex items-center gap-1">
@@ -1862,8 +1805,8 @@ export default function ContactsPage() {
           contact={editContact}
           contactTags={editContact?.tags || []}
           onSaved={() => {
-            fetchContacts();
-            fetchTags();
+            void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+            void queryClient.invalidateQueries({ queryKey: ['tags'] });
           }}
           onViewExisting={(id) => {
             setFormOpen(false);
@@ -1875,7 +1818,9 @@ export default function ContactsPage() {
           open={detailOpen}
           onOpenChange={setDetailOpen}
           contactId={detailContactId}
-          onUpdated={fetchContacts}
+          onUpdated={() => {
+            void queryClient.invalidateQueries({ queryKey: ['contacts'] });
+          }}
           onEdit={(c) => {
             openEditForm(c);
           }}
@@ -1886,7 +1831,7 @@ export default function ContactsPage() {
           onOpenChange={setScheduleVisitOpen}
           defaultContactId={scheduleVisitContactId}
           onSuccess={() => {
-            fetchContacts();
+            void queryClient.invalidateQueries({ queryKey: ['contacts'] });
           }}
         />
 

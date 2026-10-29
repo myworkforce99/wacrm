@@ -56,11 +56,20 @@ export function Step1ChooseTemplate({
 
         if (globalError) throw globalError;
 
+        const normalizeCategory = (
+          cat: string | null | undefined
+        ): 'Marketing' | 'Utility' | 'Authentication' => {
+          const upper = (cat || '').toUpperCase();
+          if (upper === 'UTILITY') return 'Utility';
+          if (upper === 'AUTHENTICATION') return 'Authentication';
+          return 'Marketing';
+        };
+
         const globalTemplates: MessageTemplate[] = (globalData ?? []).map(
           (t) => ({
             ...t,
             status: 'APPROVED',
-            category: t.category as 'MARKETING' | 'UTILITY' | 'AUTHENTICATION',
+            category: normalizeCategory(t.category),
             user_id: 'system',
           })
         );

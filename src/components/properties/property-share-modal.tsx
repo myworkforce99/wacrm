@@ -34,7 +34,12 @@ import {
   X,
   Phone,
   MessageSquare,
+  Download,
+  FileText,
+  Loader2,
 } from 'lucide-react';
+import { generatePropertyBrochurePdf, downloadPdfBlob } from '@/lib/pdf';
+import { uploadAccountMedia } from '@/lib/storage/upload-media';
 
 interface PropertyShareModalProps {
   open: boolean;
@@ -54,6 +59,8 @@ export function PropertyShareModal({
   const isManager = accountRole ? canManageMembers(accountRole) : false;
 
   const [copied, setCopied] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState(false);
+  const [sendingBrochurePdf, setSendingBrochurePdf] = useState(false);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loadingContacts, setLoadingContacts] = useState(false);
   const [contactSearch, setContactSearch] = useState('');
@@ -213,6 +220,104 @@ export function PropertyShareModal({
     router.push(targetUrl);
   }
 
+  async function handleDownloadBrochurePdf() {
+    if (!property) return;
+    setGeneratingPdf(true);
+    try {
+      const blob = await generatePropertyBrochurePdf({
+        agencyName: profile?.full_name
+          ? `${profile.full_name}'s Agency`
+          : 'WaCRM Real Estate',
+        agentName: profile?.full_name || 'Property Advisor',
+        agentPhone: user?.phone || '',
+        propertyTitle: property.title,
+        projectName: property.project_name,
+        builderName: property.builder_name,
+        location: property.location,
+        price: property.price,
+        configuration: property.configuration,
+        bedrooms: property.bedrooms,
+        carpetArea: property.carpet_area,
+        facing: property.facing,
+        possessionStatus: property.possession_status,
+        possessionDate: property.possession_date,
+        reraId: property.rera_id,
+        tags: property.tags,
+      });
+      const cleanTitle = (property.title || 'Property')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 30);
+      downloadPdfBlob(blob, `Brochure_${cleanTitle}.pdf`);
+      toast.success(t('pdfDownloaded'));
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error('Failed to generate PDF brochure');
+    } finally {
+      setGeneratingPdf(false);
+    }
+  }
+
+  async function handleSendPdfToContact(contact: Contact) {
+    if (!property || !contact.id) return;
+    setSendingBrochurePdf(true);
+    try {
+      const blob = await generatePropertyBrochurePdf({
+        agencyName: profile?.full_name
+          ? `${profile.full_name}'s Agency`
+          : 'WaCRM Real Estate',
+        agentName: profile?.full_name || 'Property Advisor',
+        agentPhone: user?.phone || '',
+        propertyTitle: property.title,
+        projectName: property.project_name,
+        builderName: property.builder_name,
+        location: property.location,
+        price: property.price,
+        configuration: property.configuration,
+        bedrooms: property.bedrooms,
+        carpetArea: property.carpet_area,
+        facing: property.facing,
+        possessionStatus: property.possession_status,
+        possessionDate: property.possession_date,
+        reraId: property.rera_id,
+        tags: property.tags,
+      });
+      const cleanTitle = (property.title || 'Property')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 30);
+      const filename = `Brochure_${cleanTitle}.pdf`;
+      const pdfFile = new File([blob], filename, { type: 'application/pdf' });
+
+      // Upload to chat-media bucket via uploadAccountMedia
+      const { publicUrl } = await uploadAccountMedia('chat-media', pdfFile);
+
+      // Call /api/whatsapp/send with message_type: 'document'
+      const res = await fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact_id: contact.id,
+          message_type: 'document',
+          media_url: publicUrl,
+          filename,
+          content_text: `Brochure for ${property.title} (${property.location || 'Listing'})`,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to dispatch PDF via WhatsApp');
+      }
+
+      toast.success(t('pdfSentSuccess'));
+      onOpenChange(false);
+    } catch (err: unknown) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : t('pdfSendFailed'));
+    } finally {
+      setSendingBrochurePdf(false);
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-h-[85vh] w-full max-w-[95vw] overflow-x-hidden overflow-y-auto p-4 sm:max-w-xl sm:p-6">
@@ -234,20 +339,37 @@ export function PropertyShareModal({
               <Label className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {t('previewLabel')}
               </Label>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleCopy}
-                className="h-8 gap-1.5 text-xs"
-              >
-                {copied ? (
-                  <Check className="size-3.5 text-green-500" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )}
-                {copied ? t('copied') : t('copy')}
-              </Button>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadBrochurePdf}
+                  disabled={generatingPdf}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {generatingPdf ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Download className="size-3.5" />
+                  )}
+                  {t('downloadPdf')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopy}
+                  className="h-8 gap-1.5 text-xs"
+                >
+                  {copied ? (
+                    <Check className="size-3.5 text-green-500" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                  {copied ? t('copied') : t('copy')}
+                </Button>
+              </div>
             </div>
 
             <div className="border-border bg-muted/40 text-foreground rounded-lg border p-3 font-mono text-xs leading-relaxed whitespace-pre-wrap select-all">
@@ -286,8 +408,21 @@ export function PropertyShareModal({
                   </Button>
                 </div>
 
-                {/* Primary Dual Action Buttons for Selected Contact */}
+                {/* Primary Actions for Selected Contact */}
                 <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleSendPdfToContact(selectedContact)}
+                    disabled={!selectedContact.phone || sendingBrochurePdf}
+                    className="h-10 gap-2 bg-blue-600 text-xs font-medium text-white hover:bg-blue-700 sm:col-span-2"
+                  >
+                    {sendingBrochurePdf ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <FileText className="size-4" />
+                    )}
+                    {t('sendPdf')}
+                  </Button>
                   <Button
                     type="button"
                     onClick={() => handleSendToContact(selectedContact)}

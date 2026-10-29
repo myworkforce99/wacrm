@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import type { SiteVisit, Contact, Property } from '@/types';
 import {
   Dialog,
@@ -47,6 +48,7 @@ export function VisitDeleteDialog({
   const t = useTranslations('SiteVisits.delete');
   const supabase = createClient();
   const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
   if (!visit) return null;
 
@@ -76,6 +78,7 @@ export function VisitDeleteDialog({
 
       toast.success(t('toastSuccess'));
       onDeleted(visit.id);
+      void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
       onOpenChange(false);
     } catch (err: unknown) {
       console.error('Error deleting site visit:', err);

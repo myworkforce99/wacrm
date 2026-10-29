@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useRef, useTransition, useId } from 'react';
 import { useTranslations } from 'next-intl';
-import { SocialAccount } from '@/types';
+import type { SocialAccount } from '@/types';
 import { createClient } from '@/lib/supabase/client';
-import { uploadAccountMedia } from '@/lib/storage/upload-media';
+import {
+  uploadAccountMedia,
+  compressImageIfNeeded,
+} from '@/lib/storage/upload-media';
 import {
   Sheet,
   SheetContent,
@@ -227,16 +230,17 @@ export function PostComposerSheet({
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
-    if (!file.type.startsWith('image/')) {
+    if (!rawFile.type.startsWith('image/')) {
       toast.error('Only image files (PNG, JPG, WebP) are supported');
       return;
     }
 
     setUploading(true);
     try {
+      const file = await compressImageIfNeeded(rawFile);
       let result;
       try {
         result = await uploadAccountMedia('social-media', file);

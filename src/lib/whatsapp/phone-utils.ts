@@ -1,3 +1,10 @@
+import {
+  parsePhoneNumberFromString,
+  type CountryCode,
+} from 'libphonenumber-js/min';
+
+export type { CountryCode };
+
 /**
  * Sanitize phone number for Meta WhatsApp API.
  * Meta requires digits only — no + prefix, no spaces, no dashes.
@@ -18,92 +25,192 @@ export function normalizePhone(phone: string): string {
 }
 
 /**
- * Compare two phone numbers accounting for trunk prefix differences.
- * e.g. "370063949836" (with trunk 0) matches "37063949836" (without trunk 0)
- * by comparing the last 8 digits.
- */
-export function phonesMatch(phone1: string, phone2: string): boolean {
-  const n1 = normalizePhone(phone1);
-  const n2 = normalizePhone(phone2);
-  if (n1 === n2) return true;
-  if (n1.length >= 8 && n2.length >= 8) {
-    return n1.slice(-8) === n2.slice(-8);
-  }
-  return false;
-}
-
-/**
  * Validate a *stored or inbound* phone number is E.164-like: 8–15 digits
  * starting with a non-zero digit, optional + prefix.
  *
  * This is the check for digit strings we already hold — a contact row,
- * Meta's `wa_id`, a broadcast recipient — so it accepts the digits-only
- * form Meta uses. It cannot tell a national number from an international
- * one ("4155551212" is a US number to the person who typed it and a Swiss
- * one to Meta), which is why numbers entered by a person or an integrator
- * must go through `parseInternationalPhone` instead (issue #586).
- *
- * The floor is 8 digits, not E.164's theoretical 7: a country code plus the
- * shortest national numbering plans in real use is 8+, and 7 admitted most
- * national formats. (Only a handful of tiny territories — Niue, Tokelau,
- * Saint Helena — have 7-digit international numbers.)
+ * Meta's `wa_id`, a broadcast recipient — accepting the digits-only
+ * form Meta uses.
  */
 export function isValidE164(phone: string): boolean {
   return /^\+?[1-9]\d{7,14}$/.test(phone);
 }
 
 /**
- * Parse a phone number as typed by a person or sent by an API integrator.
- *
- * Requires the international `+` prefix so the country code is explicit,
- * then returns the digits-only form Meta wants — or null. Formatting noise
- * (spaces, dots, dashes, parentheses) between the digits is tolerated:
- * "+1 (415) 555-1212" → "14155551212".
- *
- * Without the `+` requirement a national-format number passes `isValidE164`
- * and is delivered to whichever country its leading digits happen to spell:
- * "4155551212" (US, national) is sent as +41 55 555 12 12 (Switzerland),
- * Meta accepts it, and the send looks successful (issue #586). Making the
- * `+` load-bearing at every boundary where raw input enters is what the
- * error messages ("E.164 format, e.g. +14155550123") already promised.
+ * Helper to parse a phone string safely using libphonenumber-js.
  */
-export function parseInternationalPhone(
-  raw: string | null | undefined
-): string | null {
-  if (!raw) return null;
-  let compact = raw.trim().replace(/[\s().-]/g, '');
+function parsePhone(
+  raw: string | null | undefined,
+  defaultCountry: CountryCode = 'IN'
+) {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
 
-  // Implicitly treat 10-digit Indian mobile numbers as +91 if missing
-  if (!compact.startsWith('+') && /^[6-9]\d{9}$/.test(compact)) {
-    compact = '+91' + compact;
+  if (trimmed.startsWith('+')) {
+    const parsed = parsePhoneNumberFromString(trimmed);
+    if (parsed && (parsed.isValid() || parsed.isPossible())) return parsed;
   }
 
-  if (!compact.startsWith('+')) return null;
-  const digits = compact.slice(1);
-  if (!/^\d+$/.test(digits)) return null;
-  return isValidE164(digits) ? digits : null;
+  const compact = trimmed.replace(/[\s().-]/g, '');
+  if (defaultCountry === 'IN') {
+    if (/^[6-9]\d{9}$/.test(compact)) {
+      const parsed = parsePhoneNumberFromString('+91' + compact);
+      if (parsed && (parsed.isValid() || parsed.isPossible())) return parsed;
+    } else if (/^0[6-9]\d{9}$/.test(compact)) {
+      const parsed = parsePhoneNumberFromString('+91' + compact.slice(1));
+      if (parsed && (parsed.isValid() || parsed.isPossible())) return parsed;
+    } else if (/^91[6-9]\d{9}$/.test(compact)) {
+      const parsed = parsePhoneNumberFromString('+' + compact);
+      if (parsed && (parsed.isValid() || parsed.isPossible())) return parsed;
+    }
+  }
+
+  if (!trimmed.startsWith('+')) {
+    const withPlus = parsePhoneNumberFromString('+' + compact);
+    if (withPlus && (withPlus.isValid() || withPlus.isPossible()))
+      return withPlus;
+  }
+
+  const parsed = parsePhoneNumberFromString(trimmed, defaultCountry);
+  if (parsed && parsed.isValid()) return parsed;
+
+  return null;
+}
+
+/**
+ * Parse a phone number as typed by a person or sent by an API integrator.
+ *
+ * Enforces explicit country code (via leading `+` or recognized Indian mobile format),
+ * and returns the true E.164 format (e.g. "+919876543210" or "+14155551212") — or null.
+ * Rejects ambiguous national formats without country code (issue #586).
+ */
+export function parseInternationalPhone(
+  raw: string | null | undefined,
+  defaultCountry: CountryCode = 'IN'
+): string | null {
+  if (!raw || typeof raw !== 'string') return null;
+  const compact = raw.trim().replace(/[\s().-]/g, '');
+  if (!compact) return null;
+
+  // If there's no '+', only allow recognized domestic formats when defaultCountry is set
+  if (!compact.startsWith('+')) {
+    if (defaultCountry === 'IN') {
+      if (/^[6-9]\d{9}$/.test(compact)) {
+        const parsed = parsePhoneNumberFromString('+91' + compact);
+        return parsed && (parsed.isValid() || parsed.isPossible())
+          ? parsed.format('E.164')
+          : null;
+      }
+      if (/^0[6-9]\d{9}$/.test(compact)) {
+        const parsed = parsePhoneNumberFromString('+91' + compact.slice(1));
+        return parsed && (parsed.isValid() || parsed.isPossible())
+          ? parsed.format('E.164')
+          : null;
+      }
+      if (/^91[6-9]\d{9}$/.test(compact)) {
+        const parsed = parsePhoneNumberFromString('+' + compact);
+        return parsed && (parsed.isValid() || parsed.isPossible())
+          ? parsed.format('E.164')
+          : null;
+      }
+      // Without +, reject ambiguous national formats (e.g. 4155551212, 14155551212, 07700900123)
+      return null;
+    } else {
+      const parsed = parsePhoneNumberFromString(compact, defaultCountry);
+      return parsed && (parsed.isValid() || parsed.isPossible())
+        ? parsed.format('E.164')
+        : null;
+    }
+  }
+
+  const parsed = parsePhoneNumberFromString(compact);
+  if (parsed && (parsed.isValid() || parsed.isPossible())) {
+    return parsed.format('E.164');
+  }
+  return null;
+}
+
+/**
+ * Compare two phone numbers using libphonenumber-js to detect whether
+ * they represent the same subscriber, accounting for country codes,
+ * trunk prefixes (e.g. Lithuanian 3700... vs 370..., Indian 098... vs +9198...),
+ * and formatting differences.
+ * Eliminates naive 8-digit substring collisions.
+ */
+export function phonesMatch(
+  phone1: string,
+  phone2: string,
+  defaultCountry: CountryCode = 'IN'
+): boolean {
+  if (!phone1 || !phone2) return false;
+  let p1 = parsePhone(phone1, defaultCountry);
+  let p2 = parsePhone(phone2, defaultCountry);
+
+  // If one had country code (e.g. +1 ...) and the other had national format,
+  // retry parsing the other with the known country code
+  if (
+    p2 &&
+    (p2.isValid() || p2.isPossible()) &&
+    (!p1 || (!p1.isValid() && !p1.isPossible()) || !phone1.startsWith('+'))
+  ) {
+    if (p2.country) {
+      const p1Retry = parsePhoneNumberFromString(phone1, p2.country);
+      if (p1Retry && (p1Retry.isValid() || p1Retry.isPossible())) p1 = p1Retry;
+    }
+  }
+  if (
+    p1 &&
+    (p1.isValid() || p1.isPossible()) &&
+    (!p2 || (!p2.isValid() && !p2.isPossible()) || !phone2.startsWith('+'))
+  ) {
+    if (p1.country) {
+      const p2Retry = parsePhoneNumberFromString(phone2, p1.country);
+      if (p2Retry && (p2Retry.isValid() || p2Retry.isPossible())) p2 = p2Retry;
+    }
+  }
+
+  if (
+    p1 &&
+    p2 &&
+    (p1.isValid() || p1.isPossible()) &&
+    (p2.isValid() || p2.isPossible())
+  ) {
+    return p1.number === p2.number;
+  }
+
+  // Fallback: if both are identical digit strings (e.g. for non-standard test stubs)
+  const d1 = normalizePhone(phone1);
+  const d2 = normalizePhone(phone2);
+  return !!d1 && d1 === d2;
+}
+
+/**
+ * Format phone number smoothly for display.
+ * Returns formatted international string (+91 98765 43210, +1 415 555 1212)
+ * or national format if requested.
+ */
+export function formatPhoneDisplay(
+  phone: string | null | undefined,
+  defaultCountry: CountryCode = 'IN',
+  format: 'international' | 'national' = 'international'
+): string {
+  if (!phone || typeof phone !== 'string') return '';
+  const trimmed = phone.trim();
+  if (!trimmed) return '';
+
+  const parsed = parsePhone(trimmed, defaultCountry);
+  if (parsed && (parsed.isValid() || parsed.isPossible())) {
+    return format === 'national'
+      ? parsed.formatNational()
+      : parsed.formatInternational();
+  }
+  return trimmed;
 }
 
 /**
  * Generate plausible phone number variants for retry when Meta's
  * sandbox rejects a number with error #131030 ("not in allowed list").
- *
- * Many countries use a "trunk prefix" 0 for domestic dialing that is
- * meant to be dropped in international format (e.g. Lithuanian
- * "+370 063 949 836" domestically → "+370 63 949 836" international).
- * But some sandboxes register the number with the trunk 0 included,
- * causing sends to the correct international format to fail.
- *
- * This helper yields up to 3 variants:
- *   1. The original sanitized number (first attempt)
- *   2. With a trunk 0 inserted after the country code
- *   3. With a trunk 0 removed after the country code
- *
- * Country-code lengths of 1, 2, and 3 digits are tried because we
- * don't know the user's country ahead of time.
- *
- * @param sanitized - digits-only phone number (from sanitizePhoneForMeta)
- * @returns deduplicated list of variants, original first
  */
 export function phoneVariants(sanitized: string): string[] {
   if (!sanitized) return [];
@@ -141,7 +248,6 @@ export function phoneVariants(sanitized: string): string[] {
 /**
  * Returns true when the Meta API error indicates the recipient
  * phone number isn't in the allowed list (sandbox restriction).
- * Detected via error code 131030 or the standard error text.
  */
 export function isRecipientNotAllowedError(message: string): boolean {
   return /131030|not in allowed list|not in the allowed list/i.test(message);

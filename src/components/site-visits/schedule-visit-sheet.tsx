@@ -25,6 +25,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import {
   Sheet,
@@ -49,6 +50,7 @@ import {
 import { SourceBadge } from '@/components/ui/source-badge';
 import { avatarColorForName, initialsForName } from '@/lib/avatar-color';
 import { formatINR } from '@/lib/currency';
+import { formatPhoneDisplay } from '@/lib/whatsapp/phone-utils';
 import type { Property, Profile, SiteVisit, SiteVisitStatus } from '@/types';
 import { canManageMembers } from '@/lib/auth/roles';
 import { cn } from '@/lib/utils';
@@ -144,6 +146,7 @@ export function ScheduleVisitSheet({
   const supabase = createClient();
   const { accountId, user, profile, accountRole } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
+  const queryClient = useQueryClient();
 
   // Reference data
   const [contacts, setContacts] = useState<ContactWithLead[]>([]);
@@ -496,6 +499,8 @@ export function ScheduleVisitSheet({
     setSaving(false);
     toast.success(isEditMode ? t('toastUpdated') : t('toastSuccess'));
     onSuccess();
+    void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
+    void queryClient.invalidateQueries({ queryKey: ['contacts'] });
     onOpenChange(false);
   }
 
@@ -578,7 +583,9 @@ export function ScheduleVisitSheet({
                         </div>
                         <div className="text-muted-foreground flex flex-wrap items-center gap-1.5 text-xs">
                           {selectedContact.phone && (
-                            <span>{selectedContact.phone}</span>
+                            <span>
+                              {formatPhoneDisplay(selectedContact.phone)}
+                            </span>
                           )}
                           {(selectedContact.lead_details?.budget_min ||
                             selectedContact.lead_details?.budget_max) && (
@@ -646,7 +653,9 @@ export function ScheduleVisitSheet({
                             }`}
                           >
                             <span className="truncate">
-                              {c.name ? `${c.name} · ${c.phone}` : c.phone}
+                              {c.name
+                                ? `${c.name} · ${formatPhoneDisplay(c.phone)}`
+                                : formatPhoneDisplay(c.phone)}
                               {c.lead_details?.source
                                 ? ` (${c.lead_details.source})`
                                 : ''}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 import type { Property } from '@/types';
 import {
   Dialog,
@@ -36,6 +37,7 @@ export function PropertyDeleteDialog({
   const { accountRole } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const [deleting, setDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
   if (!property) return null;
 
@@ -59,6 +61,10 @@ export function PropertyDeleteDialog({
 
       toast.success(t('toastSuccess', { title: property.title }));
       onDeleted(property.id);
+      void queryClient.invalidateQueries({ queryKey: ['properties'] });
+      void queryClient.invalidateQueries({
+        queryKey: ['property', property.id],
+      });
       onOpenChange(false);
     } catch (err: unknown) {
       console.error(err);

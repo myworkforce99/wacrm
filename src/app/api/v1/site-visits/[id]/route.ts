@@ -1,7 +1,7 @@
 import { requireApiKey } from '@/lib/auth/api-context';
 import { ok, fail, toApiErrorResponse } from '@/lib/api/v1/respond';
 import { getSiteVisitById, SiteVisitError } from '@/lib/api/v1/site-visits';
-import type { SiteVisitStatus } from '@/types';
+import { SiteVisitPatchSchema } from '@/lib/schemas';
 
 export async function GET(
   request: Request,
@@ -30,47 +30,33 @@ export async function PATCH(
       string,
       unknown
     > | null;
-    if (!body || typeof body !== 'object') {
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return fail('bad_request', 'Request body must be a JSON object', 400);
     }
 
     const existing = await getSiteVisitById(ctx.supabase, ctx.accountId, id);
     if (!existing) return fail('not_found', 'Site visit not found', 404);
 
-    const updates: Record<string, unknown> = {};
-    if (
-      'contact_id' in body &&
-      (typeof body.contact_id === 'string' || body.contact_id === null)
-    )
-      updates.contact_id = body.contact_id;
-    if (
-      'property_id' in body &&
-      (typeof body.property_id === 'string' || body.property_id === null)
-    )
-      updates.property_id = body.property_id;
-    if (
-      'scheduled_at' in body &&
-      (typeof body.scheduled_at === 'string' || body.scheduled_at === null)
-    )
-      updates.scheduled_at = body.scheduled_at;
-    if ('status' in body && typeof body.status === 'string') {
-      const validStatuses: SiteVisitStatus[] = [
-        'pending',
-        'confirmed',
-        'completed',
-        'no_show',
-        'rescheduled',
-      ];
-      if (!validStatuses.includes(body.status as SiteVisitStatus)) {
-        return fail('bad_request', 'Invalid status', 400);
-      }
-      updates.status = body.status;
+    const parsed = SiteVisitPatchSchema.safeParse(body);
+    if (!parsed.success) {
+      return fail(
+        'bad_request',
+        parsed.error.issues[0]?.message ?? 'Invalid input',
+        400
+      );
     }
-    if (
-      'notes' in body &&
-      (typeof body.notes === 'string' || body.notes === null)
-    )
-      updates.notes = body.notes;
+
+    const updates: Record<string, unknown> = {};
+    const val = parsed.data;
+    if (val.contact_id !== undefined) updates.contact_id = val.contact_id;
+    if (val.property_id !== undefined) updates.property_id = val.property_id;
+    if (val.scheduled_at !== undefined) updates.scheduled_at = val.scheduled_at;
+    if (val.status !== undefined) updates.status = val.status;
+    if (val.notes !== undefined) updates.notes = val.notes;
+    if (val.pickup_required !== undefined)
+      updates.pickup_required = val.pickup_required;
+    if (val.pickup_location !== undefined)
+      updates.pickup_location = val.pickup_location;
 
     if (Object.keys(updates).length > 0) {
       updates.updated_at = new Date().toISOString();

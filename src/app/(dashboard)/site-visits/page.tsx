@@ -13,8 +13,9 @@
  *  - Full 4-locale i18n parity, dark & light mode styling, and React 19 safety
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -774,15 +775,118 @@ const PAST_DEFAULT_COUNT = 5;
 export default function SiteVisitsPage() {
   const t = useTranslations('SiteVisits.page');
   const supabase = createClient();
-  const { user, accountRole } = useAuth();
+  const { user, accountRole, accountId } = useAuth();
   const isManager = accountRole ? canManageMembers(accountRole) : false;
   const isViewOnly = useCan('view-only');
   const canEdit = !isViewOnly;
+  const queryClient = useQueryClient();
 
-  // Data states
-  const [visits, setVisits] = useState<VisitWithDetails[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Query visits and profiles with React Query
+  const {
+    data: siteVisitsData,
+    isLoading: loading,
+    refetch: refetchVisits,
+  } = useQuery({
+    queryKey: ['site-visits', accountId],
+    queryFn: async () => {
+      const [{ data: visitData, error: visitError }, { data: profileData }] =
+        await Promise.all([
+          supabase
+            .from('site_visits')
+            .select(
+              `
+              *,
+              contact:contacts(
+                id,
+                name,
+                phone,
+                email,
+                lead_details:lead_details(
+                  source,
+                  budget_min,
+                  budget_max,
+                  location_preference,
+                  configuration_preference
+                )
+              ),
+              property:properties(
+                id,
+                title,
+                project_name,
+                builder_name,
+                location,
+                configuration,
+                bedrooms,
+                price
+              ),
+              tasks:tasks(
+                id,
+                assigned_to,
+                due_at,
+                done
+              )
+            `
+            )
+            .order('scheduled_at', { ascending: true }),
+          supabase
+            .from('profiles')
+            .select('id, user_id, full_name, email, avatar_url')
+            .order('full_name'),
+        ]);
+
+      if (visitError) {
+        console.error('Error fetching site visits:', visitError);
+        toast.error(t('errorLoad'));
+        throw visitError;
+      }
+
+      const rawVisits = (visitData ?? []) as unknown as Array<
+        SiteVisit & {
+          contact?:
+            | (Contact & {
+                lead_details?: VisitWithDetails['contact'] extends {
+                  lead_details?: infer L;
+                }
+                  ? L
+                  : unknown;
+              })
+            | null;
+          property?: Property | null;
+          tasks?: VisitWithDetails['tasks'];
+        }
+      >;
+      const normalizedVisits: VisitWithDetails[] = rawVisits.map((v) => {
+        const contact = v.contact
+          ? {
+              ...v.contact,
+              lead_details: Array.isArray(v.contact.lead_details)
+                ? (v.contact.lead_details[0] ?? null)
+                : (v.contact.lead_details ?? null),
+            }
+          : null;
+        return {
+          ...v,
+          contact,
+          property: v.property ?? null,
+        };
+      });
+
+      return {
+        visits: normalizedVisits,
+        profiles: (profileData ?? []) as Profile[],
+      };
+    },
+    enabled: !!accountId,
+  });
+
+  const visits = useMemo(
+    () => siteVisitsData?.visits ?? [],
+    [siteVisitsData?.visits]
+  );
+  const profiles = useMemo(
+    () => siteVisitsData?.profiles ?? [],
+    [siteVisitsData?.profiles]
+  );
 
   // Filters state
   const [search, setSearch] = useState('');
@@ -847,106 +951,6 @@ export default function SiteVisitsPage() {
     [profilesById, profilesByUserId]
   );
 
-  // Fetch visits and profiles
-  const fetchVisits = useCallback(async () => {
-    setLoading(true);
-    const [{ data: visitData, error: visitError }, { data: profileData }] =
-      await Promise.all([
-        supabase
-          .from('site_visits')
-          .select(
-            `
-            *,
-            contact:contacts(
-              id,
-              name,
-              phone,
-              email,
-              lead_details:lead_details(
-                source,
-                budget_min,
-                budget_max,
-                location_preference,
-                configuration_preference
-              )
-            ),
-            property:properties(
-              id,
-              title,
-              project_name,
-              builder_name,
-              location,
-              configuration,
-              bedrooms,
-              price
-            ),
-            tasks:tasks(
-              id,
-              assigned_to,
-              due_at,
-              done
-            )
-          `
-          )
-          .order('scheduled_at', { ascending: true }),
-        supabase
-          .from('profiles')
-          .select('id, user_id, full_name, email, avatar_url')
-          .order('full_name'),
-      ]);
-
-    if (visitError) {
-      console.error('Error fetching site visits:', visitError);
-      toast.error(t('errorLoad'));
-    } else {
-      const rawVisits = (visitData ?? []) as unknown as Array<
-        SiteVisit & {
-          contact?:
-            | (Contact & {
-                lead_details?: VisitWithDetails['contact'] extends {
-                  lead_details?: infer L;
-                }
-                  ? L
-                  : unknown;
-              })
-            | null;
-          property?: Property | null;
-          tasks?: VisitWithDetails['tasks'];
-        }
-      >;
-      const normalizedVisits: VisitWithDetails[] = rawVisits.map((v) => {
-        const contact = v.contact
-          ? {
-              ...v.contact,
-              lead_details: Array.isArray(v.contact.lead_details)
-                ? (v.contact.lead_details[0] ?? null)
-                : (v.contact.lead_details ?? null),
-            }
-          : null;
-        return {
-          ...v,
-          contact,
-          property: v.property ?? null,
-        };
-      });
-      setVisits(normalizedVisits);
-    }
-
-    if (profileData) {
-      setProfiles(profileData as Profile[]);
-    }
-
-    setLoading(false);
-  }, [supabase, t]);
-
-  // React 19 safe deferred fetch
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchVisits();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [fetchVisits]);
-
   // Status transition handler
   async function updateStatus(id: string, newStatus: string) {
     const { error } = await supabase
@@ -975,7 +979,7 @@ export default function SiteVisitsPage() {
     }
 
     toast.success(t('toastStatusUpdated'));
-    void fetchVisits();
+    void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
   }
 
   function handleEdit(visit: VisitWithDetails) {
@@ -1215,7 +1219,11 @@ export default function SiteVisitsPage() {
     : pastVisits.slice(0, PAST_DEFAULT_COUNT);
 
   return (
-    <PullToRefresh onRefresh={fetchVisits}>
+    <PullToRefresh
+      onRefresh={async () => {
+        await refetchVisits();
+      }}
+    >
       <div className="space-y-6 pb-20">
         {/* Header */}
         <PageHeader
@@ -2057,7 +2065,9 @@ export default function SiteVisitsPage() {
         <ScheduleVisitSheet
           open={scheduleOpen}
           onOpenChange={handleScheduleOpenChange}
-          onSuccess={fetchVisits}
+          onSuccess={() => {
+            void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
+          }}
           visit={editingVisit ?? undefined}
         />
 
@@ -2067,7 +2077,7 @@ export default function SiteVisitsPage() {
           onOpenChange={setDeleteOpen}
           visit={deletingVisit}
           onDeleted={() => {
-            void fetchVisits();
+            void queryClient.invalidateQueries({ queryKey: ['site-visits'] });
           }}
         />
       </div>

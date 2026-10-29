@@ -45,6 +45,8 @@ export async function GET(request: Request) {
   }
 }
 
+import { TaskInputSchema } from '@/lib/schemas/task';
+
 export async function POST(request: Request) {
   let ctx;
   try {
@@ -54,24 +56,29 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  if (!body)
+  if (!body || typeof body !== 'object')
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
 
-  const title = typeof body.title === 'string' ? body.title.trim() : '';
-  if (!title) {
-    return NextResponse.json({ error: 'title is required' }, { status: 400 });
+  const parsed = TaskInputSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+      { status: 400 }
+    );
   }
+  const val = parsed.data;
 
   const { data, error } = await ctx.supabase
     .from('tasks')
     .insert({
       account_id: ctx.accountId,
       created_by: ctx.userId,
-      title,
-      contact_id: body.contact_id || null,
-      site_visit_id: body.site_visit_id || null,
-      due_at: body.due_at || null,
-      assigned_to: body.assigned_to || null,
+      title: val.title,
+      contact_id: val.contact_id ?? null,
+      site_visit_id: val.site_visit_id ?? null,
+      due_at: val.due_at ?? null,
+      assigned_to: val.assigned_to ?? null,
+      done: val.done,
     })
     .select()
     .single();

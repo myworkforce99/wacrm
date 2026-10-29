@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useTranslations } from 'next-intl';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function BulkReassignModal({
   open,
@@ -30,6 +31,7 @@ export function BulkReassignModal({
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (open) {
@@ -61,6 +63,7 @@ export function BulkReassignModal({
       if (!res.ok) throw new Error('Failed to reassign');
       toast.success(t('success', { count: selectedIds.length }));
       onSuccess();
+      void queryClient.invalidateQueries({ queryKey: ['contacts'] });
       onOpenChange(false);
     } catch {
       toast.error(t('error'));

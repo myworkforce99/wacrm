@@ -2643,7 +2643,14 @@
       "chatInCrm": "Chat no CRM",
       "contactNoPhone": "Este contato não possui um número de telefone válido.",
       "toastCopied": "Mensagem do folheto copiada para a área de transferência!",
-      "toastCopyFailed": "Falha ao copiar a mensagem para a área de transferência."
+      "toastCopyFailed": "Falha ao copiar a mensagem para a área de transferência.",
+      "downloadPdf": "Baixar Folheto em PDF",
+      "sendPdf": "Enviar PDF pelo WhatsApp",
+      "generatingPdf": "Gerando PDF...",
+      "uploadingPdf": "Enviando PDF...",
+      "pdfSentSuccess": "Folheto em PDF enviado ao contato! ✓",
+      "pdfSendFailed": "Falha ao enviar o folheto em PDF.",
+      "pdfDownloaded": "Folheto em PDF baixado."
     },
     "delete": {
       "title": "Excluir Propriedade",
@@ -2661,6 +2668,35 @@
       "bedrooms": "Quartos",
       "tags": "Tags"
     }
+  },
+  "CostSheet": {
+    "title": "Enviar Folha de Custos",
+    "description": "Gere uma folha de custos imobiliários discriminada para baixar ou enviar via WhatsApp.",
+    "selectContact": "Selecionar Contato",
+    "selectContactPlaceholder": "Selecione um contato...",
+    "selectProperty": "Selecionar Imóvel",
+    "noPropertiesFound": "Nenhum imóvel correspondente encontrado.",
+    "priceOnRequest": "Preço sob consulta",
+    "previewMessage": "Pré-visualização da Mensagem de Texto",
+    "itemizedEstimate": "Detalhamento de Custos",
+    "sendViaWhatsApp": "Enviar Texto pelo WhatsApp",
+    "downloadPdf": "Baixar PDF",
+    "sendPdfWhatsApp": "Enviar PDF pelo WhatsApp",
+    "generatingPdf": "Gerando PDF...",
+    "pdfSentSuccess": "Folha de custos em PDF enviada! ✓",
+    "pdfSendFailed": "Falha ao enviar a folha de custos em PDF",
+    "pdfDownloaded": "Folha de custos em PDF baixada.",
+    "textSentSuccess": "Folha de custos enviada! ✓",
+    "textSendFailed": "Falha ao enviar a folha de custos",
+    "noTemplateConfigured": "Nenhum modelo de folha de custos configurado.",
+    "setUpInSettings": "Configure em Configurações → Folha de Custos.",
+    "agreementValue": "Valor do Contrato",
+    "floorRise": "Taxa de Andar Elevado",
+    "parking": "Vaga de Garagem Coberta",
+    "gst": "Imposto GST Legal",
+    "stampDuty": "Imposto de Selo",
+    "registration": "Taxa de Registro e Documentação",
+    "totalEstimate": "Total Estimado com Tudo Incluído"
   },
   "Integrations": {
     "capture_email": {

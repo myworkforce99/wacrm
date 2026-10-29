@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireRole, toErrorResponse } from '@/lib/auth/account';
 import { supabaseAdmin } from '@/lib/automations/admin-client';
 import { canMoveDeal, canManageMembers } from '@/lib/auth/roles';
+import { DealPatchSchema } from '@/lib/schemas/deal';
 import type { DealStatus } from '@/types';
 
 /**
@@ -46,6 +47,19 @@ export async function PATCH(
   if (!body) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
+
+  const parsed = DealPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: 'INVALID_DEAL_PAYLOAD',
+        message: parsed.error.issues[0]?.message ?? 'Invalid deal payload',
+        issues: parsed.error.issues,
+      },
+      { status: 400 }
+    );
+  }
+  const validated = parsed.data;
 
   // deals.assigned_to stores profiles.id — join to resolve the agent's user_id
   // so canMoveDeal can compare against ctx.userId (auth UUID).
@@ -107,7 +121,7 @@ export async function PATCH(
   // These fields are computed server-side; client values for them are
   // stripped (except lost_reason_id / lost_note which the client supplies).
 
-  const incomingStatus = body.status as DealStatus | undefined;
+  const incomingStatus = validated.status;
   const currentStatus = deal.status as DealStatus | undefined;
 
   // Build the safe update payload from the allowed client fields
@@ -128,7 +142,7 @@ export async function PATCH(
     expected_close_date,
     assigned_to,
     stage_id: incomingStageId,
-  } = body;
+  } = validated;
   void _statusRaw; // acknowledged via incomingStatus
 
   // Block stage moves for non-open deals: a closed deal card should not

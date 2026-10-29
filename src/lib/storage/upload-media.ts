@@ -1,3 +1,4 @@
+import imageCompression from 'browser-image-compression';
 import { createClient } from '@/lib/supabase/client';
 
 /**
@@ -84,6 +85,48 @@ export interface UploadAccountMediaResult {
 }
 
 /**
+ * Client-side image compression to prevent upload failures on large camera photos
+ * (> 5MB) while avoiding artifacts on SVGs, GIFs, and small images.
+ */
+export async function compressImageIfNeeded(file: File): Promise<File> {
+  // Guard against SSR / non-browser environments
+  if (typeof window === 'undefined') {
+    return file;
+  }
+
+  // Only compress raster images; skip SVGs, GIFs, and non-image files
+  if (
+    !file.type.startsWith('image/') ||
+    file.type === 'image/svg+xml' ||
+    file.type === 'image/gif'
+  ) {
+    return file;
+  }
+
+  // If already under 1.5MB, no compression needed
+  if (file.size <= 1.5 * 1024 * 1024) {
+    return file;
+  }
+
+  try {
+    const options = {
+      maxSizeMB: 1.5,
+      maxWidthOrHeight: 1920,
+      useWebWorker: typeof Worker !== 'undefined',
+      fileType: file.type,
+    };
+    const compressed = await imageCompression(file, options);
+    return new File([compressed], file.name, { type: file.type });
+  } catch (err) {
+    console.warn(
+      '[upload-media] Client compression failed, using original file:',
+      err
+    );
+    return file;
+  }
+}
+
+/**
  * Upload a file to an account-scoped Storage bucket and return its public
  * URL. Throws with a user-facing message on auth / account-resolution /
  * upload failure — callers surface it via a toast.
@@ -95,6 +138,7 @@ export async function uploadAccountMedia(
   bucket: string,
   file: File
 ): Promise<UploadAccountMediaResult> {
+  const processedFile = await compressImageIfNeeded(file);
   const supabase = createClient();
 
   const {
@@ -117,13 +161,13 @@ export async function uploadAccountMedia(
     throw new Error('Could not resolve your account.');
   }
 
-  const path = buildMediaPath(profile.account_id as string, file.name);
+  const path = buildMediaPath(profile.account_id as string, processedFile.name);
   const { error: upErr } = await supabase.storage
     .from(bucket)
-    .upload(path, file, {
+    .upload(path, processedFile, {
       cacheControl: '3600',
       upsert: false,
-      contentType: file.type,
+      contentType: processedFile.type,
     });
   if (upErr) throw new Error(upErr.message);
 

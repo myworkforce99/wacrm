@@ -25,6 +25,8 @@ export async function GET(
   }
 }
 
+import { TaskPatchSchema } from '@/lib/schemas/task';
+
 export async function PATCH(
   request: Request,
   props: { params: Promise<{ id: string }> }
@@ -38,17 +40,29 @@ export async function PATCH(
 
   const { id } = await props.params;
   const body = await request.json().catch(() => null);
-  if (!body)
+  if (!body || typeof body !== 'object')
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
 
-  const updates: Record<string, string | boolean | null> = {};
-  if (typeof body.title === 'string') updates.title = body.title.trim();
-  if (body.due_at !== undefined) updates.due_at = body.due_at;
-  if (body.assigned_to !== undefined) updates.assigned_to = body.assigned_to;
+  const parsed = TaskPatchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? 'Invalid input' },
+      { status: 400 }
+    );
+  }
+  const val = parsed.data;
 
-  if (typeof body.done === 'boolean') {
-    updates.done = body.done;
-    if (body.done) updates.done_at = new Date().toISOString();
+  const updates: Record<string, string | boolean | null> = {};
+  if (val.title !== undefined) updates.title = val.title;
+  if (val.due_at !== undefined) updates.due_at = val.due_at;
+  if (val.assigned_to !== undefined) updates.assigned_to = val.assigned_to;
+  if (val.contact_id !== undefined) updates.contact_id = val.contact_id;
+  if (val.site_visit_id !== undefined)
+    updates.site_visit_id = val.site_visit_id;
+
+  if (val.done !== undefined) {
+    updates.done = val.done;
+    if (val.done) updates.done_at = new Date().toISOString();
     else updates.done_at = null;
   }
 
